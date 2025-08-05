@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run train_agent.py with args",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/protomotions/train_agent.py",
+            "console": "integratedTerminal",
+            "args": [
+                "+exp=steering_mlp",
+                "+robot=g1",
+                "+simulator=isaaclab",
+                "+experiment_name=g1_steering"
+            ],
+            "env": {
+                "WANDB_DISABLE_SENTRY": "true",
+                "WANDB_SILENT": "true",
+                "WANDB_DISABLE_CODE": "true"
+            }
+        }
+    ]
+}
