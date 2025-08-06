@@ -144,4 +144,5 @@ if __name__ == "__main__":
     main()
 
 
-# python protomotions/train_agent.py +exp=path_follower_mlp +robot=g1 +simulator=isaaclab +experiment_name=g1_follow +opt=wandb ++num_envs=1024
+# python protomotions/train_agent.py +exp=path_follower_mlp +robot=g1 +simulator=isaaclab +experiment_name=g1_follow +opt=wandb
+# python protomotions/train_agent.py +exp=path_follower_mlp +robot=g1 +simulator=isaaclab +experiment_name=g1_follow_fixed +opt=wandb

@@ -42,7 +42,7 @@ class PathFollowing(BaseEnv):
     def create_visualization_markers(self):
         # override
 
-        if self.config.headless:
+        if self.config.headless and not self.config.init_viser:
             return {}
 
         visualization_markers = super().create_visualization_markers()
@@ -60,7 +60,7 @@ class PathFollowing(BaseEnv):
     def get_markers_state(self):
         # override
 
-        if self.config.headless:
+        if self.config.headless and not self.config.init_viser:
             return {}
 
         markers_state = super().get_markers_state()

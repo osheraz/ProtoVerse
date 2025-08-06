@@ -12,12 +12,10 @@ env:
     experiment_name: ${experiment_name}
     num_envs: ${num_envs}
     headless: ${headless}
+    init_viser: ${init_viser}
     
     simulator: ${simulator}
     
-    init_viser: ${init_viser}
-    plot_terrain_in_viser: ${plot_terrain_in_viser}
-
     max_episode_length: 300
     robot: ${robot}
 

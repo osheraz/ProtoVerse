@@ -48,8 +48,12 @@ class PathGenerator:
             sharp_mask = torch.bernoulli(sharp_probs) == 1.0
             dtheta[sharp_mask] = dtheta_sharp[sharp_mask]
 
-            if self.config.get('use_forward_path_only', False):
-                dtheta[:, 0] = np.pi * torch.ones(n, device=self.device)  # straight path
+            # if self.config.get("use_forward_path_only", False):
+            if self.config.use_forward_path_only:
+
+                dtheta[:, 0] = np.pi * torch.ones(
+                    n, device=self.device
+                )  # straight path
             else:
                 dtheta[:, 0] = np.pi * (
                     2 * torch.rand([n], device=self.device) - 1.0
@@ -59,9 +63,11 @@ class PathGenerator:
             dspeed *= self.config.accel_max * self.dt
             dspeed[:, 0] = (
                 self.config.start_speed_max - self.config.speed_min
-            ) * torch.rand([n], device=self.device) + self.config.speed_min  # Speed
+            ) * torch.rand(
+                [n], device=self.device
+            ) + self.config.speed_min  # Speed
 
-            dspeed_z = (2 * torch.rand([n, num_verts - 1], device=self.device) - 1.0)
+            dspeed_z = 2 * torch.rand([n, num_verts - 1], device=self.device) - 1.0
             dspeed_z *= self.config.accel_z_max * self.dt
 
             speed_z = torch.zeros_like(dspeed_z)
@@ -76,14 +82,14 @@ class PathGenerator:
                 else:
                     speed_z[:, i] = dspeed_z[:, i]  # Initial velocity
 
-                speed_z[:, i] = torch.clip(speed_z[:, i],
-                                         -self.config.speed_z_max,
-                                         self.config.speed_z_max)
+                speed_z[:, i] = torch.clip(
+                    speed_z[:, i], -self.config.speed_z_max, self.config.speed_z_max
+                )
 
                 head_height[:, i + 1] = head_height[:, i] + speed_z[:, i] * self.dt
-                head_height[:, i + 1] = torch.clip(head_height[:, i + 1],
-                                                   min=self.head_min,
-                                                   max=self.head_max)
+                head_height[:, i + 1] = torch.clip(
+                    head_height[:, i + 1], min=self.head_min, max=self.head_max
+                )
                 if self.use_naive_path_generator:
                     max_speed = self.config.speed_max
                 else:

@@ -9,7 +9,6 @@ simulator:
     headless: ${headless}
 
     init_viser: ${init_viser}
-    plot_terrain_in_viser: ${plot_terrain_in_viser}
 
     robot: ${robot}
     num_envs: ${num_envs}

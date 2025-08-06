@@ -50,6 +50,8 @@ noisy_loggers = [
     "trimesh",
     "yourdfpy",
     "charset_normalizer",
+    "AutoNode",
+    "h5py",
 ]
 
 for logger_name in noisy_loggers:
@@ -61,6 +63,7 @@ def main(override_config: OmegaConf):
     os.chdir(hydra.utils.get_original_cwd())
 
     console_log_level = os.environ.get("LOGURU_LEVEL", "INFO").upper()
+    logger.remove()
     logger.add(sys.stdout, level=console_log_level, colorize=True)
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)

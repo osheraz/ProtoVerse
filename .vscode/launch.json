@@ -2,16 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run train_agent.py with args",
+            "name": "Run eval_agent.py with args",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/protomotions/train_agent.py",
+            "program": "${workspaceFolder}/protomotions/eval_agent.py",
             "console": "integratedTerminal",
             "args": [
-                "+exp=steering_mlp",
                 "+robot=g1",
                 "+simulator=isaaclab",
-                "+experiment_name=g1_steering"
+                "+checkpoint=results/g1_follow/last.ckpt"
             ],
             "env": {
                 "WANDB_DISABLE_SENTRY": "true",

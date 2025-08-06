@@ -10,6 +10,7 @@ seed: 0
 training_max_steps: 10000000000
 codebase_version: 1.0  # this is recorded to enable auto-conversion of models between different versions of the codebase
 headless: True
+init_viser: False
 sync_motion: False
 
 ### Checkpoint logic
@@ -24,6 +25,3 @@ eval_overrides:
   headless: False
   num_envs: 1
 
-## Viser
-init_viser: True
-plot_terrain_in_viser: True

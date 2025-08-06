@@ -125,6 +125,9 @@ class IsaacLabSimulator(Simulator):
 
         if visualization_markers:
             self._build_markers(visualization_markers)
+            self.without_env_markers = False
+        else:
+            self.without_env_markers = True
 
         self._sim.reset()
 
@@ -133,6 +136,9 @@ class IsaacLabSimulator(Simulator):
             self.viser_lab = ViserLab(
                 scene=self._scene,
                 robot_config=self.robot_config,
+                marker_names=(
+                    visualization_markers.keys() if visualization_markers else None
+                ),
             )
 
     def _get_scene_cfg(self) -> SceneCfg:
@@ -376,64 +382,11 @@ class IsaacLabSimulator(Simulator):
                 not self.headless
                 or self._sim.has_rtx_sensors()
                 or hasattr(self, "viser_lab")
-            ):
-                self._update_viser()
+            ):  
+                if hasattr(self, "viser_lab"):
+                    self._update_viser()
                 self._sim.render()
             self._scene.update(dt=self._sim.get_physics_dt())
-
-    def _update_viser(self) -> None:
-
-        env_origins = (
-            self.init_states_on_resets[self.viser_lab.env].cpu().detach().numpy()
-        )
-
-        root_pos = (
-            self._robot.data.root_pos_w[self.viser_lab.env].cpu().detach().numpy()
-        ) - env_origins
-
-        isaacsim_root_rot = (
-            self._robot.data.root_quat_w[self.viser_lab.env].cpu().detach().numpy()
-        )
-
-        joint_dict = {
-            self._robot.data.joint_names[i]: self._robot.data.joint_pos[
-                self.viser_lab.env
-            ][i].item()
-            for i in range(len(self._robot.data.joint_pos[0]))
-        }
-        self.viser_lab.update_robot_configuration(
-            root_pos, isaacsim_root_rot, joint_dict
-        )
-
-        if self.robot_config.with_cam_obs:
-
-            self.viser_lab.render_wrapped_impl(env_origins)
-
-        if self.robot_config.with_foot_sensors:
-            contact_tensor = self._get_simulator_bodies_contact_buf()
-            contact_tensor = contact_tensor.clone().cpu().detach().numpy()
-
-            contact_norms = np.linalg.norm(
-                contact_tensor, axis=-1
-            )  # (num_envs, num_bodies)
-
-            self.viser_lab.update_per_foot_history_plot(contact_norms, "left")
-            self.viser_lab.update_per_foot_history_plot(contact_norms, "right")
-
-        if self.config.plot_terrain_in_viser:
-
-            e = self.viser_lab.env
-            terrain_patch = (
-                self.terrain.get_height_maps(
-                    self.get_root_state([e]), [e], return_all_dims=True
-                )[0]
-                .cpu()
-                .numpy()
-            ) - env_origins
-
-            self.viser_lab.update_local_terrain_pointcloud(
-                "/terrain_patch", terrain_patch
-            )
 
     def _apply_pd_control(self) -> None:
         """
@@ -914,5 +867,83 @@ class IsaacLabSimulator(Simulator):
                 scales=marker_dict.scale,
             )
 
-        if hasattr(self, "viser_lab"):
-            pass
+        if hasattr(self, "viser_lab") and self.viser_lab is not None:
+
+            for marker_name, marker_state in markers_state.items():
+                if (
+                    hasattr(self.viser_lab, "marker_toggles")
+                    and marker_name in self.viser_lab.marker_toggles
+                ):
+                    if not self.viser_lab.marker_toggles[marker_name].value:
+                        continue  # Skip rendering if toggle is off
+
+                env_origins = (
+                    self.init_states_on_resets[self.viser_lab.env]
+                    .cpu()
+                    .detach()
+                    .numpy()
+                )
+                self.viser_lab.update_marker_group(
+                    name=marker_name,
+                    positions=marker_state.translation.detach()
+                    .cpu()
+                    .numpy()[self.viser_lab.env]
+                    - env_origins,
+                    orientations=marker_state.orientation.detach()
+                    .cpu()
+                    .numpy()[self.viser_lab.env],
+                )
+
+    def _update_viser(self) -> None:
+
+        env_origins = (
+            self.init_states_on_resets[self.viser_lab.env].cpu().detach().numpy()
+        )
+
+        root_pos = (
+            self._robot.data.root_pos_w[self.viser_lab.env].cpu().detach().numpy()
+        ) - env_origins
+
+        isaacsim_root_rot = (
+            self._robot.data.root_quat_w[self.viser_lab.env].cpu().detach().numpy()
+        )
+
+        joint_dict = {
+            self._robot.data.joint_names[i]: self._robot.data.joint_pos[
+                self.viser_lab.env
+            ][i].item()
+            for i in range(len(self._robot.data.joint_pos[0]))
+        }
+        self.viser_lab.update_robot_configuration(
+            root_pos, isaacsim_root_rot, joint_dict
+        )
+
+        if self.robot_config.with_cam_obs:
+
+            self.viser_lab.render_wrapped_impl(env_origins)
+
+        if self.robot_config.with_foot_sensors:
+            contact_tensor = self._get_simulator_bodies_contact_buf()
+            contact_tensor = contact_tensor.clone().cpu().detach().numpy()
+
+            contact_norms = np.linalg.norm(
+                contact_tensor, axis=-1
+            )  # (num_envs, num_bodies)
+
+            self.viser_lab.update_per_foot_history_plot(contact_norms, "left")
+            self.viser_lab.update_per_foot_history_plot(contact_norms, "right")
+
+        if self.without_env_markers:
+
+            e = self.viser_lab.env
+            terrain_patch = (
+                self.terrain.get_height_maps(
+                    self.get_root_state([e]), [e], return_all_dims=True
+                )[0]
+                .cpu()
+                .numpy()
+            ) - env_origins
+
+            self.viser_lab.update_local_terrain_pointcloud(
+                "/terrain_patch", terrain_patch
+            )

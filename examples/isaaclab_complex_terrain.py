@@ -331,7 +331,7 @@ simulator_config = IsaacLabSimulatorConfig(
     num_envs=4,  # Number of parallel environments
     experiment_name="scene_isaaclab_example",
     w_last=False,  # IsaacLab uses wxyz quaternions
-    init_viser=True,
+    init_viser=False,
 )
 
 device = torch.device("cuda")
@@ -339,7 +339,7 @@ device = torch.device("cuda")
 # Create a flat terrain using the default config
 terrain_config = TerrainConfig(
     num_terrains=7,
-    num_levels=7,
+    num_levels=1,
     terrain_proportions=[0.2, 0.1, 0.1, 0.1, 0.05, 0.0, 0.0, 0.45],
     minimal_humanoid_spacing=0,  # We defined the terrain size, so no need for additional humanoid spacing
 )

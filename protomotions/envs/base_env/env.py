@@ -123,7 +123,7 @@ class BaseEnv:
         self.extras = {}
         self.log_dict = {}
 
-        self.force_respawn_on_flat = False
+        self.force_respawn_on_flat = True  # TODO: False
 
         # After objects have been populated, finalize structure
         if self.scene_lib is not None:
@@ -247,7 +247,7 @@ class BaseEnv:
         return requires_scene
 
     def get_markers_state(self):
-        if self.config.headless:
+        if self.config.headless and not self.config.init_viser:
             return {}
 
         markers_state = {}
@@ -555,7 +555,7 @@ class BaseEnv:
     # Helpers
     ###############################################################
     def create_visualization_markers(self):
-        if self.config.headless:
+        if self.config.headless and not self.config.init_viser:
             return {}
 
         visualization_markers = {}

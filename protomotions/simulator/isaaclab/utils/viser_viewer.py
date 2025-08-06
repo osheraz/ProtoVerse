@@ -2,10 +2,10 @@ import torch
 
 import numpy as np
 from pathlib import Path
-from typing import Dict, Optional
 from collections import deque
 from copy import deepcopy
 import time
+from typing import Dict, List, Any, Optional, Tuple
 
 try:
     import viser
@@ -33,7 +33,7 @@ from protomotions.simulator.isaaclab.utils.camera_manager import CameraManager
 
 
 class ViserLab:
-    def __init__(self, scene, robot_config):
+    def __init__(self, scene, robot_config, marker_names):
         """
         Create a Viser-based visualizer for an external simulation scene.
 
@@ -66,7 +66,7 @@ class ViserLab:
 
         self._setup_viser_scene()
         self._setup_viser_gui()
-        self._handle_client_connection()
+        # self._handle_client_connection()
 
         # body_ordering.contact_sensor_body_names
         sensor_names = self.scene["contact_sensor"].body_names
@@ -75,6 +75,8 @@ class ViserLab:
 
         self.add_per_foot_history_plot("left", sensor_names)
         self.add_per_foot_history_plot("right", sensor_names)
+
+        self.setup_marker_toggles(marker_names)
 
     def _handle_client_connection(self):
         """Handle client connection setup"""
@@ -442,3 +444,62 @@ class ViserLab:
         else:
             self.pcl.points = xyz_points
             self.pcl_colors = colors
+
+    # markers:
+
+    def setup_marker_toggles(self, marker_names: list[str]):
+
+        if marker_names is None:
+            return
+
+        self.marker_toggle_folder = self.viser_server.gui.add_folder("Markers")
+        self.marker_toggles = {}
+
+        with self.marker_toggle_folder:
+            for name in marker_names:
+                toggle = self.viser_server.gui.add_checkbox(f"Show {name}", True)
+                self.marker_toggles[name] = toggle
+
+    def update_marker_group(
+        self,
+        name: str,
+        positions: np.ndarray,
+        orientations: np.ndarray = None,  # ignored unless future arrow support
+        marker_type: str = "sphere",
+        scale: float = 0.03,
+        color: Optional[Tuple[int, int, int]] = None,
+        color_by_height: bool = True,
+    ) -> None:
+
+        if positions.size == 0:
+            return
+
+        positions = positions.reshape(-1, 3)  # Ensure flat (N, 3)
+
+        if color_by_height:
+            z = positions[:, 2]
+            z_min, z_max = z.min(), z.max()
+            normalized = (z - z_min) / (z_max - z_min + 1e-8)
+
+            colors = np.zeros_like(positions, dtype=np.uint8)
+            colors[:, 0] = (normalized * 255).astype(np.uint8)  # red
+            colors[:, 2] = ((1 - normalized) * 255).astype(np.uint8)  # blue
+        else:
+            if color is None:
+                color = (0, 200, 0) if "goal" in name else (200, 0, 0)
+            colors = np.tile(np.array(color, dtype=np.uint8), (positions.shape[0], 1))
+
+        if not hasattr(self, "_viser_marker_dict"):
+            self._viser_marker_dict = {}
+
+        if name not in self._viser_marker_dict:
+            self._viser_marker_dict[name] = self.viser_server.scene.add_point_cloud(
+                name=f"/marker/{name}",
+                points=positions,
+                colors=colors,
+                point_size=scale,
+            )
+        else:
+            marker = self._viser_marker_dict[name]
+            marker.points = positions
+            marker.colors = colors

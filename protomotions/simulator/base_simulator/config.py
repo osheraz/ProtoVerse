@@ -336,7 +336,6 @@ class SimulatorConfig(ConfigBuilder):
     record_viewer: bool = False
     viewer_record_dir: str = "output/recordings/viewer"
     init_viser: bool = False
-    plot_terrain_in_viser: bool = True
 
 
 @dataclass
