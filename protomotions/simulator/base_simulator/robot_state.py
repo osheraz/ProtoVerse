@@ -47,6 +47,8 @@ class RobotState:
             Expected shape: [num_envs, num_dof].
         dof_vel (Optional[torch.Tensor]): Joint velocities.
             Expected shape: [num_envs, num_dof].
+        dof_acc (Optional[torch.Tensor]): Joint acceleration.
+            Expected shape: [num_envs, num_dof].
         rigid_body_pos (Optional[torch.Tensor]): Positions of rigid bodies.
             Expected shape: [num_envs, num_bodies, 3].
         rigid_body_rot (Optional[torch.Tensor]): Rotations of rigid bodies (quaternions).
@@ -63,6 +65,7 @@ class RobotState:
     root_ang_vel: Optional[torch.Tensor] = None
     dof_pos: Optional[torch.Tensor] = None
     dof_vel: Optional[torch.Tensor] = None
+    dof_acc: Optional[torch.Tensor] = None
     rigid_body_pos: Optional[torch.Tensor] = None
     rigid_body_rot: Optional[torch.Tensor] = None
     rigid_body_vel: Optional[torch.Tensor] = None
@@ -77,7 +80,7 @@ class RobotState:
         Args:
             data (Dict[str, torch.Tensor]): Dictionary containing state information.
                 Keys can include "root_pos", "root_rot", "root_vel", "root_ang_vel",
-                "dof_pos", "dof_vel", "rigid_body_pos", "rigid_body_rot",
+                "dof_pos", "dof_vel", "dof_acc", "rigid_body_pos", "rigid_body_rot",
                 "rigid_body_vel", and "rigid_body_ang_vel".
 
         Returns:
@@ -90,6 +93,7 @@ class RobotState:
             root_ang_vel=data.get("root_ang_vel", None),
             dof_pos=data.get("dof_pos", None),
             dof_vel=data.get("dof_vel", None),
+            dof_acc=data.get("dof_acc", None),
             rigid_body_pos=data.get("rigid_body_pos", None),
             rigid_body_rot=data.get("rigid_body_rot", None),
             rigid_body_vel=data.get("rigid_body_vel", None),
@@ -117,6 +121,8 @@ class RobotState:
             data["dof_pos"] = self.dof_pos
         if self.dof_vel is not None:
             data["dof_vel"] = self.dof_vel
+        if self.dof_acc is not None:
+            data["dof_acc"] = self.dof_acc
         if self.rigid_body_pos is not None:
             data["rigid_body_pos"] = self.rigid_body_pos
         if self.rigid_body_rot is not None:
@@ -138,6 +144,14 @@ class RobotState:
 
         Returns:
             RobotState: A new RobotState with fields converted to common ordering.
+
+        ---------------
+            Quaternions: [x, y, z, w] (w-last)
+
+            DOF order: joint order (defined in config)
+
+            Body order: body/link order (also from config)
+
         """
         # For rotations: if the simulator does not use w_last ordering, convert from wxyz to xyzw.
         new_root_rot = self.root_rot
@@ -152,6 +166,12 @@ class RobotState:
         new_dof_vel = (
             self.dof_vel[:, conversion.dof_convert_to_common]
             if self.dof_vel is not None
+            else None
+        )
+
+        new_dof_acc = (
+            self.dof_acc[:, conversion.dof_convert_to_common]
+            if self.dof_acc is not None
             else None
         )
 
@@ -185,6 +205,7 @@ class RobotState:
             root_ang_vel=self.root_ang_vel,
             dof_pos=new_dof_pos,
             dof_vel=new_dof_vel,
+            dof_acc=new_dof_acc,
             rigid_body_pos=new_rigid_body_pos,
             rigid_body_rot=new_rigid_body_rot,
             rigid_body_vel=new_rigid_body_vel,
@@ -214,6 +235,12 @@ class RobotState:
         new_dof_vel = (
             self.dof_vel[:, conversion.dof_convert_to_sim]
             if self.dof_vel is not None
+            else None
+        )
+
+        new_dof_acc = (
+            self.dof_acc[:, conversion.dof_convert_to_sim]
+            if self.dof_acc is not None
             else None
         )
 
@@ -247,6 +274,7 @@ class RobotState:
             root_ang_vel=self.root_ang_vel,
             dof_pos=new_dof_pos,
             dof_vel=new_dof_vel,
+            dof_acc=new_dof_acc,
             rigid_body_pos=new_rigid_body_pos,
             rigid_body_rot=new_rigid_body_rot,
             rigid_body_vel=new_rigid_body_vel,

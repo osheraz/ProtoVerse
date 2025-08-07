@@ -272,9 +272,9 @@ class ObjectObs(BaseComponent):
         max_objects = self.env.num_objects_per_scene
 
         root_states = self.env.get_humanoid_root_states(scene_env_ids)
-        root_states.root_pos[:, -1] -= self.env.terrain.get_ground_heights(root_states.root_pos).view(
-            -1
-        )
+        root_states.root_pos[:, -1] -= self.env.terrain.get_ground_heights(
+            root_states.root_pos
+        ).view(-1)
 
         object_root_states = self.env.get_object_root_states()
 
@@ -283,10 +283,14 @@ class ObjectObs(BaseComponent):
 
         # Expand root_pos and root_quat
         expanded_root_pos = (
-            root_states.root_pos.unsqueeze(1).expand(num_scene_envs, max_objects, 3).reshape(-1, 3)
+            root_states.root_pos.unsqueeze(1)
+            .expand(num_scene_envs, max_objects, 3)
+            .reshape(-1, 3)
         )
         expanded_root_quat = (
-            root_states.root_rot.unsqueeze(1).expand(num_scene_envs, max_objects, 4).reshape(-1, 4)
+            root_states.root_rot.unsqueeze(1)
+            .expand(num_scene_envs, max_objects, 4)
+            .reshape(-1, 4)
         )
 
         # Use the JIT function to compute bounding box observations

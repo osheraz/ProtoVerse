@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from hydra.utils import instantiate, get_class
 from torch import Tensor
-from isaac_utils import torch_utils
+from isaac_utils import torch_utils, rotations
 
 from protomotions.simulator.base_simulator.simulator import Simulator
 from protomotions.simulator.base_simulator.config import (
@@ -77,6 +77,14 @@ class BaseEnv:
             self.config.robot.contact_bodies
         )
 
+        self.penelized_body_ids = self.simulator.build_body_ids_tensor(
+            self.config.robot.penalize_contacts_on
+        )
+
+        self.feet_indices = self.simulator.build_body_ids_tensor(
+            [self.config.robot.left_foot_name, self.config.robot.right_foot_name]
+        )
+
         self.build_termination_heights()
 
         self.state_init = self.StateInit[config.state_init]
@@ -139,6 +147,33 @@ class BaseEnv:
 
         self.respawn_offset_relative_to_data = torch.zeros(
             self.num_envs, 3, dtype=torch.float, device=self.device
+        )
+
+        # TODO: Check for duplicate!!!
+        self.actions = torch.zeros(
+            self.num_envs,
+            self.get_action_size(),
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )
+        self.last_dof_pos = torch.zeros_like(self.simulator.get_dof_state().dof_pos)
+        self.last_dof_vel = torch.zeros_like(self.simulator.get_dof_state().dof_vel)
+        self.last_root_vel = torch.zeros_like(self.simulator.get_root_state().root_vel)
+        self.last_actions = torch.zeros_like(self.actions)
+        self.last_contacts = torch.zeros(
+            self.num_envs,
+            2,  # HARD code for now
+            dtype=torch.bool,
+            device=self.device,
+            requires_grad=False,
+        )
+        self.feet_air_time = torch.zeros(
+            self.num_envs,
+            2,
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
         )
 
     ###############################################################
@@ -280,6 +315,7 @@ class BaseEnv:
 
         markers_state = self.get_markers_state()
         self.simulator.step(actions, markers_state)
+        self.actions = actions
 
         self.post_physics_step()
 
@@ -324,6 +360,17 @@ class BaseEnv:
 
         self.self_obs_cb.compute_observations(env_ids)
         self.terrain_obs_cb.compute_observations(env_ids)
+
+        self._post_compute_observations_callback()
+
+    def _post_compute_observations_callback(self):
+
+        dof_state = self.simulator.get_dof_state()
+        root_state = self.simulator.get_root_state()
+        self.last_actions[:] = self.actions[:]
+        self.last_dof_pos[:] = dof_state.dof_pos[:]
+        self.last_dof_vel[:] = root_state.dof_vel[:]
+        self.last_root_vel[:] = root_state.root_vel
 
     def compute_reset(self):
         bodies_positions = self.simulator.get_bodies_state().rigid_body_pos
@@ -443,6 +490,13 @@ class BaseEnv:
             self.progress_buf[env_ids] = 0
             self.reset_buf[env_ids] = 0
             self.terminate_buf[env_ids] = 0
+
+            self.actions[env_ids] = 0
+            self.last_actions[env_ids] = 0
+            self.last_contacts[env_ids] = 0
+            self.last_dof_pos[env_ids] = 0
+            self.last_dof_vel[env_ids] = 0
+            self.feet_air_time[env_ids] = 0
 
         return self.get_obs()
 

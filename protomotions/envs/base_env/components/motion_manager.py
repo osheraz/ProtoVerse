@@ -16,8 +16,10 @@ class MotionManager(BaseComponent):
             torch.ones(self.env.num_envs, dtype=torch.float, device=self.env.device)
             * self.config.motion_sampling.init_start_prob
         )
-        
-        self.motion_weights = self.env.motion_lib.state.motion_weights.clone().to(device=self.env.device)
+
+        self.motion_weights = self.env.motion_lib.state.motion_weights.clone().to(
+            device=self.env.device
+        )
 
     def reset_envs(self, env_ids):
         self.sample_motions(env_ids)
@@ -51,7 +53,9 @@ class MotionManager(BaseComponent):
             )
         else:
             if new_motion_ids is None:
-                new_motion_ids = torch.multinomial(self.motion_weights, num_samples=len(env_ids), replacement=True)
+                new_motion_ids = torch.multinomial(
+                    self.motion_weights, num_samples=len(env_ids), replacement=True
+                )
             if self.config.fixed_motion_id is not None:
                 new_motion_ids = (
                     torch.zeros_like(new_motion_ids) + self.config.fixed_motion_id
@@ -82,4 +86,6 @@ class MotionManager(BaseComponent):
 
     def load_state_dict(self, state_dict):
         if "motion_weights" in state_dict:
-            self.motion_weights[:] = state_dict["motion_weights"].to(self.motion_weights.device)
+            self.motion_weights[:] = state_dict["motion_weights"].to(
+                self.motion_weights.device
+            )

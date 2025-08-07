@@ -341,6 +341,7 @@ class IsaacLabSimulator(Simulator):
             ),
             dof_pos=self._robot.data.joint_pos.clone(),
             dof_vel=self._robot.data.joint_vel.clone(),
+            dof_acc=self._robot.data.joint_acc.clone(),
             rigid_body_pos=self._robot.data.body_pos_w.clone(),
             rigid_body_rot=self._robot.data.body_quat_w.clone(),
             rigid_body_vel=self._robot.data.body_lin_vel_w.clone(),
@@ -382,7 +383,7 @@ class IsaacLabSimulator(Simulator):
                 not self.headless
                 or self._sim.has_rtx_sensors()
                 or hasattr(self, "viser_lab")
-            ):  
+            ):
                 if hasattr(self, "viser_lab"):
                     self._update_viser()
                 self._sim.render()
@@ -528,12 +529,17 @@ class IsaacLabSimulator(Simulator):
         """
         isaacsim_dof_pos = self._robot.data.joint_pos.clone()
         isaacsim_dof_vel = self._robot.data.joint_vel.clone()
+        isaacsim_dof_acc = self._robot.data.joint_acc.clone()
+
         if env_ids is not None:
             isaacsim_dof_pos = isaacsim_dof_pos[env_ids]
             isaacsim_dof_vel = isaacsim_dof_vel[env_ids]
+            isaacsim_dof_acc = isaacsim_dof_acc[env_ids]
+
         return RobotState(
             dof_pos=isaacsim_dof_pos,
             dof_vel=isaacsim_dof_vel,
+            dof_acc=isaacsim_dof_acc,
         )
 
     def _get_simulator_bodies_contact_buf(

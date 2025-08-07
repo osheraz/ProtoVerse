@@ -1,4 +1,5 @@
 from isaac_utils import torch_utils, rotations
+from typing import Dict, Optional
 
 import torch
 from torch import Tensor
@@ -36,7 +37,7 @@ class PathFollowing(BaseEnv):
 
         self._fail_dist = 4.0
         self._fail_height_dist = 0.5
-
+        self.follow_info_dict = {}
         self.build_path_generator()
 
     def create_visualization_markers(self):
@@ -130,7 +131,6 @@ class PathFollowing(BaseEnv):
             traj_samples,
             self.config.path_follower_params.height_conditioned,
         )
-
         self.path_obs[env_ids] = obs
 
     def get_obs(self):
@@ -151,9 +151,108 @@ class PathFollowing(BaseEnv):
         ground_below_head = torch.min(bodies_positions, dim=1).values[..., 2]
         head_position[..., 2] -= ground_below_head.view(-1)
 
-        self.rew_buf[:] = compute_path_reward(
+        path_rew = compute_path_reward(
             head_position, tar_pos, self.config.path_follower_params.height_conditioned
         )
+        self.rew_buf[:] = path_rew
+
+        # ---------
+
+        dof_state = self.simulator.get_dof_state()
+        dof_forces = self.simulator.get_dof_forces()
+        root_states = self.simulator.get_root_state()
+        # 1)
+        rew_dict = {"path_rew": path_rew}  # already scaled
+
+        # 2)
+        rew_lin_vel_z = torch.square(root_states.root_vel[:, 2])
+        rew_dict["rew_lin_vel_z"] = -2.0 * rew_lin_vel_z
+
+        # 3)
+        rew_ang_vel_xy = torch.sum(torch.square(root_states.root_ang_vel[:, :2]), dim=1)
+        rew_dict["rew_ang_vel_xy"] = -0.05 * rew_ang_vel_xy
+
+        # 4)
+        rew_torque = torch.sum(torch.square(dof_forces), dim=1)
+        rew_dict["rew_torque"] = -0.00001 * rew_torque
+
+        # 5) self.last_dof_vel - dof_state.dof_vel
+        rew_dof_acc = torch.sum(torch.square(dof_state.dof_acc / self.dt), dim=1)
+        rew_dict["rew_dof_acc"] = -2.5e-7 * rew_dof_acc
+
+        # 6)
+        bodies_contact_buf = self.self_obs_cb.body_contacts.clone()
+        contact = bodies_contact_buf[:, self.feet_indices, 2] > 1.0
+        contact_filt = torch.logical_or(contact, self.last_contacts)
+        self.last_contacts = contact
+        first_contact = (self.feet_air_time > 0.0) * contact_filt
+        self.feet_air_time += self.dt
+        rew_feet_air_time = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1)
+        # rew_feet_air_time *= torch.norm(self.commands[:, :2], dim=1) > 0.1
+        self.feet_air_time *= ~contact_filt
+        rew_dict["rew_feet_air_time"] = 1.0 * rew_feet_air_time
+
+        # 7)
+        rew_collision = torch.sum(
+            1.0
+            * (
+                torch.norm(bodies_contact_buf[:, self.penelized_body_ids, :], dim=-1)
+                > 0.1
+            ),
+            dim=1,
+        )
+        rew_dict["rew_collision"] = -1.0 * rew_collision
+
+        # 8)
+        rew_action_rate = torch.sum(
+            torch.square(self.last_actions - self.actions), dim=1
+        )
+        rew_dict["rew_action_rate"] = -0.01 * rew_action_rate
+
+        # ------------
+
+        power = torch.abs(torch.multiply(dof_forces, dof_state.dof_vel)).sum(dim=-1)
+        pow_rew = -power
+        rew_dict["pow_rew"] = pow_rew
+
+        scaled_rewards: Dict[str, Tensor] = {  # move to rew class
+            k: v
+            * getattr(self.config.path_follow_reward_config.component_weights, f"{k}_w")
+            for k, v in rew_dict.items()
+        }
+
+        tot_rew = sum(scaled_rewards.values())  # self.rew_buf  =
+
+        # logging & fun
+
+        for rew_name, rew in rew_dict.items():
+            self.log_dict[f"raw/{rew_name}_mean"] = rew.mean()
+            self.log_dict[f"raw/{rew_name}_std"] = rew.std()
+
+        for rew_name, rew in scaled_rewards.items():
+            self.log_dict[f"scaled/{rew_name}_mean"] = rew.mean()
+            self.log_dict[f"scaled/{rew_name}_std"] = rew.std()
+
+        other_log_terms = {
+            # "tracking_rew": tracking_rew,
+            "total_rew": self.rew_buf,
+            # "cartesian_err": cartesian_err,
+            # "gt_err": gt_err,
+            # "gr_err": gr_err,
+            # "gr_err_degrees": gr_err_degrees,
+            # "lr_err_degrees": lr_err_degrees,
+            # "max_joint_err": max_joint_err,
+            # "max_lr_err_degrees": max_lr_err_degrees,
+            # "max_gr_err_degrees": max_gr_err_degrees,
+            # "root_height_error": rh_err,
+        }
+
+        for rew_name, rew in other_log_terms.items():
+            self.log_dict[f"follow_other/{rew_name}_mean"] = rew.mean()
+            self.log_dict[f"follow_other/{rew_name}_std"] = rew.std()
+
+        self.follow_info_dict.update(rew_dict)
+        self.follow_info_dict.update(other_log_terms)
 
     def compute_reset(self):
         # override
@@ -212,7 +311,9 @@ class PathFollowing(BaseEnv):
             self._num_traj_samples, device=self.device, dtype=torch.float
         )
         timesteps = timesteps * self._traj_sample_timestep
-        traj_timesteps = timestep_beg.unsqueeze(-1) + timesteps
+        traj_timesteps = (
+            timestep_beg.unsqueeze(-1) + timesteps
+        )  # e.g [t, t+0.5, t+1.0, ..., t+4.5] # (0.5~_traj_sample_timestep)
 
         env_ids_tiled = torch.broadcast_to(env_ids.unsqueeze(-1), traj_timesteps.shape)
 

@@ -8,6 +8,8 @@ from protomotions.envs.base_env.env_utils.humanoid_utils import (
 from protomotions.envs.base_env.components.base_component import BaseComponent
 from protomotions.envs.base_env.env_utils.general import HistoryBuffer
 
+from isaac_utils import rotations
+
 
 class HumanoidObs(BaseComponent):
     def __init__(self, config, env):
@@ -26,7 +28,19 @@ class HumanoidObs(BaseComponent):
         )
         body_names = self.env.config.robot.body_names
         num_bodies = len(body_names)
+
         self.body_contacts = torch.zeros(
+            self.env.num_envs,
+            num_bodies,
+            3,
+            dtype=torch.bool,
+            device=self.env.device,
+        )
+        self.gravity_vec = torch.tensor(
+            [0, 0, -1], dtype=torch.float, device=self.device
+        ).repeat(self.env.num_envs, 1)
+
+        self.projected_gravity = torch.zeros(
             self.env.num_envs,
             num_bodies,
             3,
@@ -163,6 +177,10 @@ class HumanoidObs(BaseComponent):
         self.body_contacts[:] = body_contacts
         self.humanoid_obs[env_ids] = obs
         self.humanoid_obs_hist_buf.set_curr(obs, env_ids)
+
+        self.projected_gravity = rotations.quat_rotate_inverse(
+            root_rot, self.gravity_vec
+        )
 
     def build_self_obs_demo(
         self, motion_ids: Tensor, motion_times0: Tensor, num_steps: int

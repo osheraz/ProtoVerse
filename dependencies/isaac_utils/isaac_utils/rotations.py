@@ -145,7 +145,7 @@ def quat_rotate(q: Tensor, v: Tensor, w_last: bool) -> Tensor:
 
 
 @torch.jit.script
-def quat_rotate_inverse(q: Tensor, v: Tensor, w_last: bool) -> Tensor:
+def quat_rotate_inverse(q: Tensor, v: Tensor, w_last: bool = True) -> Tensor:
     shape = q.shape
     if w_last:
         q_w = q[:, -1]
@@ -157,7 +157,9 @@ def quat_rotate_inverse(q: Tensor, v: Tensor, w_last: bool) -> Tensor:
     b = torch.cross(q_vec, v, dim=-1) * q_w.unsqueeze(-1) * 2.0
     c = (
         q_vec
-        * torch.bmm(q_vec.reshape(shape[0], 1, 3), v.reshape(shape[0], 3, 1)).squeeze(-1)
+        * torch.bmm(q_vec.reshape(shape[0], 1, 3), v.reshape(shape[0], 3, 1)).squeeze(
+            -1
+        )
         * 2.0
     )
     return a - b + c

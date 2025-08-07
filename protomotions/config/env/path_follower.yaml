@@ -36,7 +36,7 @@ env:
         use_naive_path_generator: False
       path_obs_size: ${eval:${.num_path_obs_per_point}*${.num_traj_samples}}
       enable_path_termination: True
-      height_conditioned: False # True
+      height_conditioned: True # True
       num_path_obs_per_point: ${eval:${.height_conditioned}*1+2}
 
 eval_overrides:
