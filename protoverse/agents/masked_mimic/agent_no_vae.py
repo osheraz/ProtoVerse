@@ -49,7 +49,7 @@ class MaskedMimicNoVae(PPO):
             checkpoint_path = self.config.expert_model_path + "/score_based.ckpt"
             if not Path(checkpoint_path).exists():
                 checkpoint_path = self.config.expert_model_path + "/last.ckpt"
-            
+
             self.expert_model_config = OmegaConf.load(
                 Path(self.config.expert_model_path) / "config.yaml"
             )
@@ -72,7 +72,9 @@ class MaskedMimicNoVae(PPO):
             self.expert_model.mark_forward_method("act")
 
             # loading should be done after fabric.setup to ensure the model is on the correct fabric.device
-            pre_trained_expert = torch.load(checkpoint_path, map_location=self.fabric.device) 
+            pre_trained_expert = torch.load(
+                checkpoint_path, map_location=self.fabric.device
+            )
             self.expert_model.load_state_dict(pre_trained_expert["model"])
             for param in self.expert_model.parameters():
                 param.requires_grad = False
@@ -214,7 +216,11 @@ class MaskedMimicNoVae(PPO):
                     # At training we use the encoder to obtain less-noisy latent codes
                     action = self.model.act(obs)
 
-                    expert_action = self.expert_model.act(obs) if self.expert_model is not None else action
+                    expert_action = (
+                        self.expert_model.act(obs)
+                        if self.expert_model is not None
+                        else action
+                    )
                     self.experience_buffer.update_data(
                         "expert_actions", step, expert_action
                     )
@@ -466,7 +472,7 @@ class MaskedMimicNoVae(PPO):
             motion_lengths = self.motion_lib.state.motion_lengths[:]
             motion_num_frames = (motion_lengths / dt).floor().long()
 
-                # Save metrics per rank; distributed all_gather does not support dictionaries.
+            # Save metrics per rank; distributed all_gather does not support dictionaries.
         with open(root_dir / f"{self.fabric.global_rank}_metrics.pt", "wb") as f:
             torch.save(metrics, f)
         self.fabric.barrier()
@@ -474,9 +480,13 @@ class MaskedMimicNoVae(PPO):
         for rank in range(self.fabric.world_size):
             with open(root_dir / f"{rank}_metrics.pt", "rb") as f:
                 other_metrics = torch.load(f, map_location=self.device)
-            other_evaluated_indices = torch.nonzero(other_metrics["evaluated"]).flatten()
+            other_evaluated_indices = torch.nonzero(
+                other_metrics["evaluated"]
+            ).flatten()
             for k in other_metrics.keys():
-                metrics[k][other_evaluated_indices] = other_metrics[k][other_evaluated_indices]
+                metrics[k][other_evaluated_indices] = other_metrics[k][
+                    other_evaluated_indices
+                ]
             metrics["evaluated"][other_evaluated_indices] = True
 
         assert metrics["evaluated"].all(), "Not all motions were evaluated."
@@ -485,22 +495,32 @@ class MaskedMimicNoVae(PPO):
 
         to_log = {}
         for k in self.config.eval_metric_keys:
-            mean_tracking_errors = metrics[k] / (motion_num_frames * self.config.eval_num_episodes)
+            mean_tracking_errors = metrics[k] / (
+                motion_num_frames * self.config.eval_num_episodes
+            )
             to_log[f"eval/{k}"] = mean_tracking_errors.detach().mean().item()
             to_log[f"eval/{k}_max"] = metrics[f"{k}_max"].detach().mean().item()
             to_log[f"eval/{k}_min"] = metrics[f"{k}_min"].detach().mean().item()
 
         if "gt_err" in self.config.eval_metric_keys:
             tracking_failures = (metrics["gt_err_max"] > 0.5).float()
-            to_log["eval/tracking_success_rate"] = 1.0 - tracking_failures.detach().mean().item()
+            to_log["eval/tracking_success_rate"] = (
+                1.0 - tracking_failures.detach().mean().item()
+            )
 
             failed_motions = torch.nonzero(tracking_failures).flatten().tolist()
-            print(f"Saving to: {root_dir / f'failed_motions_{self.fabric.global_rank}.txt'}")
-            with open(root_dir / f"failed_motions_{self.fabric.global_rank}.txt", "w") as f:
+            print(
+                f"Saving to: {root_dir / f'failed_motions_{self.fabric.global_rank}.txt'}"
+            )
+            with open(
+                root_dir / f"failed_motions_{self.fabric.global_rank}.txt", "w"
+            ) as f:
                 for motion_id in failed_motions:
                     f.write(f"{motion_id}\n")
-                    
-            new_weights = torch.ones(self.motion_lib.num_motions(), device=self.device) * 1e-4
+
+            new_weights = (
+                torch.ones(self.motion_lib.num_motions(), device=self.device) * 1e-4
+            )
             new_weights[failed_motions] = 1.0
             self.env.motion_manager.update_sampling_weights(new_weights)
 

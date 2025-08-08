@@ -31,7 +31,7 @@ env:
     termination_height: 0.15
     head_termination_height: 0.3
     shield_termination_height: 0.32
-    enable_height_termination: False
+    enable_height_termination: True # TODO: False
 
     ## Motion-related params
     motion_lib: ${motion_lib}

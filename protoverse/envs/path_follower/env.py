@@ -159,10 +159,10 @@ class PathFollowing(BaseEnv):
         # ---------
 
         dof_state = self.simulator.get_dof_state()
-        dof_forces = self.simulator.get_dof_forces()
+        # dof_forces = self.simulator.get_dof_forces()
         root_states = self.simulator.get_root_state()
         # 1)
-        rew_dict = {"path_rew": path_rew}  # already scaled
+        rew_dict = {"path_rew": 10.0 * path_rew}
 
         # 2)
         rew_lin_vel_z = torch.square(root_states.root_vel[:, 2])
@@ -173,8 +173,11 @@ class PathFollowing(BaseEnv):
         rew_dict["rew_ang_vel_xy"] = -0.05 * rew_ang_vel_xy
 
         # 4)
-        rew_torque = torch.sum(torch.square(dof_forces), dim=1)
+        rew_torque = torch.sum(torch.square(self.simulator.torques), dim=1)
         rew_dict["rew_torque"] = -0.00001 * rew_torque
+
+        # power = torch.abs(torch.multiply(dof_forces, dof_state.dof_vel)).sum(dim=-1)
+        # rew_dict["pow_rew"] = -0.0002 * power
 
         # 5)
         rew_dof_acc = torch.sum(
@@ -189,7 +192,9 @@ class PathFollowing(BaseEnv):
         self.last_contacts = contact
         first_contact = (self.feet_air_time > 0.0) * contact_filt
         self.feet_air_time += self.dt
-        rew_feet_air_time = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1)
+        rew_feet_air_time = torch.sum(
+            (self.feet_air_time - 0.5) * first_contact, dim=1
+        )  #  reward only on first contact with the ground
         # rew_feet_air_time *= torch.norm(self.commands[:, :2], dim=1) > 0.1
         self.feet_air_time *= ~contact_filt
         rew_dict["rew_feet_air_time"] = 1.0 * rew_feet_air_time
@@ -212,10 +217,6 @@ class PathFollowing(BaseEnv):
         rew_dict["rew_action_rate"] = -0.01 * rew_action_rate
 
         # ------------
-
-        # power = torch.abs(torch.multiply(dof_forces, dof_state.dof_vel)).sum(dim=-1)
-        # pow_rew = -power
-        # rew_dict["pow_rew"] = pow_rew
 
         scaled_rewards: Dict[str, Tensor] = {  # move to rew class
             k: v

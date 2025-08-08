@@ -22,6 +22,7 @@ robot:
   right_foot_name: "R_Ankle"
   left_foot_name: "L_Ankle"
   head_body_name: "Head"
+  penalize_contacts_on: ['Pelvis', 'Head', 'R_Hip', "L_Hip"] 
 
   asset:
     robot_type: smpl_humanoid

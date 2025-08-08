@@ -17,6 +17,27 @@
                 "WANDB_SILENT": "true",
                 "WANDB_DISABLE_CODE": "true"
             }
+        },
+        {
+            "name": "Debug train_agent.py with args",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/protoverse/train_agent.py",
+            "console": "integratedTerminal",
+            "args": [
+                "+exp=path_follower_mlp",
+                "+robot=h1",
+                "+simulator=isaaclab",
+                "+experiment_name=h1_test",
+                "+opt=wandb",
+                "++num_envs=2",
+                "++init_viser=true"
+            ],
+            "env": {
+                "WANDB_DISABLE_SENTRY": "true",
+                "WANDB_SILENT": "true",
+                "WANDB_DISABLE_CODE": "true"
+            }
         }
     ]
 }

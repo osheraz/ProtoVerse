@@ -149,7 +149,7 @@ class BaseEnv:
             self.num_envs, 3, dtype=torch.float, device=self.device
         )
 
-        # TODO: Check for duplicate!!!
+        # TODO: Check for duplicate!!! Common stuff
         self.actions = torch.zeros(
             self.num_envs,
             self.get_action_size(),
@@ -159,6 +159,9 @@ class BaseEnv:
         )
 
         df_state = self.simulator.get_default_state()
+
+        # TODO: should be inside base_sim?
+        # Check if this params are common or sim-specific
         self.last_dof_pos = torch.zeros_like(df_state.dof_pos)
         self.last_dof_vel = torch.zeros_like(df_state.dof_vel)
         self.last_root_vel = torch.zeros_like(df_state.root_vel)
@@ -342,6 +345,8 @@ class BaseEnv:
 
         self.compute_observations()
         self.compute_reward()
+        self._post_compute_observations_callback()
+
         if not self.disable_reset:
             self.compute_reset()
 
@@ -362,8 +367,6 @@ class BaseEnv:
 
         self.self_obs_cb.compute_observations(env_ids)
         self.terrain_obs_cb.compute_observations(env_ids)
-
-        self._post_compute_observations_callback()
 
     def _post_compute_observations_callback(self):
 

@@ -83,6 +83,13 @@ class Simulator(ABC):
         )
 
         self.init_states_on_resets = torch.zeros((self.num_envs, 3), device=self.device)
+        self.torques = torch.zeros(
+            self.num_envs,
+            self.config.robot.number_of_actions,
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )
 
     # -------------------------
     # Group 2: Environment Setup & Configuration
@@ -714,9 +721,14 @@ class Simulator(ABC):
             torques = action
         else:
             raise NameError(f"Unknown controller type: {self.control_type}")
-        return torch.clip(
+
+        clipped_torque = torch.clip(
             torques, -self._torque_limits_common, self._torque_limits_common
         )
+
+        self.torques = clipped_torque
+
+        return clipped_torque
 
     # -------------------------
     # Group 6: Rendering & Visualization
