@@ -5,7 +5,7 @@
             "name": "Run eval_agent.py with args",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/protomotions/eval_agent.py",
+            "program": "${workspaceFolder}/protoverse/eval_agent.py",
             "console": "integratedTerminal",
             "args": [
                 "+robot=g1",

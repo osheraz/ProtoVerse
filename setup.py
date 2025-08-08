@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name="protomotions",
+    name="protoverse",
     version="2.0",
-    packages=["protomotions"],
+    packages=["protoverse"],
 )

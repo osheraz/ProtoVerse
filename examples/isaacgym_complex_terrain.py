@@ -5,19 +5,19 @@ IsaacGym has to be imported before any torch modules.
 import isaacgym
 
 import torch
-from protomotions.simulator.isaacgym.config import (
+from protoverse.simulator.isaacgym.config import (
     IsaacGymSimulatorConfig,
     IsaacGymSimParams,
 )
-from protomotions.simulator.isaacgym.simulator import IsaacGymSimulator
-from protomotions.simulator.base_simulator.config import (
+from protoverse.simulator.isaacgym.simulator import IsaacGymSimulator
+from protoverse.simulator.base_simulator.config import (
     RobotConfig,
     RobotAssetConfig,
     ControlConfig,
     ControlType,
 )
-from protomotions.envs.base_env.env_utils.terrains.terrain import Terrain
-from protomotions.envs.base_env.env_utils.terrains.terrain_config import TerrainConfig
+from protoverse.envs.base_env.env_utils.terrains.terrain import Terrain
+from protoverse.envs.base_env.env_utils.terrains.terrain_config import TerrainConfig
 
 # Create robot asset configuration
 robot_asset_config = RobotAssetConfig(

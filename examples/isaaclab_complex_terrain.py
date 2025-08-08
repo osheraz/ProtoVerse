@@ -10,21 +10,21 @@ simulation_app = app_launcher.app
 
 import torch
 import time
-from protomotions.simulator.isaaclab.config import (
+from protoverse.simulator.isaaclab.config import (
     IsaacLabSimulatorConfig,
     IsaacLabSimParams,
 )
-from protomotions.simulator.isaaclab.simulator import IsaacLabSimulator
-from protomotions.simulator.base_simulator.config import (
+from protoverse.simulator.isaaclab.simulator import IsaacLabSimulator
+from protoverse.simulator.base_simulator.config import (
     RobotConfig,
     RobotAssetConfig,
     InitState,
     ControlConfig,
     ControlType,
 )
-from protomotions.envs.base_env.env_utils.terrains.flat_terrain import Terrain
-from protomotions.envs.base_env.env_utils.terrains.terrain_config import TerrainConfig
-from protomotions.utils.scene_lib import (
+from protoverse.envs.base_env.env_utils.terrains.flat_terrain import Terrain
+from protoverse.envs.base_env.env_utils.terrains.terrain_config import TerrainConfig
+from protoverse.utils.scene_lib import (
     Scene,
     SceneObject,
     ObjectOptions,

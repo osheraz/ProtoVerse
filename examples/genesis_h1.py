@@ -1,15 +1,15 @@
 import torch
-from protomotions.simulator.genesis.config import GenesisSimulatorConfig, GenesisSimParams
-from protomotions.simulator.genesis.simulator import GenesisSimulator
-from protomotions.simulator.base_simulator.config import (
+from protoverse.simulator.genesis.config import GenesisSimulatorConfig, GenesisSimParams
+from protoverse.simulator.genesis.simulator import GenesisSimulator
+from protoverse.simulator.base_simulator.config import (
     RobotConfig,
     RobotAssetConfig,
     InitState,
     ControlConfig,
     ControlType,
 )
-from protomotions.envs.base_env.env_utils.terrains.flat_terrain import FlatTerrain
-from protomotions.envs.base_env.env_utils.terrains.terrain_config import TerrainConfig
+from protoverse.envs.base_env.env_utils.terrains.flat_terrain import FlatTerrain
+from protoverse.envs.base_env.env_utils.terrains.terrain_config import TerrainConfig
 
 # Create robot asset configuration
 robot_asset_config = RobotAssetConfig(

@@ -10,25 +10,25 @@ simulation_app = app_launcher.app
 
 import torch
 from omegaconf import OmegaConf
-from protomotions.utils.config_utils import *
+from protoverse.utils.config_utils import *
 from env import SceneMimic
 
 # Define configuration paths
-base_motion_manager_config_path = "protomotions/config/motion_manager/base_manager.yaml"
+base_motion_manager_config_path = "protoverse/config/motion_manager/base_manager.yaml"
 mimic_motion_manager_config_path = (
-    "protomotions/config/motion_manager/mimic_manager.yaml"
+    "protoverse/config/motion_manager/mimic_manager.yaml"
 )
-base_env_config_path = "protomotions/config/env/base_env.yaml"
-env_config_path = "protomotions/config/env/mimic.yaml"
-base_robot_config_path = "protomotions/config/robot/base.yaml"
-robot_config_path = "protomotions/config/robot/g1.yaml"
-base_simulator_config_path = "protomotions/config/simulator/base.yaml"
-physx_simulator_config_path = "protomotions/config/simulator/physx.yaml"
+base_env_config_path = "protoverse/config/env/base_env.yaml"
+env_config_path = "protoverse/config/env/mimic.yaml"
+base_robot_config_path = "protoverse/config/robot/base.yaml"
+robot_config_path = "protoverse/config/robot/g1.yaml"
+base_simulator_config_path = "protoverse/config/simulator/base.yaml"
+physx_simulator_config_path = "protoverse/config/simulator/physx.yaml"
 physx_isaaclab_simulator_config_path = (
-    "protomotions/config/simulator/physx_isaaclab.yaml"
+    "protoverse/config/simulator/physx_isaaclab.yaml"
 )
-isaaclab_simulator_config_path = "protomotions/config/simulator/isaaclab.yaml"
-terrain_config_path = "protomotions/config/terrain/flat.yaml"
+isaaclab_simulator_config_path = "protoverse/config/simulator/isaaclab.yaml"
+terrain_config_path = "protoverse/config/terrain/flat.yaml"
 motion_file = "data/motions/g1_walk.npy"
 
 # Load and merge configurations
