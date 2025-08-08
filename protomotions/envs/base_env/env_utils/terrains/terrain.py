@@ -148,6 +148,10 @@ class Terrain:
         )
         self.num_height_points, self.height_points = self.init_height_points(num_envs)
 
+        self.num_height_points_vis, self.height_points_vis = self.init_height_points(
+            num_envs, mul=3
+        )
+
         self.vertices, self.triangles = convert_heightfield_to_trimesh(
             self.height_field_raw,
             self.horizontal_scale,
@@ -399,24 +403,25 @@ class Terrain:
 
         return valid
 
-    def init_height_points(self, num_envs):
+    def init_height_points(self, num_envs, mul=1):
         """
         Pre-defines the grid for the height-map observation.
         """
+
         y = torch.tensor(
             np.linspace(
-                -self.config.sample_width,
-                self.config.sample_width,
-                self.config.num_samples_per_axis,
+                -self.config.sample_width * mul,
+                self.config.sample_width * mul,
+                self.config.num_samples_per_axis * mul,
             ),
             device=self.device,
             requires_grad=False,
         )
         x = torch.tensor(
             np.linspace(
-                -self.config.sample_width,
-                self.config.sample_width,
-                self.config.num_samples_per_axis,
+                -self.config.sample_width * mul,
+                self.config.sample_width * mul,
+                self.config.num_samples_per_axis * mul,
             ),
             device=self.device,
             requires_grad=False,
@@ -461,6 +466,27 @@ class Terrain:
             height_points=height_points,
             height_samples=self.height_samples,
             num_height_points=self.num_height_points,
+            terrain_horizontal_scale=self.horizontal_scale,
+            w_last=True,
+            return_all_dims=return_all_dims,
+        )
+
+    def get_height_maps_vis(self, root_states, env_ids=None, return_all_dims=False):
+        """
+        Generates a 2D heightmap grid observation rotated w.r.t. the character's heading.
+        Each sample is the billinear interpolation between adjacent points.
+        """
+        if env_ids is not None:
+            height_points = self.height_points_vis[env_ids].clone()
+        else:
+            height_points = self.height_points_vis.clone()
+
+        return get_height_maps_jit(
+            base_rot=root_states.root_rot,
+            base_pos=root_states.root_pos,
+            height_points=height_points,
+            height_samples=self.height_samples,
+            num_height_points=self.num_height_points_vis,
             terrain_horizontal_scale=self.horizontal_scale,
             w_last=True,
             return_all_dims=return_all_dims,

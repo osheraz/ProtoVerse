@@ -157,9 +157,11 @@ class BaseEnv:
             device=self.device,
             requires_grad=False,
         )
-        self.last_dof_pos = torch.zeros_like(self.simulator.get_dof_state().dof_pos)
-        self.last_dof_vel = torch.zeros_like(self.simulator.get_dof_state().dof_vel)
-        self.last_root_vel = torch.zeros_like(self.simulator.get_root_state().root_vel)
+
+        df_state = self.simulator.get_default_state()
+        self.last_dof_pos = torch.zeros_like(df_state.dof_pos)
+        self.last_dof_vel = torch.zeros_like(df_state.dof_vel)
+        self.last_root_vel = torch.zeros_like(df_state.root_vel)
         self.last_actions = torch.zeros_like(self.actions)
         self.last_contacts = torch.zeros(
             self.num_envs,
@@ -187,7 +189,7 @@ class BaseEnv:
         return obs
 
     def get_action_size(self):
-        return self.simulator.num_act
+        return self.simulator.config.robot.number_of_actions
 
     def get_envs_respawn_position(
         self,
@@ -369,8 +371,8 @@ class BaseEnv:
         root_state = self.simulator.get_root_state()
         self.last_actions[:] = self.actions[:]
         self.last_dof_pos[:] = dof_state.dof_pos[:]
-        self.last_dof_vel[:] = root_state.dof_vel[:]
-        self.last_root_vel[:] = root_state.root_vel
+        self.last_dof_vel[:] = dof_state.dof_vel[:]
+        self.last_root_vel[:] = root_state.root_vel[:]
 
     def compute_reset(self):
         bodies_positions = self.simulator.get_bodies_state().rigid_body_pos

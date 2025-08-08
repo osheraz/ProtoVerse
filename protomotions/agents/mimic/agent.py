@@ -48,8 +48,12 @@ class Mimic(PPO):
         extra_motions = num_motions % world_size
 
         # Ranks with index < extra_motions get one additional motion
-        motions_per_rank = base_motions_per_rank + (1 if global_rank < extra_motions else 0)
-        start_motion = base_motions_per_rank * global_rank + min(global_rank, extra_motions)
+        motions_per_rank = base_motions_per_rank + (
+            1 if global_rank < extra_motions else 0
+        )
+        start_motion = base_motions_per_rank * global_rank + min(
+            global_rank, extra_motions
+        )
         end_motion = start_motion + motions_per_rank
 
         # Create tensor of motion IDs assigned to this rank
@@ -125,9 +129,12 @@ class Mimic(PPO):
             for eval_episode in range(self.config.eval_num_episodes):
                 # Sample random start time with slight noise for varied initial conditions.
                 elapsed_time = (
-                    torch.rand_like(self.motion_lib.state.motion_lengths[motion_ids]) * dt
+                    torch.rand_like(self.motion_lib.state.motion_lengths[motion_ids])
+                    * dt
                 )
-                self.env.motion_manager.motion_times[:num_motions_this_iter] = elapsed_time
+                self.env.motion_manager.motion_times[:num_motions_this_iter] = (
+                    elapsed_time
+                )
                 self.env.motion_manager.reset_track_steps.reset_steps(env_ids)
                 # Disable automatic reset to maintain consistency in evaluation.
                 self.env.disable_reset = True
@@ -174,9 +181,13 @@ class Mimic(PPO):
         for rank in range(self.fabric.world_size):
             with open(root_dir / f"{rank}_metrics.pt", "rb") as f:
                 other_metrics = torch.load(f, map_location=self.device)
-            other_evaluated_indices = torch.nonzero(other_metrics["evaluated"]).flatten()
+            other_evaluated_indices = torch.nonzero(
+                other_metrics["evaluated"]
+            ).flatten()
             for k in other_metrics.keys():
-                metrics[k][other_evaluated_indices] = other_metrics[k][other_evaluated_indices]
+                metrics[k][other_evaluated_indices] = other_metrics[k][
+                    other_evaluated_indices
+                ]
             metrics["evaluated"][other_evaluated_indices] = True
 
         assert metrics["evaluated"].all(), "Not all motions were evaluated."
@@ -185,36 +196,56 @@ class Mimic(PPO):
 
         to_log = {}
         for k in self.config.eval_metric_keys:
-            mean_tracking_errors = metrics[k] / (motion_num_frames * self.config.eval_num_episodes)
+            mean_tracking_errors = metrics[k] / (
+                motion_num_frames * self.config.eval_num_episodes
+            )
             to_log[f"eval/{k}"] = mean_tracking_errors.detach().mean().item()
             to_log[f"eval/{k}_max"] = metrics[f"{k}_max"].detach().mean().item()
             to_log[f"eval/{k}_min"] = metrics[f"{k}_min"].detach().mean().item()
 
         if "gt_err" in self.config.eval_metric_keys:
             tracking_failures = (metrics["gt_err_max"] > 0.5).float()
-            to_log["eval/tracking_success_rate"] = 1.0 - tracking_failures.detach().mean().item()
+            to_log["eval/tracking_success_rate"] = (
+                1.0 - tracking_failures.detach().mean().item()
+            )
 
             failed_motions = torch.nonzero(tracking_failures).flatten().tolist()
-            print(f"Saving to: {root_dir / f'failed_motions_{self.fabric.global_rank}.txt'}")
-            with open(root_dir / f"failed_motions_{self.fabric.global_rank}.txt", "w") as f:
+            print(
+                f"Saving to: {root_dir / f'failed_motions_{self.fabric.global_rank}.txt'}"
+            )
+            with open(
+                root_dir / f"failed_motions_{self.fabric.global_rank}.txt", "w"
+            ) as f:
                 for motion_id in failed_motions:
                     f.write(f"{motion_id}\n")
-                    
-            new_weights = torch.ones(self.motion_lib.num_motions(), device=self.device) * 1e-4
+
+            new_weights = (
+                torch.ones(self.motion_lib.num_motions(), device=self.device) * 1e-4
+            )
             new_weights[failed_motions] = 1.0
             self.env.motion_manager.update_sampling_weights(new_weights)
 
         stop_early = (
             self.config.training_early_termination.early_terminate_cart_err is not None
-            or self.config.training_early_termination.early_terminate_success_rate is not None
+            or self.config.training_early_termination.early_terminate_success_rate
+            is not None
         ) and self.fabric.global_rank == 0
 
         if self.config.training_early_termination.early_terminate_cart_err is not None:
             cart_err = to_log["eval/cartesian_err"]
-            stop_early = stop_early and (cart_err <= self.config.training_early_termination.early_terminate_cart_err)
-        if self.config.training_early_termination.early_terminate_success_rate is not None:
+            stop_early = stop_early and (
+                cart_err
+                <= self.config.training_early_termination.early_terminate_cart_err
+            )
+        if (
+            self.config.training_early_termination.early_terminate_success_rate
+            is not None
+        ):
             tracking_success_rate = to_log["eval/tracking_success_rate"]
-            stop_early = stop_early and (tracking_success_rate >= self.config.training_early_termination.early_terminate_success_rate)
+            stop_early = stop_early and (
+                tracking_success_rate
+                >= self.config.training_early_termination.early_terminate_success_rate
+            )
 
         if stop_early:
             print("Stopping early! Target error reached")
@@ -222,7 +253,9 @@ class Mimic(PPO):
                 print(f"tracking_success_rate: {to_log['eval/tracking_success_rate']}")
             if "cartesian_err" in self.config.eval_metric_keys:
                 print(f"cartesian_err: {to_log['eval/cartesian_err']}")
-            evaluated_score = self.fabric.broadcast(to_log["eval/tracking_success_rate"], src=0)
+            evaluated_score = self.fabric.broadcast(
+                to_log["eval/tracking_success_rate"], src=0
+            )
             self.best_evaluated_score = evaluated_score
             self.save(new_high_score=True)
             self.terminate_early()
@@ -235,4 +268,6 @@ class Mimic(PPO):
         self.env.motion_manager.reset_envs(all_ids)
         self.force_full_restart = True
 
-        return to_log, to_log.get("eval/tracking_success_rate", to_log.get("eval/cartesian_err", None))
+        return to_log, to_log.get(
+            "eval/tracking_success_rate", to_log.get("eval/cartesian_err", None)
+        )

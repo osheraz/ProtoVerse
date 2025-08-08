@@ -902,22 +902,20 @@ class IsaacLabSimulator(Simulator):
 
     def _update_viser(self) -> None:
 
-        env_origins = (
-            self.init_states_on_resets[self.viser_lab.env].cpu().detach().numpy()
-        )
+        e = self.viser_lab.env
 
-        root_pos = (
-            self._robot.data.root_pos_w[self.viser_lab.env].cpu().detach().numpy()
-        ) - env_origins
+        # Cache last env to skip terrain updates if not changed
+        if not hasattr(self, "_last_viser_env"):
+            self._last_viser_env = -1
 
-        isaacsim_root_rot = (
-            self._robot.data.root_quat_w[self.viser_lab.env].cpu().detach().numpy()
-        )
+        env_origins = self.init_states_on_resets[e].cpu().detach().numpy()
+
+        root_pos = (self._robot.data.root_pos_w[e].cpu().detach().numpy()) - env_origins
+
+        isaacsim_root_rot = self._robot.data.root_quat_w[e].cpu().detach().numpy()
 
         joint_dict = {
-            self._robot.data.joint_names[i]: self._robot.data.joint_pos[
-                self.viser_lab.env
-            ][i].item()
+            self._robot.data.joint_names[i]: self._robot.data.joint_pos[e][i].item()
             for i in range(len(self._robot.data.joint_pos[0]))
         }
         self.viser_lab.update_robot_configuration(
@@ -941,7 +939,6 @@ class IsaacLabSimulator(Simulator):
 
         if self.without_env_markers:
 
-            e = self.viser_lab.env
             terrain_patch = (
                 self.terrain.get_height_maps(
                     self.get_root_state([e]), [e], return_all_dims=True
@@ -953,3 +950,18 @@ class IsaacLabSimulator(Simulator):
             self.viser_lab.update_local_terrain_pointcloud(
                 "/terrain_patch", terrain_patch
             )
+
+        if self._last_viser_env != e:
+
+            terrain_patch = (
+                self.terrain.get_height_maps_vis(
+                    self.get_root_state([e]), [e], return_all_dims=True
+                )[0]
+                .cpu()
+                .numpy()
+            ) - env_origins
+
+            self.viser_lab.update_local_terrain_pointcloud(
+                "/terrain", terrain_patch, color_by_height=False
+            )
+            self._last_viser_env = e

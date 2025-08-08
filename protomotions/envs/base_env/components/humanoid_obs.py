@@ -33,11 +33,11 @@ class HumanoidObs(BaseComponent):
             self.env.num_envs,
             num_bodies,
             3,
-            dtype=torch.bool,
+            dtype=torch.float,  # bool
             device=self.env.device,
         )
         self.gravity_vec = torch.tensor(
-            [0, 0, -1], dtype=torch.float, device=self.device
+            [0, 0, -1], dtype=torch.float, device=self.env.device
         ).repeat(self.env.num_envs, 1)
 
         self.projected_gravity = torch.zeros(
@@ -179,7 +179,7 @@ class HumanoidObs(BaseComponent):
         self.humanoid_obs_hist_buf.set_curr(obs, env_ids)
 
         self.projected_gravity = rotations.quat_rotate_inverse(
-            root_rot, self.gravity_vec
+            current_state.rigid_body_rot[:, 0, :], self.gravity_vec
         )
 
     def build_self_obs_demo(

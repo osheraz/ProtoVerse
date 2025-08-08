@@ -154,7 +154,7 @@ class PathFollowing(BaseEnv):
         path_rew = compute_path_reward(
             head_position, tar_pos, self.config.path_follower_params.height_conditioned
         )
-        self.rew_buf[:] = path_rew
+        # self.rew_buf[:] = path_rew
 
         # ---------
 
@@ -176,8 +176,10 @@ class PathFollowing(BaseEnv):
         rew_torque = torch.sum(torch.square(dof_forces), dim=1)
         rew_dict["rew_torque"] = -0.00001 * rew_torque
 
-        # 5) self.last_dof_vel - dof_state.dof_vel
-        rew_dof_acc = torch.sum(torch.square(dof_state.dof_acc / self.dt), dim=1)
+        # 5)
+        rew_dof_acc = torch.sum(
+            torch.square((self.last_dof_vel - dof_state.dof_vel) / self.dt), dim=1
+        )
         rew_dict["rew_dof_acc"] = -2.5e-7 * rew_dof_acc
 
         # 6)
@@ -211,17 +213,17 @@ class PathFollowing(BaseEnv):
 
         # ------------
 
-        power = torch.abs(torch.multiply(dof_forces, dof_state.dof_vel)).sum(dim=-1)
-        pow_rew = -power
-        rew_dict["pow_rew"] = pow_rew
+        # power = torch.abs(torch.multiply(dof_forces, dof_state.dof_vel)).sum(dim=-1)
+        # pow_rew = -power
+        # rew_dict["pow_rew"] = pow_rew
 
         scaled_rewards: Dict[str, Tensor] = {  # move to rew class
             k: v
-            * getattr(self.config.path_follow_reward_config.component_weights, f"{k}_w")
+            * 1.0  # ,getattr(self.config.path_follow_reward_config.component_weights, f"{k}_w")
             for k, v in rew_dict.items()
         }
 
-        tot_rew = sum(scaled_rewards.values())  # self.rew_buf  =
+        self.rew_buf = sum(scaled_rewards.values())
 
         # logging & fun
 
@@ -229,9 +231,9 @@ class PathFollowing(BaseEnv):
             self.log_dict[f"raw/{rew_name}_mean"] = rew.mean()
             self.log_dict[f"raw/{rew_name}_std"] = rew.std()
 
-        for rew_name, rew in scaled_rewards.items():
-            self.log_dict[f"scaled/{rew_name}_mean"] = rew.mean()
-            self.log_dict[f"scaled/{rew_name}_std"] = rew.std()
+        # for rew_name, rew in scaled_rewards.items():
+        #     self.log_dict[f"scaled/{rew_name}_mean"] = rew.mean()
+        #     self.log_dict[f"scaled/{rew_name}_std"] = rew.std()
 
         other_log_terms = {
             # "tracking_rew": tracking_rew,
@@ -247,12 +249,12 @@ class PathFollowing(BaseEnv):
             # "root_height_error": rh_err,
         }
 
-        for rew_name, rew in other_log_terms.items():
-            self.log_dict[f"follow_other/{rew_name}_mean"] = rew.mean()
-            self.log_dict[f"follow_other/{rew_name}_std"] = rew.std()
+        # for rew_name, rew in other_log_terms.items():
+        #     self.log_dict[f"follow_other/{rew_name}_mean"] = rew.mean()
+        #     self.log_dict[f"follow_other/{rew_name}_std"] = rew.std()
 
-        self.follow_info_dict.update(rew_dict)
-        self.follow_info_dict.update(other_log_terms)
+        # self.follow_info_dict.update(rew_dict)
+        # self.follow_info_dict.update(other_log_terms)
 
     def compute_reset(self):
         # override

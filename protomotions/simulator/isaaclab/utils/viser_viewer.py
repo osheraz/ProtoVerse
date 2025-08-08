@@ -66,7 +66,7 @@ class ViserLab:
 
         self._setup_viser_scene()
         self._setup_viser_gui()
-        # self._handle_client_connection()
+        self._handle_client_connection()
 
         # body_ordering.contact_sensor_body_names
         sensor_names = self.scene["contact_sensor"].body_names
@@ -410,7 +410,7 @@ class ViserLab:
         name: str,
         xyz_points: np.ndarray,
         color_by_height: bool = True,
-        point_size: float = 0.1,
+        point_size: float = 0.02,
     ) -> None:
         """
         Update a point cloud in Viser for the terrain patch around the character.
@@ -432,18 +432,22 @@ class ViserLab:
             colors[:, 0] = (normalized * 255).astype(np.uint8)  # red
             colors[:, 2] = ((1 - normalized) * 255).astype(np.uint8)  # blue
         else:
-            colors = np.full_like(xyz_points, fill_value=180, dtype=np.uint8)  # gray
+            colors = np.full_like(xyz_points, fill_value=200, dtype=np.uint8)  # gray
 
-        if not hasattr(self, "pcl"):
-            self.pcl = self.client.scene.add_point_cloud(
+        if not hasattr(self, "_terrain_pcls"):
+            self._terrain_pcls = {}
+
+        if name not in self._terrain_pcls:
+            self._terrain_pcls[name] = self.client.scene.add_point_cloud(
                 name=name,
                 points=xyz_points,
                 colors=colors,
                 point_size=point_size,
             )
         else:
-            self.pcl.points = xyz_points
-            self.pcl_colors = colors
+            pcl = self._terrain_pcls[name]
+            pcl.points = xyz_points
+            pcl.colors = colors
 
     # markers:
 

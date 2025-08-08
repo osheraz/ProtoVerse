@@ -400,7 +400,7 @@ G1_CFG = ArticulationCfg(
 
 G1_W_FOOT_SENSOR_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="protomotions/data/assets/usd/g1_29dof_with_sensors.usda",  # WHY?
+        usd_path="protomotions/data/assets/usd/g1_29dof_with_sensors.usda",  # TODO:WHY?
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,

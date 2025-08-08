@@ -132,4 +132,4 @@ if __name__ == "__main__":
     main()
 
 # python protomotions/train_agent.py +exp=steering_mlp +robot=g1 +simulator=isaaclab +experiment_name=g1_steering
-# python protomotions/eval_agent.py +robot=g1 +simulator=isaaclab  checkpoint=results/g1_follow_fixed/last.ckpt
+# python protomotions/eval_agent.py +robot=g1 +simulator=isaaclab +checkpoint=results/g1_follow_test/last.ckpt +init_viser=true

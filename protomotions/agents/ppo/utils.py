@@ -24,9 +24,7 @@ def bounds_loss(mu: Tensor) -> Tensor:
     mu_loss_high = (
         torch.maximum(mu - soft_bound, torch.tensor(0, device=mu.device)) ** 2
     )
-    mu_loss_low = (
-        torch.minimum(mu + soft_bound, torch.tensor(0, device=mu.device)) ** 2
-    )
+    mu_loss_low = torch.minimum(mu + soft_bound, torch.tensor(0, device=mu.device)) ** 2
     b_loss = (mu_loss_low + mu_loss_high).sum(axis=-1)
     return b_loss
 
