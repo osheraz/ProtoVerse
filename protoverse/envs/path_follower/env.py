@@ -238,7 +238,7 @@ class PathFollowing(BaseEnv):
 
         other_log_terms = {
             # "tracking_rew": tracking_rew,
-            "total_rew": self.rew_buf,
+            # "total_rew": self.rew_buf,
             # "cartesian_err": cartesian_err,
             # "gt_err": gt_err,
             # "gr_err": gr_err,

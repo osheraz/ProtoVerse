@@ -131,7 +131,7 @@ class BaseEnv:
         self.extras = {}
         self.log_dict = {}
 
-        self.force_respawn_on_flat = True  # TODO: False
+        self.force_respawn_on_flat = False
 
         # After objects have been populated, finalize structure
         if self.scene_lib is not None:

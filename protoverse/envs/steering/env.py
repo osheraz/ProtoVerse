@@ -177,10 +177,84 @@ class Steering(BaseEnv):
 
     def compute_reward(self):
         root_pos = self.simulator.get_root_state().root_pos
-        self.rew_buf[:] = compute_heading_reward(
+        path_rew = compute_heading_reward(  # self.rew_buf[:]
             root_pos, self._prev_root_pos, self._tar_dir, self._tar_speed, self.dt
         )
         self._prev_root_pos[:] = root_pos
+
+        dof_state = self.simulator.get_dof_state()
+        # dof_forces = self.simulator.get_dof_forces()
+        root_states = self.simulator.get_root_state()
+        # 1)
+        rew_dict = {"path_rew": 2.0 * path_rew}
+
+        # 2)
+        rew_lin_vel_z = torch.square(root_states.root_vel[:, 2])
+        rew_dict["rew_lin_vel_z"] = -2.0 * rew_lin_vel_z
+
+        # 3)
+        rew_ang_vel_xy = torch.sum(torch.square(root_states.root_ang_vel[:, :2]), dim=1)
+        rew_dict["rew_ang_vel_xy"] = -0.05 * rew_ang_vel_xy
+
+        # 4)
+        rew_torque = torch.sum(torch.square(self.simulator.torques), dim=1)
+        rew_dict["rew_torque"] = -0.00001 * rew_torque
+
+        # power = torch.abs(torch.multiply(dof_forces, dof_state.dof_vel)).sum(dim=-1)
+        # rew_dict["pow_rew"] = -0.0002 * power
+
+        # 5)
+        rew_dof_acc = torch.sum(
+            torch.square((self.last_dof_vel - dof_state.dof_vel) / self.dt), dim=1
+        )
+        rew_dict["rew_dof_acc"] = -2.5e-7 * rew_dof_acc
+
+        # 6)
+        bodies_contact_buf = self.self_obs_cb.body_contacts.clone()
+        contact = bodies_contact_buf[:, self.feet_indices, 2] > 1.0
+        contact_filt = torch.logical_or(contact, self.last_contacts)
+        self.last_contacts = contact
+        first_contact = (self.feet_air_time > 0.0) * contact_filt
+        self.feet_air_time += self.dt
+        rew_feet_air_time = torch.sum(
+            (self.feet_air_time - 0.5) * first_contact, dim=1
+        )  #  reward only on first contact with the ground
+        # rew_feet_air_time *= torch.norm(self.commands[:, :2], dim=1) > 0.1
+        self.feet_air_time *= ~contact_filt
+        rew_dict["rew_feet_air_time"] = 1.0 * rew_feet_air_time
+
+        # 7)
+        rew_collision = torch.sum(
+            1.0
+            * (
+                torch.norm(bodies_contact_buf[:, self.penelized_body_ids, :], dim=-1)
+                > 0.1
+            ),
+            dim=1,
+        )
+        rew_dict["rew_collision"] = -1.0 * rew_collision
+
+        # 8)
+        rew_action_rate = torch.sum(
+            torch.square(self.last_actions - self.actions), dim=1
+        )
+        rew_dict["rew_action_rate"] = -0.01 * rew_action_rate
+
+        # ------------
+
+        scaled_rewards: Dict[str, Tensor] = {  # move to rew class
+            k: v
+            * 1.0  # ,getattr(self.config.path_follow_reward_config.component_weights, f"{k}_w")
+            for k, v in rew_dict.items()
+        }
+
+        self.rew_buf = sum(scaled_rewards.values())
+
+        # logging & fun
+
+        for rew_name, rew in rew_dict.items():
+            self.log_dict[f"raw/{rew_name}_mean"] = rew.mean()
+            self.log_dict[f"raw/{rew_name}_std"] = rew.std()
 
 
 #####################################################################

@@ -4,6 +4,10 @@ defaults:
   - ppo_mlp
   - /env/steering
 
+  - /agent/ppo/models/mlp_actor_terrain
+  - /agent/ppo/models/mlp_critic_terrain
+  - /terrain/complex
+
 agent:
   config:
     task_reward_w: 1.0

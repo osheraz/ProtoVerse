@@ -24,7 +24,7 @@ env:
         speed_min: 0.
 
         fixed_path: True # False
-        slow: True # False
+        slow: False # False
         use_forward_path_only: True # False
 
         height_conditioned: ${..height_conditioned}
