@@ -133,4 +133,4 @@ if __name__ == "__main__":
 
 # python protoverse/train_agent.py +exp=steering_mlp +robot=g1 +simulator=isaaclab +experiment_name=g1_steering
 # python protoverse/eval_agent.py +robot=h1 +simulator=isaaclab +checkpoint=results/test_amp/last.ckpt +init_viser=true
-# python protoverse/eval_agent.py +robot=h1 +simulator=isaaclab +checkpoint=results/h1_steering_terrain/last.ckpt +init_viser=true ++env.config.enable_height_termination=true
+# python protoverse/eval_agent.py +robot=h1 +simulator=isaaclab +checkpoint=results/h1_st/last.ckpt +init_viser=true ++env.config.enable_height_termination=true

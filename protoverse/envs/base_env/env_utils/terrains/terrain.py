@@ -149,7 +149,7 @@ class Terrain:
         self.num_height_points, self.height_points = self.init_height_points(num_envs)
 
         self.num_height_points_vis, self.height_points_vis = self.init_height_points(
-            num_envs, mul=3
+            num_envs, mul=10
         )
 
         self.vertices, self.triangles = convert_heightfield_to_trimesh(

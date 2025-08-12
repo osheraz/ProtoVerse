@@ -6,6 +6,7 @@ from collections import deque
 from copy import deepcopy
 import time
 from typing import Dict, List, Any, Optional, Tuple
+from pathlib import Path
 
 try:
     import viser
@@ -26,14 +27,22 @@ except (
             print(f"Error deleting directory '{websockets.__path__[0]}': {e}")
 
 from protoverse.utils.urdf_loader import load_urdf
-from protoverse.simulator.isaaclab.utils.camera_manager import CameraManager
-
-
-# TODO: convert to simulator-independent...
+from protoverse.simulator.isaaclab.utils.camera_manager import (
+    ViserCameraManager,
+    FrameStore,
+)
+from protoverse.simulator.isaaclab.utils.camera_io import IsaacLabCameraIO
 
 
 class ViserLab:
-    def __init__(self, scene, robot_config, marker_names):
+    def __init__(
+        self,
+        config,
+        cam_io: IsaacLabCameraIO,
+        marker_names: Optional[List[str]],
+        frames: Optional[FrameStore] = None,
+        frames_maxlen: int = 1,  # <- configurable, default 1
+    ):
         """
         Create a Viser-based visualizer for an external simulation scene.
 
@@ -41,35 +50,42 @@ class ViserLab:
             scene: A simulation scene object with attributes:
                 - sensors (dict)
                 - articulations["robot"] with joint_names and data.default_joint_pos
-                - env_origins (torch.Tensor)
                 - num_envs (int)
             urdf_path: Dict mapping name to URDF path for each robot
         """
-        self.scene = scene
-        self.scene_config = scene.cfg
-        self.urdf_path = robot_config.asset.asset_file_name
-        self.robot_config = robot_config
-
+        self.num_envs = config.num_envs
+        self.urdf_path = config.robot.asset.asset_file_name
+        self.robot_config = config.robot
+        self.config = config
         self.viser_server = viser.ViserServer()
         self.client = None
         self.env = 0  # Default selected environment
 
-        self.available_cameras = self._get_available_cameras()
-        if not len(self.available_cameras):
-            print(
-                "No supported cameras found in scene.sensors (need 'viewport_camera' or 'overhead_camera')."
-            )
+        self.cam_io = cam_io
+
+        if cam_io:
+            self.frames = frames or FrameStore(maxlen=frames_maxlen)
+
+            self.available_cameras = config.camera.available_cameras
+            if not len(self.available_cameras):
+                print(
+                    "No supported cameras found in scene.sensors (need 'viewport_camera' or 'overhead_camera')."
+                )
+            else:
+                self.camera_source_name = self.available_cameras[0]  # default
+                self.use_viewport = self.camera_source_name == "viewport_camera"
+                self.cam_io.set_camera(self.camera_source_name)
+                # self.view_camera = self.scene.sensors[self.camera_source_name]
+
         else:
-            self.camera_source_name = self.available_cameras[0]  # default
-            self.view_camera = self.scene.sensors[self.camera_source_name]
-            self.use_viewport = self.camera_source_name == "viewport_camera"
+            self.available_cameras = []
 
         self._setup_viser_scene()
         self._setup_viser_gui()
         self._handle_client_connection()
 
         # body_ordering.contact_sensor_body_names
-        sensor_names = self.scene["contact_sensor"].body_names
+        sensor_names = self.robot_config.contact_bodies  # TODO: make sure common order
         # self.add_per_foot_snapshot_plot("left", sensor_names)
         # self.add_per_foot_snapshot_plot("right", sensor_names)
 
@@ -89,13 +105,6 @@ class ViserLab:
                 )
                 time.sleep(0.1)
 
-    def _get_available_cameras(self):
-        return [
-            name
-            for name in ["viewport_camera", "overhead_camera"]
-            if name in self.scene.sensors
-        ]
-
     def _setup_viser_scene(self):
         self.base_frame = self.viser_server.scene.add_frame("/base", show_axes=False)
         if (
@@ -109,8 +118,6 @@ class ViserLab:
         self.urdf = {}
         self.urdf_vis = {}
 
-        from pathlib import Path
-
         self.urdf_path = {"robot": Path(self.urdf_path)}  # modify for multi agents
 
         for name, path in self.urdf_path.items():
@@ -119,16 +126,14 @@ class ViserLab:
                 self.viser_server, self.urdf[name], root_node_name="/base"
             )
 
-        # Set initial joint pose
-        robot = self.scene["robot"]
-        default_joint_pos_dict = {
-            robot.joint_names[i]: robot.data.default_joint_pos[0][i].item()
-            for i in range(len(robot.data.default_joint_pos[0]))
-        }
-        self.urdf_vis["robot"].update_cfg(default_joint_pos_dict)
+        if self.cam_io:
+            self.camera_manager = ViserCameraManager(
+                self.viser_server, self.config.camera
+            )
+            self.camera_manager.on_camera_added = lambda key: None
+            self.camera_manager.on_camera_removed = self.frames.drop
 
-        self.camera_manager = CameraManager(self.viser_server, self.scene)
-        self.use_viewport = len(self.camera_manager.frustums) == 0
+            self.use_viewport = len(self.camera_manager.frustums) == 0
 
         self.viser_ground_plane = self.viser_server.scene.add_grid(
             name="ground_plane",
@@ -148,7 +153,7 @@ class ViserLab:
             )
             self.env_selector = self.viser_server.gui.add_dropdown(
                 "Environment to View",
-                [str(i) for i in range(self.scene_config.num_envs)],
+                [str(i) for i in range(self.num_envs)],
                 initial_value="0",
             )
 
@@ -163,8 +168,9 @@ class ViserLab:
                 @self.camera_selector.on_update
                 def _update_camera(_) -> None:
                     self.camera_source_name = self.camera_selector.value
-                    self.view_camera = self.scene.sensors[self.camera_source_name]
+                    # self.view_camera = self.scene.sensors[self.camera_source_name]
                     self.use_viewport = self.camera_source_name == "viewport_camera"
+                    self.cam_io.set_camera(self.camera_source_name)
 
             else:
                 self.camera_selector = None
@@ -186,16 +192,18 @@ class ViserLab:
             )
 
         controls = self.viser_server.gui.add_folder("Controls")
-        self.camera_manager.setup_gui(folder, controls)
 
         @self.env_selector.on_update
         def _update_env(_) -> None:
             self.env = int(self.env_selector.value)
 
-        @self.camera_manager.add_camera_button.on_click
-        def _add_camera(_) -> None:
-            self.camera_manager.handle_add_camera(self.client)
-            self.use_viewport = False
+        if self.available_cameras:
+            self.camera_manager.setup_gui(folder, controls)
+
+            @self.camera_manager.add_camera_button.on_click
+            def _add_camera(_) -> None:
+                self.camera_manager.handle_add_camera(self.client)
+                self.use_viewport = False
 
     def update_robot_configuration(
         self, base_pose, base_rot, joint_pos_dict: Dict[str, float]
@@ -207,87 +215,52 @@ class ViserLab:
 
     # Camera
 
-    def render_wrapped_impl(self, scene_positions: Optional[torch.Tensor] = None):
-        cam = self.view_camera
+    def render_wrapped_impl(self, env_origins: Optional[torch.Tensor] = None):
+
+        assert hasattr(self, "cam_io") or self.cam_io, "missing cam_io"
+
+        if env_origins is None:
+            env_origins = torch.zeros((self.num_envs, 3), dtype=torch.float32)
 
         if self.use_viewport and self.client is not None:
 
-            repeat_n = (
-                self.scene_config.num_envs * cam.cfg.cams_per_env
-                if getattr(cam.cfg, "cams_per_env", None) is not None
-                else self.scene_config.num_envs
+            cam_out = self.cam_io.render_from_viewport(
+                client_position=self.client.camera.position,
+                client_wxyz=self.client.camera.wxyz,
+                env_origins=env_origins,
+                use_first_cam_per_env=True,
             )
 
-            xyz = (
-                torch.tensor(self.client.camera.position)
-                .unsqueeze(0)
-                .repeat(repeat_n, 1)
-            )
-            # xyz += self.scene.env_origins.cpu().repeat_interleave(
-            #     repeat_n // self.scene_config.num_envs, dim=0
-            # )
-            xyz += torch.stack(scene_positions).cpu()
-
-            wxyz = (
-                torch.tensor(self.client.camera.wxyz).unsqueeze(0).repeat(repeat_n, 1)
-            )
-            cam.set_world_poses(xyz, wxyz, convention="ros")
-
-            single_cam_ids = [
-                cam.cfg.cams_per_env * i for i in range(self.scene_config.num_envs)
-            ]
-            cam_out = {
-                key: cam.data.output[key][single_cam_ids] for key in cam.data.output
-            }
-            self.camera_manager.buffers["camera_0"].append(cam_out)
+            self.frames.append("camera_0", cam_out)
 
         elif not self.use_viewport and len(self.camera_manager.frustums) > 0:
-            cams_per_env = getattr(cam.cfg, "cams_per_env", 1)
-            repeat_n = self.scene_config.num_envs * cams_per_env
 
-            xyzs, wxyzs = [], []
-            for f in self.camera_manager.frustums:
-                xyzs.append(f.position)
-                wxyzs.append(f.wxyz)
-            while len(xyzs) < cams_per_env:
-                xyzs.append(xyzs[-1])
-                wxyzs.append(wxyzs[-1])
-
-            xyzs = torch.tensor(np.array(xyzs)).repeat(self.scene_config.num_envs, 1)
-            wxyzs = torch.tensor(np.array(wxyzs)).repeat(self.scene_config.num_envs, 1)
-            xyzs += self.scene.env_origins.cpu().repeat_interleave(
-                repeat_n // self.scene_config.num_envs, dim=0
+            by_key = self.cam_io.render_from_frustums(
+                self.camera_manager.frustums, env_origins
             )
 
-            cam.set_world_poses(xyzs, wxyzs, convention="ros")
+            for key, data in by_key.items():
+                self.frames.append(key, data)
 
-            indices = [
-                i * cams_per_env + j
-                for i in range(self.scene_config.num_envs)
-                for j in range(len(self.camera_manager.frustums))
-            ]
-            cam_out = {key: cam.data.output[key][indices] for key in cam.data.output}
+        # draw selected buffer
+        if self.client is not None:
+            selected = self.camera_manager.render_cam
+            frame = self.frames.latest(selected)  # dict or None
 
-            for idx, frustum in enumerate(self.camera_manager.frustums):
-                frustum_data = {
-                    key: cam_out[key][idx :: len(self.camera_manager.frustums)]
-                    for key in cam_out
-                }
-                buffer_key = frustum.name[1:]
-                if buffer_key not in self.camera_manager.buffers:
-                    self.camera_manager.buffers[buffer_key] = deque(maxlen=1)
-                self.camera_manager.buffers[buffer_key].append(deepcopy(frustum_data))
+            if isinstance(frame, dict):
+                img = frame.get("rgb", None)
+                if img is None:
+                    rgba = frame.get("rgba", None)
+                    if rgba is not None:
+                        img = rgba[..., :3]
 
-        # Update Viser GUI
-        if (
-            "camera_0" in self.camera_manager.buffers
-            and len(self.camera_manager.buffers["camera_0"]) > 0
-            and self.client is not None
-        ):
-            rgb = self.camera_manager.buffers["camera_0"][0]["rgb"][self.env]
-            self.viewport_image.image = rgb.clone().cpu().detach().numpy()
-
-        # self.sim.render() # moved to pre_physics_step
+                if img is not None:
+                    v = img[self.env]
+                    self.viewport_image.image = (
+                        v.detach().cpu().numpy()
+                        if hasattr(v, "detach")
+                        else np.asarray(v)
+                    )
 
     # Plots
 

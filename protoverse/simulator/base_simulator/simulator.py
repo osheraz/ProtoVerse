@@ -169,7 +169,7 @@ class Simulator(ABC):
         contact_sensor_convert_to_common = torch.tensor(
             [
                 body_ordering.contact_sensor_body_names.index(body_name)
-                for body_name in self.robot_config.body_names
+                for body_name in self.robot_config.body_names  # TODO: should be contact_bodies
                 if body_name in body_ordering.contact_sensor_body_names
             ],
             dtype=torch.long,
@@ -467,6 +467,11 @@ class Simulator(ABC):
             self.data_conversion
         )
         return simulator_dof_state
+
+    def get_torques(self):
+
+        # Sim specific order
+        return self.torques
 
     @abstractmethod
     def _get_simulator_dof_state(

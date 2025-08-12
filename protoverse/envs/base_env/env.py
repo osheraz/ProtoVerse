@@ -6,6 +6,7 @@ import torch
 from hydra.utils import instantiate, get_class
 from torch import Tensor
 from isaac_utils import torch_utils, rotations
+from loguru import logger
 
 from protoverse.simulator.base_simulator.simulator import Simulator
 from protoverse.simulator.base_simulator.config import (
@@ -23,6 +24,7 @@ from protoverse.envs.base_env.env_utils.terrains.terrain_config import TerrainCo
 from protoverse.envs.base_env.components.humanoid_obs import HumanoidObs
 from protoverse.envs.base_env.components.terrain_obs import TerrainObs
 from protoverse.envs.base_env.components.motion_manager import MotionManager
+from protoverse.envs.base_env.components.reward_manager import RewardManager
 
 from protoverse.utils.motion_lib import MotionLib
 from protoverse.utils.scene_lib import SceneLib
@@ -45,7 +47,7 @@ class BaseEnv:
             decimation = self.config.simulator.config.sim.decimation
             self.config.simulator.config.sim.decimation = 1
             self.sync_motion_dt = decimation / self.config.simulator.config.sim.fps
-            print("HACK SLOW DOWN")
+            logger.warning("HACK SLOW DOWN")
             self.config.robot.control.control_type = "torque"
 
         SimulatorConfigClass = get_class(self.config.simulator._config_target_)
@@ -158,28 +160,7 @@ class BaseEnv:
             requires_grad=False,
         )
 
-        df_state = self.simulator.get_default_state()
-
-        # TODO: should be inside base_sim?
-        # Check if this params are common or sim-specific
-        self.last_dof_pos = torch.zeros_like(df_state.dof_pos)
-        self.last_dof_vel = torch.zeros_like(df_state.dof_vel)
-        self.last_root_vel = torch.zeros_like(df_state.root_vel)
-        self.last_actions = torch.zeros_like(self.actions)
-        self.last_contacts = torch.zeros(
-            self.num_envs,
-            2,  # HARD code for now
-            dtype=torch.bool,
-            device=self.device,
-            requires_grad=False,
-        )
-        self.feet_air_time = torch.zeros(
-            self.num_envs,
-            2,
-            dtype=torch.float,
-            device=self.device,
-            requires_grad=False,
-        )
+        self.rew_manager = RewardManager(config.reward_config, self)
 
     ###############################################################
     # Getters
@@ -345,7 +326,7 @@ class BaseEnv:
 
         self.compute_observations()
         self.compute_reward()
-        self._post_compute_observations_callback()
+        # self._post_compute_observations_callback()
 
         if not self.disable_reset:
             self.compute_reset()
@@ -367,15 +348,6 @@ class BaseEnv:
 
         self.self_obs_cb.compute_observations(env_ids)
         self.terrain_obs_cb.compute_observations(env_ids)
-
-    def _post_compute_observations_callback(self):
-
-        dof_state = self.simulator.get_dof_state()
-        root_state = self.simulator.get_root_state()
-        self.last_actions[:] = self.actions[:]
-        self.last_dof_pos[:] = dof_state.dof_pos[:]
-        self.last_dof_vel[:] = dof_state.dof_vel[:]
-        self.last_root_vel[:] = root_state.root_vel[:]
 
     def compute_reset(self):
         bodies_positions = self.simulator.get_bodies_state().rigid_body_pos
@@ -497,11 +469,8 @@ class BaseEnv:
             self.terminate_buf[env_ids] = 0
 
             self.actions[env_ids] = 0
-            self.last_actions[env_ids] = 0
-            self.last_contacts[env_ids] = 0
-            self.last_dof_pos[env_ids] = 0
-            self.last_dof_vel[env_ids] = 0
-            self.feet_air_time[env_ids] = 0
+
+            self.rew_manager.on_reset(env_ids)
 
         return self.get_obs()
 

@@ -42,6 +42,7 @@ class SceneCfg(InteractiveSceneCfg):
         scene_cfgs=None,
         pretty=False,
         with_cam_obs=False,
+        with_viewport_camera=False,
         *args,
         **kwargs,
     ):
@@ -154,14 +155,14 @@ class SceneCfg(InteractiveSceneCfg):
             raise ValueError(f"Unsupported robot type: {robot_type}")
 
         # Camera propertires
-        if with_cam_obs:
+        if with_viewport_camera:
 
             self.viewport_camera = MultiTiledCameraCfg(  # INCLUDE THIS IN ALL CUSTOM CONFIGS TO LINK WITH A VISER VIEWPORT
                 prim_path="{ENV_REGEX_NS}/Viewport",
                 # MultiTiledCameraCfg results in prims at /World/envs/env_.*/Viewport0
                 # and /World/envs/env_.*/Viewport1 if cams_per_env = 2
                 # (For batched rendering of multiple cameras per environment)
-                data_types=["rgb"],
+                data_types=["rgb"],  # TODO: pull from cfg ******
                 spawn=sim_utils.PinholeCameraCfg(
                     focal_length=24.0,
                     focus_distance=400.0,

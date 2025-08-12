@@ -5,7 +5,7 @@ simulator:
   _config_target_: ???
   _recursive_: False
   config:
-    w_last: ???  # IsaacGym is xyzw quaternions
+    w_last: ???  # IsaacGym is xyzw quaternions; Isaacsim is wxyz. Common is wxyz.
     headless: ${headless}
 
     init_viser: ${init_viser}
@@ -21,8 +21,18 @@ simulator:
       fps: ???
       decimation: ???
 
-    camera: null
+    # camera: null
+    with_cam_obs: ${robot.with_cam_obs}
+    with_viewport_camera: False
 
+    camera:
+      available_cameras: [viewport_camera]
+      cams_per_env: 1
+      width: 320
+      height: 240
+      focal_length: 24.0
+      horizontal_aperture: 20.955
+  
     record_viewer: False
     viewer_record_dir: "output/recordings/viewer"
     experiment_name: ${experiment_name}

@@ -21,6 +21,7 @@ from protoverse.simulator.base_simulator.config import (
     InitState,
     ControlConfig,
     ControlType,
+    CameraConfig,
 )
 from protoverse.envs.base_env.env_utils.terrains.flat_terrain import Terrain
 from protoverse.envs.base_env.env_utils.terrains.terrain_config import TerrainConfig
@@ -32,6 +33,7 @@ from protoverse.utils.scene_lib import (
 )
 
 with_foot_sensor = True
+with_viewport_camera = True
 with_cam_obs = False
 
 # Create robot asset configuration
@@ -331,7 +333,10 @@ simulator_config = IsaacLabSimulatorConfig(
     num_envs=4,  # Number of parallel environments
     experiment_name="scene_isaaclab_example",
     w_last=False,  # IsaacLab uses wxyz quaternions
-    init_viser=False,
+    init_viser=True,
+    with_cam_obs=with_cam_obs,
+    with_viewport_camera=with_viewport_camera,
+    camera=CameraConfig(),
 )
 
 device = torch.device("cuda")
@@ -376,15 +381,15 @@ simulator.reset_envs(
 )
 
 # Run the simulation loop
-try:
-    while True:
-        actions = torch.randn(
-            simulator_config.num_envs,
-            simulator_config.robot.number_of_actions,
-            device=device,
-        )
-        simulator.step(actions)
-except KeyboardInterrupt:
-    print("\nSimulation stopped by user")
-finally:
-    simulator.close()
+# try:
+while True:
+    actions = torch.randn(
+        simulator_config.num_envs,
+        simulator_config.robot.number_of_actions,
+        device=device,
+    )
+    simulator.step(actions)
+# except KeyboardInterrupt:
+#     print("\nSimulation stopped by user")
+# finally:
+#     simulator.close()

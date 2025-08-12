@@ -43,6 +43,9 @@ from protoverse.simulator.base_simulator.config import (
 )
 from protoverse.simulator.base_simulator.robot_state import RobotState
 from protoverse.simulator.isaaclab.utils.viser_viewer import ViserLab
+from protoverse.simulator.isaaclab.utils.camera_io import (
+    IsaacLabCameraIO,
+)
 
 # =====================================================
 # Viser should be independent of the simulator, I'll wrap this class in the future
@@ -131,11 +134,18 @@ class IsaacLabSimulator(Simulator):
 
         self._sim.reset()
 
+        cam_io = (
+            IsaacLabCameraIO(self._scene, config)
+            if self.config.with_cam_obs or self.config.with_viewport_camera
+            else None
+        )
+
         # setup viser
         if self.config.init_viser:
+
             self.viser_lab = ViserLab(
-                scene=self._scene,
-                robot_config=self.robot_config,
+                config=self.config,
+                cam_io=cam_io,
                 marker_names=(
                     visualization_markers.keys() if visualization_markers else None
                 ),
@@ -160,6 +170,7 @@ class IsaacLabSimulator(Simulator):
             scene_cfgs=scene_cfgs,
             terrain=self.terrain,
             with_cam_obs=self.robot_config.with_cam_obs,
+            with_viewport_camera=self.config.with_viewport_camera,
         )
         return scene_cfg
 
@@ -922,9 +933,9 @@ class IsaacLabSimulator(Simulator):
             root_pos, isaacsim_root_rot, joint_dict
         )
 
-        if self.robot_config.with_cam_obs:
+        if self.config.with_viewport_camera:
 
-            self.viser_lab.render_wrapped_impl(env_origins)
+            self.viser_lab.render_wrapped_impl(self.init_states_on_resets.cpu())
 
         if self.robot_config.with_foot_sensors:
             contact_tensor = self._get_simulator_bodies_contact_buf()

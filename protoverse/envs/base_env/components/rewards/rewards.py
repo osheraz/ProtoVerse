@@ -19,34 +19,10 @@ def reward_ang_vel_xy(base_ang_vel: Tensor) -> Tensor:
 
 
 @torch.jit.script
-def reward_orientation(projected_gravity: Tensor) -> Tensor:
-    # Penalize non flat base orientation
-
-    return torch.sum(torch.square(projected_gravity[:, :2]), dim=1)
-
-
-@torch.jit.script
-def reward_base_height(
-    root_states: Tensor, measured_heights: Tensor, base_height_target: float
-) -> Tensor:
-    # Penalize base height away from target
-
-    base_height = torch.mean(root_states[:, 2].unsqueeze(1) - measured_heights, dim=1)
-    return torch.square(base_height - base_height_target)
-
-
-@torch.jit.script
 def reward_torques(torques: Tensor) -> Tensor:
     # Penalize torques
 
     return torch.sum(torch.square(torques), dim=1)
-
-
-@torch.jit.script
-def reward_dof_vel(dof_vel: Tensor) -> Tensor:
-    # Penalize dof velocities
-
-    return torch.sum(torch.square(dof_vel), dim=1)
 
 
 @torch.jit.script
@@ -69,8 +45,58 @@ def reward_collision(
 ) -> Tensor:
     # Penalize collisions on selected bodies
 
-    contact_subset = contact_forces.index_select(1, penalised_contact_indices)
-    return torch.sum((torch.norm(contact_subset, dim=-1) > 0.1).float(), dim=1)
+    return torch.sum(
+        1.0
+        * (torch.norm(contact_forces[:, penalised_contact_indices, :], dim=-1) > 0.1),
+        dim=1,
+    )
+
+
+@torch.jit.script
+def compute_heading_reward(
+    root_pos: Tensor,
+    prev_root_pos: Tensor,
+    tar_dir: Tensor,
+    tar_speed: Tensor,
+    dt: float,
+) -> Tensor:
+    vel_err_scale = 0.25
+    tangent_err_w = 0.1
+
+    delta_root_pos = root_pos - prev_root_pos
+    root_vel = delta_root_pos / dt
+    tar_dir_speed = torch.sum(tar_dir * root_vel[..., :2], dim=-1)
+
+    tar_dir_vel = tar_dir_speed.unsqueeze(-1) * tar_dir
+    tangent_vel = root_vel[..., :2] - tar_dir_vel
+
+    tangent_speed = torch.sum(tangent_vel, dim=-1)
+
+    tar_vel_err = tar_speed - tar_dir_speed
+    tangent_vel_err = tangent_speed
+    dir_reward = torch.exp(
+        -vel_err_scale
+        * (
+            tar_vel_err * tar_vel_err
+            + tangent_err_w * tangent_vel_err * tangent_vel_err
+        )
+    )
+
+    speed_mask = tar_dir_speed < -0.5
+    dir_reward[speed_mask] = 0
+
+    return dir_reward
+
+
+# ----------------
+# ----------------
+
+
+@torch.jit.script
+def reward_dof_vel(dof_vel: Tensor) -> Tensor:
+    # Penalize dof velocities
+
+    return torch.sum(torch.square(dof_vel), dim=1)
 
 
 @torch.jit.script
@@ -189,6 +215,7 @@ def reward_feet_air_time(
     commands: Tensor,
     feet_indices: Tensor,
 ) -> Tuple[Tensor, Tensor, Tensor]:
+
     # Reward long steps
     # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
     contact = contact_forces[:, feet_indices, 2] > 1.0
@@ -237,3 +264,20 @@ def reward_feet_step(
     z_ans = torch.where(z_ans > 1.0, torch.ones_like(z_ans), z_ans)
 
     return z_ans
+
+
+@torch.jit.script
+def reward_orientation(projected_gravity: Tensor) -> Tensor:
+    # Penalize non flat base orientation
+
+    return torch.sum(torch.square(projected_gravity[:, :2]), dim=1)
+
+
+@torch.jit.script
+def reward_base_height(
+    root_states: Tensor, measured_heights: Tensor, base_height_target: float
+) -> Tensor:
+    # Penalize base height away from target
+
+    base_height = torch.mean(root_states[:, 2].unsqueeze(1) - measured_heights, dim=1)
+    return torch.square(base_height - base_height_target)

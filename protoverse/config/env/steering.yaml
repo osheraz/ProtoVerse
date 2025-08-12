@@ -14,9 +14,24 @@ env:
       random_heading_probability: 0.2
       standard_heading_change: 1.57
       tar_speed_min: 1.2
-      tar_speed_max: 6
+      tar_speed_max: 3 # 6
       standard_speed_change: 0.3
       stop_probability: 0.05
       obs_size: 3
+
+    reward_config:
+      positive_constant: 0.0
+      scale_with_dt: True
+
+      reward_scales:
+        path:             1.0 # aux
+        lin_vel_z:       -2.0
+        ang_vel_xy:      -0.05
+        torque:          -0.00001
+        dof_acc:         -2.5e-7
+        feet_air_time:    1.0
+        collision:       -1.0
+        action_rate:     -0.01
+
 
 # Globally accessible parameters

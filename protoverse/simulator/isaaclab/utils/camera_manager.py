@@ -1,35 +1,56 @@
 import os
 from collections import deque
 import h5py
-import isaaclab.sim as sim_utils
 import numpy as np
 import viser
 from viser.transforms import SO3
-from isaaclab.sensors import MultiTiledCameraCfg
+
+from collections import defaultdict, deque
+from typing import Dict, Optional, Iterable
 
 
-class CameraManager:
-    def __init__(self, viser_server, scene):
+class FrameStore:
+    def __init__(self, maxlen: int = 1):
+        self._d = defaultdict(lambda: deque(maxlen=maxlen))
+
+    def append(self, key: str, frame: dict):
+        self._d[key].append(frame)
+
+    def latest(self, key: str) -> Optional[dict]:
+        q = self._d.get(key)
+        return q[-1] if q and len(q) else None
+
+    def drop(self, key: str):
+        self._d.pop(key, None)
+
+    def get(self, key: str) -> deque:
+        return self._d.get(key, deque())
+
+
+class ViserCameraManager:
+    def __init__(self, viser_server, camera_config):
         self.viser_server = viser_server
-        self.scene = scene
+        # self.scene = scene
+        self.camera_config = camera_config
+
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.camera_pose_dir = os.path.join(dir_path, "../../data/camera_poses")
         self.camera_poses_file = os.path.join(
             self.camera_pose_dir, "camera_poses_calib_031425.h5"
         )
+
         # self.camera_poses_file = os.path.join(self.camera_pose_dir, "franka_droid_extr3.h5")
-        print(f"[INFO]: Camera poses file: {self.camera_poses_file}")
+        # print(f"[INFO]: Camera poses file: {self.camera_poses_file}")
         self.used_ids = set()
         self.frustums = []
-        self.buffers = {}
+        # self.buffers = {}
+        self.on_camera_added = None  # Callable[[str], None]
+        self.on_camera_removed = None  # Callable[[str], None]
+
         self.render_cam = "camera_0"
         self.camera_selector = None
-        if type(list(self.scene.sensors.values())[0].cfg) == MultiTiledCameraCfg:
-            self.max_cams_per_env = list(self.scene.sensors.values())[
-                0
-            ].cfg.cams_per_env
-        else:
-            self.max_cams_per_env = 1
+
+        self.max_cams_per_env = camera_config.cams_per_env
         self.load_camera_poses()
         self.last_clicked_frustum = None
 
@@ -63,11 +84,11 @@ class CameraManager:
             )
 
         # Initialize buffer for render cam
-        self.buffers[self.render_cam] = deque(maxlen=1)
+        # self.buffers[self.render_cam] = deque(maxlen=1)
 
         # Initialize buffers for all cameras
-        for frustum in self.frustums:
-            self.buffers[frustum.name[1:]] = deque(maxlen=1)
+        # for frustum in self.frustums:
+        #     self.buffers[frustum.name[1:]] = deque(maxlen=1)
 
         if len(self.frustums) == self.max_cams_per_env:
             self.add_camera_button.disabled = True
@@ -100,11 +121,12 @@ class CameraManager:
                 self.render_cam = self.camera_selector.value
 
             # Initialize buffer for new camera
-            if frustum.name[1:] not in self.buffers:
-                self.buffers[frustum.name[1:]] = deque(maxlen=1)
+            # if frustum.name[1:] not in self.buffers:
+            #     self.buffers[frustum.name[1:]] = deque(maxlen=1)
 
             if len(self.frustums) == self.max_cams_per_env:
                 self.add_camera_button.disabled = True
+
         except Exception as e:
             print(f"Error in handle add camera: {e}")
 
@@ -112,16 +134,20 @@ class CameraManager:
 
     def get_camera_params(self):
         """Get camera parameters from scene config"""
-        if not isinstance(
-            list(self.scene.sensors.values())[0].cfg.spawn, sim_utils.PinholeCameraCfg
-        ):
-            return None
-        sensor = list(self.scene.sensors.values())[0].cfg.spawn
+        # if not isinstance(
+        #     list(self.scene.sensors.values())[0].cfg.spawn, sim_utils.PinholeCameraCfg
+        # ):
+        #     return None
+        # sensor = list(self.scene.sensors.values())[0].cfg.spawn
         return {
-            "horizontal_aperture": sensor.horizontal_aperture,
-            "focal_length": sensor.focal_length,
-            "width": list(self.scene.sensors.values())[0].cfg.width,
-            "height": list(self.scene.sensors.values())[0].cfg.height,
+            # "horizontal_aperture": sensor.horizontal_aperture,
+            # "focal_length": sensor.focal_length,
+            # "width": list(self.scene.sensors.values())[0].cfg.width,
+            # "height": list(self.scene.sensors.values())[0].cfg.height,
+            "horizontal_aperture": self.camera_config.horizontal_aperture,
+            "focal_length": self.camera_config.focal_length,
+            "width": self.camera_config.width,
+            "height": self.camera_config.height,
         }
 
     def create_frustum(self, position, wxyz, camera_params=None):
@@ -152,7 +178,10 @@ class CameraManager:
         frustum.on_click(self.create_click_handler(frustum))
 
         self.frustums.append(frustum)
-        self.buffers[frustum.name[1:]] = deque(maxlen=1)
+        # self.buffers[frustum.name[1:]] = deque(maxlen=1)
+        if self.on_camera_added:
+            self.on_camera_added(frustum.name[1:])  # "camera_X"
+
         return frustum
 
     def update_camera_selector(self):
@@ -241,9 +270,10 @@ class CameraManager:
 
             # Remove the corresponding buffer
             camera_name = f"camera_{camera_id}"
-            if camera_name in self.buffers:
-                del self.buffers[camera_name]
-
+            # if camera_name in self.buffers:
+            #     del self.buffers[camera_name]
+            if self.on_camera_removed:
+                self.on_camera_removed(camera_name)
             # Update the dropdown
             self.update_camera_selector()
 

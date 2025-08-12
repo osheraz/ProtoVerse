@@ -322,6 +322,18 @@ class SimParams(ConfigBuilder):
 
 
 @dataclass
+class CameraConfig(ConfigBuilder):
+    """Configuration for the ordering of bodies in the simulation."""
+
+    available_cameras: List[str] = field(default_factory=lambda: ["viewport_camera"])
+    cams_per_env: int = 1
+    width: int = 320
+    height: int = 240
+    focal_length: float = 24.0
+    horizontal_aperture: float = 20.955
+
+
+@dataclass
 class SimulatorConfig(ConfigBuilder):
     """Main configuration class for the simulator."""
 
@@ -331,11 +343,22 @@ class SimulatorConfig(ConfigBuilder):
     num_envs: int
     sim: SimParams
     experiment_name: str
+
+    camera: CameraConfig
+    with_viewport_camera: bool = False
+    with_cam_obs: bool = False
+
+    # camera: Optional[Any] = None
+
     plane: PlaneConfig = PlaneConfig()
-    camera: Optional[Any] = None
+
     record_viewer: bool = False
     viewer_record_dir: str = "output/recordings/viewer"
     init_viser: bool = False
+
+    def __post_init__(self):
+
+        self.with_cam_obs = bool(getattr(self.robot, "with_cam_obs", False))
 
 
 @dataclass
