@@ -19,6 +19,8 @@ from protoverse.simulator.base_simulator.config import (
     SimulatorConfig,
     SimBodyOrdering,
 )
+from protoverse.simulator.isaaclab.utils.video_sink import VideoSink, to_uint8_rgb
+from loguru import logger
 
 
 class Simulator(ABC):
@@ -77,10 +79,10 @@ class Simulator(ABC):
         self._user_is_recording, self._user_recording_state_change = False, False
         self._user_recording_video_queue_size = 100000
         self._delete_user_viewer_recordings = False
-        os.makedirs("output/renderings", exist_ok=True)
-        self._user_recording_video_path = os.path.join(
-            "output/renderings", f"{self.config.experiment_name}-%s"
-        )
+        base_dir = os.path.join("output", "renderings", self.config.experiment_name)
+        os.makedirs(base_dir, exist_ok=True)
+
+        self._user_recording_video_path = os.path.join(base_dir, "auto-%s")
 
         self.init_states_on_resets = torch.zeros((self.num_envs, 3), device=self.device)
         self.torques = torch.zeros(
@@ -89,6 +91,25 @@ class Simulator(ABC):
             dtype=torch.float,
             device=self.device,
             requires_grad=False,
+        )
+
+        # auto-record config (examples)
+        self.auto_record_every = getattr(
+            config, "auto_record_every", 1000  # epoch is 32 steps
+        )  # e.g. 2000 steps; 0 disables - TODO: should be w.r.t max_episode_length
+        self.auto_record_len = getattr(
+            config, "auto_record_len", 300
+        )  # frames to capture per session
+        self.auto_record_stride = getattr(
+            config, "auto_record_stride", 1
+        )  # keep using your _record_stride if you prefer
+        self._record_step_counter = 0
+
+        # runtime state
+        self._global_step = 0  # count *agent* steps (not physics substeps)
+        self._auto_record_frames_left = 0
+        self._auto_record_active = (
+            False  # True only for sessions started by the scheduler
         )
 
     # -------------------------
@@ -744,6 +765,7 @@ class Simulator(ABC):
 
         The target cycles through all objects in the scene, with 0 referring to the environment.
         """
+
         if self.scene_lib is not None:
             self._camera_target["element"] = (self._camera_target["element"] + 1) % (
                 self._num_objects_per_scene + 1
@@ -766,9 +788,11 @@ class Simulator(ABC):
         3. Video compilation when recording ends
         4. Cleanup of temporary image files
         """
+
         if not self.headless:
             # Handle recording state transitions
             if self._user_recording_state_change:
+
                 if self._user_is_recording:
                     # Initialize new recording
                     self._user_recording_video_queue = deque(
@@ -877,6 +901,105 @@ class Simulator(ABC):
                 os.removedirs(self._curr_user_recording_name)
                 self._delete_user_viewer_recordings = False
                 self._recorded_motion = None
+
+        else:
+            self._record_headless()
+
+    def _record_headless(self):
+
+        if self._user_recording_state_change:
+
+            if self._user_is_recording:
+                # Start session
+                base = self._user_recording_video_path % self._global_step
+                self._curr_user_recording_name = base
+                self._user_recording_frame = 0
+                self._recorded_motion = {
+                    "global_translation": [],
+                    "global_rotation": [],
+                }
+                os.makedirs(os.path.dirname(base), exist_ok=True)
+                self._video_sink = VideoSink(mp4_path=f"{base}.mp4", fps=30)
+                logger.info(f"Started recording (headless) -> {base}.mp4")
+
+            else:
+                # Stop session
+                if getattr(self, "_video_sink", None):
+                    self._video_sink.close()
+                    self._video_sink = None
+                    logger.info(f"Video saved to {self._curr_user_recording_name}.mp4")
+
+                # Save motion (.pt) same as before
+                # if (
+                #     self._recorded_motion is not None
+                #     and len(self._recorded_motion["global_translation"]) > 0
+                # ):
+                #     global_translation = torch.cat(
+                #         self._recorded_motion["global_translation"], dim=0
+                #     )
+                #     global_rotation = torch.cat(
+                #         self._recorded_motion["global_rotation"], dim=0
+                #     )
+                #     with open(f"{self._curr_user_recording_name}.pt", "wb") as f:
+                #         torch.save(
+                #             {
+                #                 "global_translation": global_translation,
+                #                 "global_rotation": global_rotation,
+                #             },
+                #             f,
+                #         )
+                # self._recorded_motion = None
+
+            self._user_recording_state_change = False
+
+        # Write frame on stride
+        if self._user_is_recording:
+
+            if (self._record_step_counter % self.auto_record_stride) == 0:
+
+                out = (
+                    self._record_cam_io.capture()
+                )  # {'rgb': (H,W,3) or (1,H,W,3), ...}
+
+                img = out.get("rgb", None)
+                if img is None and "rgba" in out:
+                    img = out["rgba"][..., :3]
+                if img is not None:
+                    rgb = to_uint8_rgb(img)
+                    self._video_sink.append(rgb)
+                    self._user_recording_frame += 1
+
+                # bodies_state = self.get_bodies_state()
+                # self._recorded_motion["global_translation"].append(
+                #     bodies_state.rigid_body_pos
+                # )
+                # self._recorded_motion["global_rotation"].append(
+                #     bodies_state.rigid_body_rot
+                # )
+
+            self._record_step_counter += 1
+
+    def _maybe_auto_record(self):
+        """Start/stop recording automatically based on step counters."""
+        if not self.auto_record_every:
+            return  # disabled
+
+        # Start a new auto session exactly at multiples of 'every', only if nothing is recording.
+        if (not self._user_is_recording) and (
+            self._global_step % self.auto_record_every == 0
+        ):
+            self._auto_record_active = True
+            self._auto_record_frames_left = int(self.auto_record_len)
+            self._toggle_video_record()  # flips _user_is_recording and sets _user_recording_state_change
+
+        # Stop when we’ve written enough frames (only if this session was auto-started)
+        if self._user_is_recording and self._auto_record_active:
+            # Decrement after a frame is attempted (call this once per agent step; stride still applies downstream)
+            if self._auto_record_frames_left <= 0:
+                self._auto_record_active = False
+                self._toggle_video_record()  # request stop
+            else:
+                self._auto_record_frames_left -= 1
 
     @abstractmethod
     def _write_viewport_to_file(self, file_name: str) -> None:

@@ -31,14 +31,14 @@ from protoverse.simulator.isaaclab.utils.camera_manager import (
     ViserCameraManager,
     FrameStore,
 )
-from protoverse.simulator.isaaclab.utils.camera_io import IsaacLabCameraIO
+from protoverse.simulator.isaaclab.utils.camera_io import IsaacLabMultiCameraIO
 
 
 class ViserLab:
     def __init__(
         self,
         config,
-        cam_io: IsaacLabCameraIO,
+        cam_io: IsaacLabMultiCameraIO,
         marker_names: Optional[List[str]],
         frames: Optional[FrameStore] = None,
         frames_maxlen: int = 1,  # <- configurable, default 1
@@ -47,11 +47,6 @@ class ViserLab:
         Create a Viser-based visualizer for an external simulation scene.
 
         Args:
-            scene: A simulation scene object with attributes:
-                - sensors (dict)
-                - articulations["robot"] with joint_names and data.default_joint_pos
-                - num_envs (int)
-            urdf_path: Dict mapping name to URDF path for each robot
         """
         self.num_envs = config.num_envs
         self.urdf_path = config.robot.asset.asset_file_name
@@ -377,6 +372,8 @@ class ViserLab:
 
         # Update plot data
         plot.data = (x.copy(), *[np.array(buf) for buf in y_deques])
+
+    # terrain:
 
     def update_local_terrain_pointcloud(
         self,

@@ -33,7 +33,7 @@ from protoverse.utils.scene_lib import (
 
 with_foot_sensor = True
 with_cam_obs = False
-with_viewport_camera = False
+with_multi_viewport_camera = False
 # Create robot asset configuration
 robot_asset_config = RobotAssetConfig(
     robot_type="g1",
@@ -332,7 +332,7 @@ simulator_config = IsaacLabSimulatorConfig(
     experiment_name="scene_isaaclab_example",
     w_last=False,  # IsaacLab uses wxyz quaternions
     with_cam_obs=with_cam_obs,
-    with_viewport_camera=with_viewport_camera,
+    with_multi_viewport_camera=with_multi_viewport_camera,
 )
 
 device = torch.device("cuda")

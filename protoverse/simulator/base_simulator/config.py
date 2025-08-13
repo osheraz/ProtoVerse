@@ -345,13 +345,16 @@ class SimulatorConfig(ConfigBuilder):
     experiment_name: str
 
     camera: CameraConfig
-    with_viewport_camera: bool = False
+    with_multi_viewport_camera: bool = False
     with_cam_obs: bool = False
+
+    record0: bool = True  # seperate logic for env0
 
     # camera: Optional[Any] = None
 
     plane: PlaneConfig = PlaneConfig()
 
+    # perspective api viewer
     record_viewer: bool = False
     viewer_record_dir: str = "output/recordings/viewer"
     init_viser: bool = False

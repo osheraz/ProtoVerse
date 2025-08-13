@@ -1,5 +1,5 @@
 from protoverse.envs.base_env.env_utils.terrains.flat_terrain import FlatTerrain
-from protoverse.simulator.base_simulator.config import RobotConfig
+from protoverse.simulator.base_simulator.config import RobotConfig, SimulatorConfig
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.actuators import IdealPDActuatorCfg
@@ -36,13 +36,11 @@ class SceneCfg(InteractiveSceneCfg):
 
     def __init__(
         self,
-        config,
+        config: SimulatorConfig,
         robot_config: RobotConfig,
         terrain,
         scene_cfgs=None,
         pretty=False,
-        with_cam_obs=False,
-        with_viewport_camera=False,
         *args,
         **kwargs,
     ):
@@ -155,14 +153,30 @@ class SceneCfg(InteractiveSceneCfg):
             raise ValueError(f"Unsupported robot type: {robot_type}")
 
         # Camera propertires
-        if with_viewport_camera:
+        if config.with_multi_viewport_camera:
 
             self.viewport_camera = MultiTiledCameraCfg(  # INCLUDE THIS IN ALL CUSTOM CONFIGS TO LINK WITH A VISER VIEWPORT
                 prim_path="{ENV_REGEX_NS}/Viewport",
                 # MultiTiledCameraCfg results in prims at /World/envs/env_.*/Viewport0
                 # and /World/envs/env_.*/Viewport1 if cams_per_env = 2
                 # (For batched rendering of multiple cameras per environment)
-                data_types=["rgb"],  # TODO: pull from cfg ******
+                data_types=["rgb"],
+                spawn=sim_utils.PinholeCameraCfg(
+                    focal_length=24.0,
+                    focus_distance=400.0,
+                    horizontal_aperture=20.955,
+                    clipping_range=(0.1, 20.0),
+                ),
+                width=320,
+                height=240,
+                cams_per_env=1,
+            )
+
+        if config.record0:
+
+            self.record_camera = MultiTiledCameraCfg(
+                prim_path="/World/envs/env_0/Record",
+                data_types=["rgb"],
                 spawn=sim_utils.PinholeCameraCfg(
                     focal_length=24.0,
                     focus_distance=400.0,

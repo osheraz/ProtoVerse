@@ -33,7 +33,7 @@ from protoverse.utils.scene_lib import (
 )
 
 with_foot_sensor = True
-with_viewport_camera = True
+with_multi_viewport_camera = False
 with_cam_obs = False
 
 # Create robot asset configuration
@@ -335,7 +335,7 @@ simulator_config = IsaacLabSimulatorConfig(
     w_last=False,  # IsaacLab uses wxyz quaternions
     init_viser=True,
     with_cam_obs=with_cam_obs,
-    with_viewport_camera=with_viewport_camera,
+    with_multi_viewport_camera=with_multi_viewport_camera,
     camera=CameraConfig(),
 )
 

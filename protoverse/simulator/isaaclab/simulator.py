@@ -44,7 +44,7 @@ from protoverse.simulator.base_simulator.config import (
 from protoverse.simulator.base_simulator.robot_state import RobotState
 from protoverse.simulator.isaaclab.utils.viser_viewer import ViserLab
 from protoverse.simulator.isaaclab.utils.camera_io import (
-    IsaacLabCameraIO,
+    IsaacLabMultiCameraIO,
 )
 
 # =====================================================
@@ -135,8 +135,8 @@ class IsaacLabSimulator(Simulator):
         self._sim.reset()
 
         cam_io = (
-            IsaacLabCameraIO(self._scene, config)
-            if self.config.with_cam_obs or self.config.with_viewport_camera
+            IsaacLabMultiCameraIO(self._scene, config)
+            if self.config.with_cam_obs or self.config.with_multi_viewport_camera
             else None
         )
 
@@ -169,8 +169,6 @@ class IsaacLabSimulator(Simulator):
             env_spacing=2.0,
             scene_cfgs=scene_cfgs,
             terrain=self.terrain,
-            with_cam_obs=self.robot_config.with_cam_obs,
-            with_viewport_camera=self.config.with_viewport_camera,
         )
         return scene_cfg
 
@@ -382,14 +380,16 @@ class IsaacLabSimulator(Simulator):
         Advance the simulation by stepping for a number of iterations equal to the decimation factor.
         Applies PD control or motor forces as required.
         """
-        # TODO check which one to update, robot, articulation, contact, etc..
         for idx in range(self.decimation):
+
             if self.control_type == ControlType.BUILT_IN_PD:
                 self._apply_pd_control()
             else:
                 self._apply_motor_forces()
+
             self._scene.write_data_to_sim()
             self._sim.step(render=False)
+
             if (idx + 1) % self.decimation == 0 and (
                 not self.headless
                 or self._sim.has_rtx_sensors()
@@ -398,7 +398,11 @@ class IsaacLabSimulator(Simulator):
                 if hasattr(self, "viser_lab"):
                     self._update_viser()
                 self._sim.render()
+
             self._scene.update(dt=self._sim.get_physics_dt())
+
+        self._global_step += 1
+        self._maybe_auto_record()
 
     def _apply_pd_control(self) -> None:
         """
@@ -717,6 +721,20 @@ class IsaacLabSimulator(Simulator):
                 self._init_camera()
             else:
                 self._update_camera()
+        else:
+            if self.config.record0:
+                if not hasattr(self, "_record_cam_io"):
+                    from protoverse.simulator.isaaclab.utils.camera_io import (
+                        IsaacLabSingleCameraIO,
+                    )
+
+                    self._record_cam_io = IsaacLabSingleCameraIO(
+                        self._scene, "record_camera"
+                    )
+                    self._init_camera()
+                elif self._user_is_recording:
+                    self._update_camera()
+
         super().render()
 
     def _init_camera(self) -> None:
@@ -727,14 +745,24 @@ class IsaacLabSimulator(Simulator):
             self._get_simulator_root_state(0).root_pos.cpu().numpy()
         )
         pos = self._cam_prev_char_pos + np.array([0, -5, 1])
-        self._perspective_view.set_camera_view(
-            pos, self._cam_prev_char_pos + np.array([0, 0, 0.2])
-        )
+
+        if not self.headless:
+
+            self._perspective_view.set_camera_view(
+                pos, self._cam_prev_char_pos + np.array([0, 0, 0.2])
+            )
+        else:
+            self._record_cam_io.set_camera_view(
+                pos, self._cam_prev_char_pos + np.array([0, 0, 0.2])
+            )
 
     def _update_camera(self) -> None:
         """
         Update the camera view based on the target's position and current camera movement.
         """
+
+        # headless is allways 0
+
         if self._camera_target["element"] == 0:
             char_root_pos = (
                 self._get_simulator_root_state(self._camera_target["env"])
@@ -752,7 +780,11 @@ class IsaacLabSimulator(Simulator):
             )
             height_offset = 0
 
-        cam_pos = np.array(self._perspective_view.get_camera_state())
+        if not self.headless:
+            cam_pos = np.array(self._perspective_view.get_camera_state())
+        else:
+            cam_pos = np.array(self._record_cam_io.get_camera_state())
+
         cam_delta = cam_pos - self._cam_prev_char_pos
 
         new_cam_target = np.array(
@@ -765,7 +797,11 @@ class IsaacLabSimulator(Simulator):
                 char_root_pos[2] + cam_delta[2],
             ]
         )
-        self._perspective_view.set_camera_view(new_cam_pos, new_cam_target)
+        if not self.headless:
+            self._perspective_view.set_camera_view(new_cam_pos, new_cam_target)
+        else:
+            self._record_cam_io.set_camera_view(new_cam_pos, new_cam_target)
+
         self._cam_prev_char_pos[:] = char_root_pos
 
     def _write_viewport_to_file(self, file_name: str) -> None:
@@ -933,7 +969,7 @@ class IsaacLabSimulator(Simulator):
             root_pos, isaacsim_root_rot, joint_dict
         )
 
-        if self.config.with_viewport_camera:
+        if self.config.with_multi_viewport_camera:
 
             self.viser_lab.render_wrapped_impl(self.init_states_on_resets.cpu())
 

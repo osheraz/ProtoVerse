@@ -5,7 +5,7 @@ import numpy as np
 from loguru import logger
 
 
-class IsaacLabCameraIO:
+class IsaacLabMultiCameraIO:
     """
     Middle layer that hides IsaacLab specifics.
     Owns the scene and the active camera, and exposes high-level render calls.
@@ -15,7 +15,6 @@ class IsaacLabCameraIO:
         self._scene = scene
         self.cam_cfg = config.camera
         self.config = config
-        logger.info(f"Available cameras: {self._scene.sensors.keys()}")
         camera_name = self.cam_cfg.available_cameras[0]
         logger.info(f"Using: {camera_name}")
         assert (
@@ -133,3 +132,37 @@ class IsaacLabCameraIO:
             key = frustum.name[1:]  # "/camera_0" -> "camera_0"
             by_key[key] = {k: v[j::n_frust] for k, v in out_all.items()}
         return by_key
+
+
+class IsaacLabSingleCameraIO:
+    """
+    Minimal wrapper for a single IsaacLab camera (always attached to env_0).
+    """
+
+    def __init__(self, scene, camera_name: str):
+        self._scene = scene
+        assert camera_name in self._scene.sensors, f"{camera_name} not found"
+        self._cam = self._scene.sensors[camera_name]
+        self.cam_pos = None
+
+    def set_camera_view(self, eye: np.array, target: np.array):
+        """
+        Initialize camera view relative to a target (e.g., robot root pos).
+        """
+        self._cam.set_world_poses_from_view(
+            torch.tensor(eye[None], dtype=torch.float32, device=self._cam.device),
+            torch.tensor(target[None], dtype=torch.float32, device=self._cam.device),
+        )
+        self.cam_pos = eye
+
+    def get_camera_state(self):
+        return self.cam_pos
+
+    def capture(self) -> Dict[str, torch.Tensor]:
+        """
+        Grab latest camera outputs (rgb, depth, etc.).
+        """
+        out = dict(self._cam.data.output)
+        if "rgb" not in out and "rgba" in out:
+            out["rgb"] = out["rgba"][..., :3]
+        return out

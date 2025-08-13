@@ -24,7 +24,7 @@ env:
       scale_with_dt: True
 
       reward_scales:
-        path:             1.0 # aux
+        path:             1.5 # aux
         lin_vel_z:       -2.0
         ang_vel_xy:      -0.05
         torque:          -0.00001
