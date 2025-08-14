@@ -28,6 +28,10 @@ robot:
   right_foot_name: ???
   head_body_name: ???
 
+  with_foot_sensors: null
+  with_cam_obs: null
+  foot_contact_links: null
+
   init_state: null
 
   contact_pairs_multiplier: 16

@@ -47,10 +47,6 @@ from protoverse.simulator.isaaclab.utils.camera_io import (
     IsaacLabMultiCameraIO,
 )
 
-# =====================================================
-# Viser should be independent of the simulator, I'll wrap this class in the future
-# =====================================================
-
 
 class IsaacLabSimulator(Simulator):
     # =====================================================
@@ -120,6 +116,9 @@ class IsaacLabSimulator(Simulator):
 
         self._robot = self._scene["robot"]
         self._contact_sensor = self._scene["contact_sensor"]
+
+        if self.robot_config.with_foot_sensors:
+            self._foot_contact_sensor = self._scene["foot_contact_sensor"]
 
         self._object = []
         if self.scene_lib is not None and self.scene_lib.total_spawned_scenes > 0:
@@ -466,10 +465,16 @@ class IsaacLabSimulator(Simulator):
         Returns:
             SimBodyOrdering: An object containing the body names, DOF names, and contact sensor body names.
         """
+        if hasattr(self, "_foot_contact_sensor"):
+            foot_body_names = self._foot_contact_sensor.body_names
+        else:
+            foot_body_names = self._contact_sensor.body_names  # TODO: fix
+
         return SimBodyOrdering(
             body_names=self._robot.data.body_names,
             dof_names=self._robot.data.joint_names,
             contact_sensor_body_names=self._contact_sensor.body_names,
+            foot_contact_sensor_body_names=foot_body_names,
         )
 
     def _get_simulator_bodies_state(
@@ -579,6 +584,38 @@ class IsaacLabSimulator(Simulator):
         else:
             isaacsim_rb_contacts = self._contact_sensor.data.net_forces_w.clone().view(
                 self.num_envs, len(self._contact_sensor.body_names), 3
+            )
+        if env_ids is not None:
+            isaacsim_rb_contacts = isaacsim_rb_contacts[env_ids]
+
+        return isaacsim_rb_contacts
+
+    def _get_simulator_foot_contact_buf(
+        self, env_ids: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """
+        Retrieve the contact force buffer for simulation bodies.
+
+        Parameters:
+            env_ids (Optional[torch.Tensor]): Specific environments to query.
+
+        Returns:
+            torch.Tensor: Tensor containing the contact forces.
+        """
+        assert hasattr(self, "_foot_contact_sensor"), "missing _foot_contact_sensor"
+
+        if self._foot_contact_sensor.data.force_matrix_w is not None:
+            isaacsim_rb_contacts = (
+                self._foot_contact_sensor.data.force_matrix_w.clone().view(
+                    self.num_envs, len(self._foot_contact_sensor.body_names), -1, 3
+                )
+            )
+            isaacsim_rb_contacts = isaacsim_rb_contacts.sum(dim=2)
+        else:
+            isaacsim_rb_contacts = (
+                self._foot_contact_sensor.data.net_forces_w.clone().view(
+                    self.num_envs, len(self._foot_contact_sensor.body_names), 3
+                )
             )
         if env_ids is not None:
             isaacsim_rb_contacts = isaacsim_rb_contacts[env_ids]

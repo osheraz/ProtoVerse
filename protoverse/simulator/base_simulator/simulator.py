@@ -95,14 +95,10 @@ class Simulator(ABC):
 
         # auto-record config (examples)
         self.auto_record_every = getattr(
-            config, "auto_record_every", 1000  # epoch is 32 steps
+            config, "auto_record_every", 5000  # epoch is 32 steps ~ 16 epochs.
         )  # e.g. 2000 steps; 0 disables - TODO: should be w.r.t max_episode_length
-        self.auto_record_len = getattr(
-            config, "auto_record_len", 300
-        )  # frames to capture per session
-        self.auto_record_stride = getattr(
-            config, "auto_record_stride", 1
-        )  # keep using your _record_stride if you prefer
+        self.auto_record_len = getattr(config, "auto_record_len", 300)
+        self.auto_record_stride = getattr(config, "auto_record_stride", 1)
         self._record_step_counter = 0
 
         # runtime state
@@ -190,8 +186,18 @@ class Simulator(ABC):
         contact_sensor_convert_to_common = torch.tensor(
             [
                 body_ordering.contact_sensor_body_names.index(body_name)
-                for body_name in self.robot_config.body_names  # TODO: should be contact_bodies
+                for body_name in self.robot_config.body_names  # deafult is the body
                 if body_name in body_ordering.contact_sensor_body_names
+            ],
+            dtype=torch.long,
+            device=self.device,
+        )
+
+        foot_contact_sensor_convert_to_common = torch.tensor(
+            [
+                body_ordering.foot_contact_sensor_body_names.index(body_name)
+                for body_name in self.robot_config.foot_contact_links
+                if body_name in body_ordering.foot_contact_sensor_body_names
             ],
             dtype=torch.long,
             device=self.device,
@@ -218,6 +224,7 @@ class Simulator(ABC):
             body_convert_to_common=body_convert_to_common,
             body_convert_to_sim=body_convert_to_sim,
             contact_sensor_convert_to_common=contact_sensor_convert_to_common,
+            foot_contact_sensor_convert_to_common=foot_contact_sensor_convert_to_common,
             dof_convert_to_sim=dof_convert_to_sim,
             dof_convert_to_common=dof_convert_to_common,
             sim_w_last=self.config.w_last,
@@ -528,12 +535,44 @@ class Simulator(ABC):
             :, self.data_conversion.contact_sensor_convert_to_common
         ]
 
+    def get_foot_contact_buf(
+        self, env_ids: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """
+        Retrieve the bodies' contact buffer.
+
+        Args:
+            env_ids (Optional[torch.Tensor]): Optional tensor of environment ids.
+
+        Returns:
+            torch.Tensor: Tensor containing contact forces for bodies in the common ordering.
+        """
+        simulator_foot_contact_forces = self._get_simulator_foot_contact_buf(env_ids)
+        return simulator_foot_contact_forces[
+            :, self.data_conversion.foot_contact_sensor_convert_to_common
+        ]
+
     @abstractmethod
     def _get_simulator_bodies_contact_buf(
         self, env_ids: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Retrieve the raw simulator buffer of bodies' contact forces.
+
+        Args:
+            env_ids (Optional[torch.Tensor]): Optional tensor of environment ids.
+
+        Returns:
+            torch.Tensor: Raw bodies contact buffer.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def _get_simulator_foot_contact_buf(
+        self, env_ids: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """
+        Retrieve the raw simulator buffer of foot' contact forces.
 
         Args:
             env_ids (Optional[torch.Tensor]): Optional tensor of environment ids.

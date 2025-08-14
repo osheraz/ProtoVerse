@@ -123,26 +123,21 @@ class SceneCfg(InteractiveSceneCfg):
                 )
 
             # Body \ Foot
-            prim_contact_path = (
-                r"/World/envs/env_.*/Robot/(left|right)_ankle_roll_link_sensor_.*"
-                if robot_config.with_foot_sensors
-                else "/World/envs/env_.*/Robot/.*"
-            )
 
+            #  r"/World/envs/env_.*/Robot/(left|right)_ankle_roll_link_sensor_.*"
+            # except the foot
             self.contact_sensor: ContactSensorCfg = ContactSensorCfg(
                 # prim_path="/World/envs/env_.*/Robot/.*",
-                # prim_path=r"/World/envs/env_.*/Robot/(?!left_ankle_roll_link_sensor_|right_ankle_roll_link_sensor_).*",
-                prim_path=prim_contact_path,
+                prim_path=r"/World/envs/env_.*/Robot/(?!left_ankle_roll_link_sensor_|right_ankle_roll_link_sensor_).*",
                 filter_prim_paths_expr=[f"/World/objects/object_{i}" for i in range(0)],
             )
 
-            if robot_config.with_foot_sensors and False:
-                # at this point - doesnt need separation
+            if robot_config.with_foot_sensors:
                 assert (
                     "with_sensors" in robot_config.asset.asset_file_name
                 ), f"please load the right urdf"
 
-                self.foot_contact: ContactSensorCfg = ContactSensorCfg(
+                self.foot_contact_sensor: ContactSensorCfg = ContactSensorCfg(
                     prim_path=r"/World/envs/env_.*/Robot/(left|right)_ankle_roll_link_sensor_.*",
                     filter_prim_paths_expr=[
                         f"/World/objects/object_{i}" for i in range(0)

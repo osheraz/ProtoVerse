@@ -14,6 +14,7 @@ class DataConversion:
         body_convert_to_common (torch.Tensor): Indices to convert simulator rigid-body ordering to common.
         body_convert_to_sim (torch.Tensor): Indices to convert common rigid-body ordering to simulator.
         contact_sensor_convert_to_common (torch.Tensor): Indices to convert simulator contact sensor ordering to common.
+        foot_contact_sensor_convert_to_common (torch.Tensor): Indices to convert simulator contact sensor ordering to common.
         dof_convert_to_common (torch.Tensor): Indices to convert simulator DOF ordering to common.
         dof_convert_to_sim (torch.Tensor): Indices to convert common DOF ordering to simulator.
         sim_w_last (bool): Flag indicating if the simulator uses w_last quaternion ordering.
@@ -22,6 +23,7 @@ class DataConversion:
     body_convert_to_common: torch.Tensor
     body_convert_to_sim: torch.Tensor
     contact_sensor_convert_to_common: torch.Tensor
+    foot_contact_sensor_convert_to_common: torch.Tensor
     dof_convert_to_common: torch.Tensor
     dof_convert_to_sim: torch.Tensor
     sim_w_last: bool

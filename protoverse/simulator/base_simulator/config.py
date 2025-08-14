@@ -286,6 +286,15 @@ class RobotConfig(ConfigBuilder):
         if self.num_dof is None:
             self.num_dof = self.dof_offsets[-1]
 
+        if self.foot_contact_links is None:
+            self.foot_contact_links = (
+                [
+                    f"{side}_ankle_roll_link_sensor_{i}"
+                    for side in ["left", "right"]
+                    for i in range(50)  # TODO: make sure..
+                ],
+            )
+
     def _compute_dof_offsets(self, joint_axis: List[str]) -> List[int]:
         """
         Compute and return offsets where consecutive bodies' DOFs start.
@@ -371,3 +380,4 @@ class SimBodyOrdering(ConfigBuilder):
     body_names: List[str]
     dof_names: List[str]
     contact_sensor_body_names: List[str]
+    foot_contact_sensor_body_names: List[str]

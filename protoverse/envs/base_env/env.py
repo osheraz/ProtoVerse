@@ -79,6 +79,10 @@ class BaseEnv:
             self.config.robot.contact_bodies
         )
 
+        # self.foot_contact_body_ids = self.simulator.build_body_ids_tensor(
+        #     self.config.robot.foot_contact_links
+        # )
+
         self.penelized_body_ids = self.simulator.build_body_ids_tensor(
             self.config.robot.penalize_contacts_on
         )
@@ -326,7 +330,6 @@ class BaseEnv:
 
         self.compute_observations()
         self.compute_reward()
-        # self._post_compute_observations_callback()
 
         if not self.disable_reset:
             self.compute_reset()
