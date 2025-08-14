@@ -24,7 +24,7 @@ simulator:
     # camera: null
     with_cam_obs: ${robot.with_cam_obs}
     with_multi_viewport_camera: False
-    record0: True
+    record0: False
     
     camera:
       available_cameras: [viewport_camera]

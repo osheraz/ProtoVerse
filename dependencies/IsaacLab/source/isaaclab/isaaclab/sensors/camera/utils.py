@@ -131,7 +131,9 @@ def create_pointcloud_from_depth(
     # note: this is needed since warp does not provide the device directly
     device = depth.device
     # convert inputs to torch tensors
-    intrinsic_matrix = convert_to_torch(intrinsic_matrix, dtype=torch.float32, device=device)
+    intrinsic_matrix = convert_to_torch(
+        intrinsic_matrix, dtype=torch.float32, device=device
+    )
     if position is not None:
         position = convert_to_torch(position, dtype=torch.float32, device=device)
     if orientation is not None:
@@ -143,7 +145,10 @@ def create_pointcloud_from_depth(
 
     # keep only valid entries if flag is set
     if not keep_invalid:
-        pts_idx_to_keep = torch.all(torch.logical_and(~torch.isnan(depth_cloud), ~torch.isinf(depth_cloud)), dim=1)
+        pts_idx_to_keep = torch.all(
+            torch.logical_and(~torch.isnan(depth_cloud), ~torch.isinf(depth_cloud)),
+            dim=1,
+        )
         depth_cloud = depth_cloud[pts_idx_to_keep, ...]
 
     # return everything according to input type
@@ -199,9 +204,13 @@ def create_pointcloud_from_rgbd(
     if rgb is not None and not isinstance(rgb, tuple):
         if len(rgb.shape) == 3:
             if rgb.shape[2] not in [3, 4]:
-                raise ValueError(f"Input rgb image of invalid shape: {rgb.shape} != (H, W, 3) or (H, W, 4).")
+                raise ValueError(
+                    f"Input rgb image of invalid shape: {rgb.shape} != (H, W, 3) or (H, W, 4)."
+                )
         else:
-            raise ValueError(f"Input rgb image not three-dimensional. Received shape: {rgb.shape}.")
+            raise ValueError(
+                f"Input rgb image not three-dimensional. Received shape: {rgb.shape}."
+            )
     if num_channels not in [3, 4]:
         raise ValueError(f"Invalid number of channels: {num_channels} != 3 or 4.")
 
@@ -214,7 +223,9 @@ def create_pointcloud_from_rgbd(
     if is_numpy:
         depth = torch.from_numpy(depth).to(device=device)
     # retrieve XYZ pointcloud
-    points_xyz = create_pointcloud_from_depth(intrinsic_matrix, depth, True, position, orientation, device=device)
+    points_xyz = create_pointcloud_from_depth(
+        intrinsic_matrix, depth, True, position, orientation, device=device
+    )
 
     # get image height and width
     im_height, im_width = depth.shape[:2]
@@ -231,24 +242,34 @@ def create_pointcloud_from_rgbd(
             points_rgb = rgb.permute(1, 0, 2).reshape(-1, 3)
         elif isinstance(rgb, (tuple, list)):
             # same color for all points
-            points_rgb = torch.Tensor((rgb,) * num_points, device=device, dtype=torch.uint8)
+            points_rgb = torch.Tensor(
+                (rgb,) * num_points, device=device, dtype=torch.uint8
+            )
         else:
             # default color is white
-            points_rgb = torch.Tensor(((0, 0, 0),) * num_points, device=device, dtype=torch.uint8)
+            points_rgb = torch.Tensor(
+                ((0, 0, 0),) * num_points, device=device, dtype=torch.uint8
+            )
     else:
-        points_rgb = torch.Tensor(((0, 0, 0),) * num_points, device=device, dtype=torch.uint8)
+        points_rgb = torch.Tensor(
+            ((0, 0, 0),) * num_points, device=device, dtype=torch.uint8
+        )
     # normalize color values
     if normalize_rgb:
         points_rgb = points_rgb.float() / 255
 
     # remove invalid points
-    pts_idx_to_keep = torch.all(torch.logical_and(~torch.isnan(points_xyz), ~torch.isinf(points_xyz)), dim=1)
+    pts_idx_to_keep = torch.all(
+        torch.logical_and(~torch.isnan(points_xyz), ~torch.isinf(points_xyz)), dim=1
+    )
     points_rgb = points_rgb[pts_idx_to_keep, ...]
     points_xyz = points_xyz[pts_idx_to_keep, ...]
 
     # add additional channels if required
     if num_channels == 4:
-        points_rgb = torch.nn.functional.pad(points_rgb, (0, 1), mode="constant", value=1.0)
+        points_rgb = torch.nn.functional.pad(
+            points_rgb, (0, 1), mode="constant", value=1.0
+        )
 
     # return everything according to input type
     if is_numpy:
@@ -267,5 +288,9 @@ def save_images_to_file(images: torch.Tensor, file_path: str):
     from torchvision.utils import make_grid, save_image
 
     save_image(
-        make_grid(torch.swapaxes(images.unsqueeze(1), 1, -1).squeeze(-1), nrow=round(images.shape[0] ** 0.5)), file_path
+        make_grid(
+            torch.swapaxes(images.unsqueeze(1), 1, -1).squeeze(-1),
+            nrow=round(images.shape[0] ** 0.5),
+        ),
+        file_path,
     )

@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 import numpy as np
 import re
 import torch
@@ -13,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import carb
 import isaacsim.core.utils.stage as stage_utils
+from isaacsim.core.version import get_version
 
 # import omni.kit.commands
 import omni.usd
@@ -153,6 +155,25 @@ class MultiCamera(SensorBase):
         self._sensor_prims: list[UsdGeom.Camera] = list()
         # Create empty variables for storing output data
         self._data = CameraData()
+
+        # HACK: we need to disable instancing for semantic_segmentation and instance_segmentation_fast to work
+        isaac_sim_version = get_version()
+        # checks for Isaac Sim v4.5 as this issue exists there
+        if int(isaac_sim_version[2]) == 4 and int(isaac_sim_version[3]) == 5:
+            if (
+                "semantic_segmentation" in self.cfg.data_types
+                or "instance_segmentation_fast" in self.cfg.data_types
+            ):
+                omni.log.warn(
+                    "Isaac Sim 4.5 introduced a bug in Camera and TiledCamera when outputting instance and semantic"
+                    " segmentation outputs for instanceable assets. As a workaround, the instanceable flag on assets"
+                    " will be disabled in the current workflow and may lead to longer load times and increased memory"
+                    " usage."
+                )
+                stage = omni.usd.get_context().get_stage()
+                with Sdf.ChangeBlock():
+                    for prim in stage.Traverse():
+                        prim.SetInstanceable(False)
 
     def __del__(self):
         """Unsubscribes from callbacks and detach from the replicator registry."""
@@ -505,7 +526,10 @@ class MultiCamera(SensorBase):
                 #   if colorize is true, the data is mapped to colors and a uint8 4 channel image is returned.
                 #   if colorize is false, the data is returned as a uint32 image with ids as values.
                 if name == "semantic_segmentation":
-                    init_params = {"colorize": self.cfg.colorize_semantic_segmentation}
+                    init_params = {
+                        "colorize": self.cfg.colorize_semantic_segmentation,
+                        "mapping": json.dumps(self.cfg.semantic_segmentation_mapping),
+                    }
                 elif name == "instance_segmentation_fast":
                     init_params = {"colorize": self.cfg.colorize_instance_segmentation}
                 elif name == "instance_id_segmentation_fast":
@@ -543,7 +567,8 @@ class MultiCamera(SensorBase):
         # Increment frame count
         self._frame[env_ids] += 1
         # -- pose
-        self._update_poses(env_ids)
+        if self.cfg.update_latest_camera_pose:
+            self._update_poses(env_ids)
         # -- read the data from annotator registry
         # check if buffer is called for the first time. If so then, allocate the memory
         if len(self._data.output) == 0:
@@ -691,6 +716,23 @@ class MultiCamera(SensorBase):
                 self._data.info[index][name] = info
             # concatenate the data along the batch dimension
             self._data.output[name] = torch.stack(data_all_cameras, dim=0)
+            # NOTE: `distance_to_camera` and `distance_to_image_plane` are not both clipped to the maximum defined
+            #       in the clipping range. The clipping is applied only to `distance_to_image_plane` and then both
+            #       outputs are only clipped where the values in `distance_to_image_plane` exceed the threshold. To
+            #       have a unified behavior between all cameras, we clip both outputs to the maximum value defined.
+            if name == "distance_to_camera":
+                self._data.output[name][
+                    self._data.output[name] > self.cfg.spawn.clipping_range[1]
+                ] = torch.inf
+            # clip the data if needed
+            if (
+                name == "distance_to_camera" or name == "distance_to_image_plane"
+            ) and self.cfg.depth_clipping_behavior != "none":
+                self._data.output[name][torch.isinf(self._data.output[name])] = (
+                    0.0
+                    if self.cfg.depth_clipping_behavior == "zero"
+                    else self.cfg.spawn.clipping_range[1]
+                )
 
     def _process_annotator_output(
         self, name: str, output: Any

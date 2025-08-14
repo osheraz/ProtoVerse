@@ -941,7 +941,7 @@ class Simulator(ABC):
                 self._delete_user_viewer_recordings = False
                 self._recorded_motion = None
 
-        else:
+        elif self.config.record0:
             self._record_headless()
 
     def _record_headless(self):

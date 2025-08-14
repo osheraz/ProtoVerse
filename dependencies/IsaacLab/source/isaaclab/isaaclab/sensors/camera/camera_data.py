@@ -76,7 +76,9 @@ class CameraData:
 
         Shape is (N, 4) where N is the number of sensors.
         """
-        return convert_camera_frame_orientation_convention(self.quat_w_world, origin="world", target="ros")
+        return convert_camera_frame_orientation_convention(
+            self.quat_w_world, origin="world", target="ros"
+        )
 
     @property
     def quat_w_opengl(self) -> torch.Tensor:
@@ -88,4 +90,6 @@ class CameraData:
 
         Shape is (N, 4) where N is the number of sensors.
         """
-        return convert_camera_frame_orientation_convention(self.quat_w_world, origin="world", target="opengl")
+        return convert_camera_frame_orientation_convention(
+            self.quat_w_world, origin="world", target="opengl"
+        )

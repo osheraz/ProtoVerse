@@ -357,7 +357,7 @@ class SimulatorConfig(ConfigBuilder):
     with_multi_viewport_camera: bool = False
     with_cam_obs: bool = False
 
-    record0: bool = True  # seperate logic for env0
+    record0: bool = False  # seperate logic for env0
 
     # camera: Optional[Any] = None
 

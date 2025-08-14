@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 import numpy as np
 import torch
@@ -160,7 +161,6 @@ class MultiTiledCamera(MultiCamera):
         # Create a view for the sensor
         exp = self.cfg.cams_per_env
         prim_paths_expr = f"{self.cfg.prim_path}[0-{exp-1}]"
-        
 
         self._view = XFormPrim(prim_paths_expr, reset_xform_properties=False)
         self._view.initialize()
@@ -172,9 +172,13 @@ class MultiTiledCamera(MultiCamera):
             )
 
         # Create all env_ids buffer
-        self._ALL_INDICES = torch.arange(self._view.count, device=self._device, dtype=torch.long)
+        self._ALL_INDICES = torch.arange(
+            self._view.count, device=self._device, dtype=torch.long
+        )
         # Create frame count buffer
-        self._frame = torch.zeros(self._view.count, device=self._device, dtype=torch.long)
+        self._frame = torch.zeros(
+            self._view.count, device=self._device, dtype=torch.long
+        )
 
         # Obtain current stage
         stage = omni.usd.get_context().get_stage()
@@ -191,21 +195,26 @@ class MultiTiledCamera(MultiCamera):
 
         # Create replicator tiled render product
         rp = rep.create.render_product_tiled(
-            cameras=self._view.prim_paths, tile_resolution=(self.cfg.width, self.cfg.height)
+            cameras=self._view.prim_paths,
+            tile_resolution=(self.cfg.width, self.cfg.height),
         )
         self._render_product_paths = [rp.path]
 
         # WAR: use DLAA antialiasing to avoid frame offset issue at small resolutions
         # if self._tiling_grid_shape()[0] * self.cfg.width < 265 or self._tiling_grid_shape()[1] * self.cfg.height < 265:
         #     rep.settings.set_render_rtx_realtime(antialiasing="DLAA")
-        rep.settings.set_render_rtx_realtime(antialiasing="DLAA")
+        # rep.settings.set_render_rtx_realtime(antialiasing="DLAA")
         # Define the annotators based on requested data types
         self._annotators = dict()
         for annotator_type in self.cfg.data_types:
             if annotator_type == "rgba" or annotator_type == "rgb":
-                annotator = rep.AnnotatorRegistry.get_annotator("rgb", device=self.device, do_array_copy=False)
+                annotator = rep.AnnotatorRegistry.get_annotator(
+                    "rgb", device=self.device, do_array_copy=False
+                )
                 self._annotators["rgba"] = annotator
-            elif annotator_type == "depth" or annotator_type == "distance_to_image_plane":
+            elif (
+                annotator_type == "depth" or annotator_type == "distance_to_image_plane"
+            ):
                 # keep depth for backwards compatibility
                 annotator = rep.AnnotatorRegistry.get_annotator(
                     "distance_to_image_plane", device=self.device, do_array_copy=False
@@ -217,11 +226,16 @@ class MultiTiledCamera(MultiCamera):
             else:
                 init_params = None
                 if annotator_type == "semantic_segmentation":
-                    init_params = {"colorize": self.cfg.colorize_semantic_segmentation}
+                    init_params = {
+                        "colorize": self.cfg.colorize_semantic_segmentation,
+                        "mapping": json.dumps(self.cfg.semantic_segmentation_mapping),
+                    }
                 elif annotator_type == "instance_segmentation_fast":
                     init_params = {"colorize": self.cfg.colorize_instance_segmentation}
                 elif annotator_type == "instance_id_segmentation_fast":
-                    init_params = {"colorize": self.cfg.colorize_instance_id_segmentation}
+                    init_params = {
+                        "colorize": self.cfg.colorize_instance_id_segmentation
+                    }
 
                 annotator = rep.AnnotatorRegistry.get_annotator(
                     annotator_type, init_params, device=self.device, do_array_copy=False
@@ -239,6 +253,8 @@ class MultiTiledCamera(MultiCamera):
         # Increment frame count
         self._frame[env_ids] += 1
 
+        if self.cfg.update_latest_camera_pose:
+            self._update_poses(env_ids)
         # Extract the flattened image buffer
         for data_type, annotator in self._annotators.items():
             # check whether returned data is a dict (used for segmentation)
@@ -251,7 +267,9 @@ class MultiTiledCamera(MultiCamera):
 
             # convert data buffer to warp array
             if isinstance(tiled_data_buffer, np.ndarray):
-                tiled_data_buffer = wp.array(tiled_data_buffer, device=self.device, dtype=wp.uint8)
+                tiled_data_buffer = wp.array(
+                    tiled_data_buffer, device=self.device, dtype=wp.uint8
+                )
             else:
                 tiled_data_buffer = tiled_data_buffer.to(device=self.device)
 
@@ -259,12 +277,24 @@ class MultiTiledCamera(MultiCamera):
             # Note: Replicator returns raw buffers of dtype uint32 for segmentation types
             #   so we need to convert them to uint8 4 channel images for colorized types
             if (
-                (data_type == "semantic_segmentation" and self.cfg.colorize_semantic_segmentation)
-                or (data_type == "instance_segmentation_fast" and self.cfg.colorize_instance_segmentation)
-                or (data_type == "instance_id_segmentation_fast" and self.cfg.colorize_instance_id_segmentation)
+                (
+                    data_type == "semantic_segmentation"
+                    and self.cfg.colorize_semantic_segmentation
+                )
+                or (
+                    data_type == "instance_segmentation_fast"
+                    and self.cfg.colorize_instance_segmentation
+                )
+                or (
+                    data_type == "instance_id_segmentation_fast"
+                    and self.cfg.colorize_instance_id_segmentation
+                )
             ):
                 tiled_data_buffer = wp.array(
-                    ptr=tiled_data_buffer.ptr, shape=(*tiled_data_buffer.shape, 4), dtype=wp.uint8, device=self.device
+                    ptr=tiled_data_buffer.ptr,
+                    shape=(*tiled_data_buffer.shape, 4),
+                    dtype=wp.uint8,
+                    device=self.device,
                 )
 
             wp.launch(
@@ -273,7 +303,9 @@ class MultiTiledCamera(MultiCamera):
                 inputs=[
                     tiled_data_buffer.flatten(),
                     wp.from_torch(self._data.output[data_type]),  # zero-copy alias
-                    *list(self._data.output[data_type].shape[1:]),  # height, width, num_channels
+                    *list(
+                        self._data.output[data_type].shape[1:]
+                    ),  # height, width, num_channels
                     self._tiling_grid_shape()[0],  # num_tiles_x
                 ],
                 device=self.device,
@@ -282,6 +314,28 @@ class MultiTiledCamera(MultiCamera):
             # alias rgb as first 3 channels of rgba
             if data_type == "rgba" and "rgb" in self.cfg.data_types:
                 self._data.output["rgb"] = self._data.output["rgba"][..., :3]
+
+            # NOTE: The `distance_to_camera` annotator returns the distance to the camera optical center. However,
+            #       the replicator depth clipping is applied w.r.t. to the image plane which may result in values
+            #       larger than the clipping range in the output. We apply an additional clipping to ensure values
+            #       are within the clipping range for all the annotators.
+            if data_type == "distance_to_camera":
+                self._data.output[data_type][
+                    self._data.output[data_type] > self.cfg.spawn.clipping_range[1]
+                ] = torch.inf
+            # apply defined clipping behavior
+            if (
+                data_type == "distance_to_camera"
+                or data_type == "distance_to_image_plane"
+                or data_type == "depth"
+            ) and self.cfg.depth_clipping_behavior != "none":
+                self._data.output[data_type][
+                    torch.isinf(self._data.output[data_type])
+                ] = (
+                    0.0
+                    if self.cfg.depth_clipping_behavior == "zero"
+                    else self.cfg.spawn.clipping_range[1]
+                )
 
     """
     Private Helpers
@@ -296,7 +350,10 @@ class MultiTiledCamera(MultiCamera):
             # provide alternative fast counterparts
             fast_common_elements = []
             for item in common_elements:
-                if "instance_segmentation" in item or "instance_id_segmentation" in item:
+                if (
+                    "instance_segmentation" in item
+                    or "instance_id_segmentation" in item
+                ):
                     fast_common_elements.append(item + "_fast")
             # raise error
             raise ValueError(
@@ -312,67 +369,95 @@ class MultiTiledCamera(MultiCamera):
         # create the data object
         # -- pose of the cameras
         self._data.pos_w = torch.zeros((self._view.count, 3), device=self._device)
-        self._data.quat_w_world = torch.zeros((self._view.count, 4), device=self._device)
+        self._data.quat_w_world = torch.zeros(
+            (self._view.count, 4), device=self._device
+        )
         self._update_poses(self._ALL_INDICES)
         # -- intrinsic matrix
-        self._data.intrinsic_matrices = torch.zeros((self._view.count, 3, 3), device=self._device)
+        self._data.intrinsic_matrices = torch.zeros(
+            (self._view.count, 3, 3), device=self._device
+        )
         self._update_intrinsic_matrices(self._ALL_INDICES)
         self._data.image_shape = self.image_shape
         # -- output data
         data_dict = dict()
         if "rgba" in self.cfg.data_types or "rgb" in self.cfg.data_types:
             data_dict["rgba"] = torch.zeros(
-                (self._view.count, self.cfg.height, self.cfg.width, 4), device=self.device, dtype=torch.uint8
+                (self._view.count, self.cfg.height, self.cfg.width, 4),
+                device=self.device,
+                dtype=torch.uint8,
             ).contiguous()
         if "rgb" in self.cfg.data_types:
             # RGB is the first 3 channels of RGBA
             data_dict["rgb"] = data_dict["rgba"][..., :3]
         if "distance_to_image_plane" in self.cfg.data_types:
             data_dict["distance_to_image_plane"] = torch.zeros(
-                (self._view.count, self.cfg.height, self.cfg.width, 1), device=self.device, dtype=torch.float32
+                (self._view.count, self.cfg.height, self.cfg.width, 1),
+                device=self.device,
+                dtype=torch.float32,
             ).contiguous()
         if "depth" in self.cfg.data_types:
             data_dict["depth"] = torch.zeros(
-                (self._view.count, self.cfg.height, self.cfg.width, 1), device=self.device, dtype=torch.float32
+                (self._view.count, self.cfg.height, self.cfg.width, 1),
+                device=self.device,
+                dtype=torch.float32,
             ).contiguous()
         if "distance_to_camera" in self.cfg.data_types:
             data_dict["distance_to_camera"] = torch.zeros(
-                (self._view.count, self.cfg.height, self.cfg.width, 1), device=self.device, dtype=torch.float32
+                (self._view.count, self.cfg.height, self.cfg.width, 1),
+                device=self.device,
+                dtype=torch.float32,
             ).contiguous()
         if "normals" in self.cfg.data_types:
             data_dict["normals"] = torch.zeros(
-                (self._view.count, self.cfg.height, self.cfg.width, 3), device=self.device, dtype=torch.float32
+                (self._view.count, self.cfg.height, self.cfg.width, 3),
+                device=self.device,
+                dtype=torch.float32,
             ).contiguous()
         if "motion_vectors" in self.cfg.data_types:
             data_dict["motion_vectors"] = torch.zeros(
-                (self._view.count, self.cfg.height, self.cfg.width, 2), device=self.device, dtype=torch.float32
+                (self._view.count, self.cfg.height, self.cfg.width, 2),
+                device=self.device,
+                dtype=torch.float32,
             ).contiguous()
         if "semantic_segmentation" in self.cfg.data_types:
             if self.cfg.colorize_semantic_segmentation:
                 data_dict["semantic_segmentation"] = torch.zeros(
-                    (self._view.count, self.cfg.height, self.cfg.width, 4), device=self.device, dtype=torch.uint8
+                    (self._view.count, self.cfg.height, self.cfg.width, 4),
+                    device=self.device,
+                    dtype=torch.uint8,
                 ).contiguous()
             else:
                 data_dict["semantic_segmentation"] = torch.zeros(
-                    (self._view.count, self.cfg.height, self.cfg.width, 1), device=self.device, dtype=torch.int32
+                    (self._view.count, self.cfg.height, self.cfg.width, 1),
+                    device=self.device,
+                    dtype=torch.int32,
                 ).contiguous()
         if "instance_segmentation_fast" in self.cfg.data_types:
             if self.cfg.colorize_instance_segmentation:
                 data_dict["instance_segmentation_fast"] = torch.zeros(
-                    (self._view.count, self.cfg.height, self.cfg.width, 4), device=self.device, dtype=torch.uint8
+                    (self._view.count, self.cfg.height, self.cfg.width, 4),
+                    device=self.device,
+                    dtype=torch.uint8,
                 ).contiguous()
             else:
                 data_dict["instance_segmentation_fast"] = torch.zeros(
-                    (self._view.count, self.cfg.height, self.cfg.width, 1), device=self.device, dtype=torch.int32
+                    (self._view.count, self.cfg.height, self.cfg.width, 1),
+                    device=self.device,
+                    dtype=torch.int32,
                 ).contiguous()
         if "instance_id_segmentation_fast" in self.cfg.data_types:
             if self.cfg.colorize_instance_id_segmentation:
                 data_dict["instance_id_segmentation_fast"] = torch.zeros(
-                    (self._view.count, self.cfg.height, self.cfg.width, 4), device=self.device, dtype=torch.uint8
+                    (self._view.count, self.cfg.height, self.cfg.width, 4),
+                    device=self.device,
+                    dtype=torch.uint8,
                 ).contiguous()
             else:
                 data_dict["instance_id_segmentation_fast"] = torch.zeros(
-                    (self._view.count, self.cfg.height, self.cfg.width, 1), device=self.device, dtype=torch.int32
+                    (self._view.count, self.cfg.height, self.cfg.width, 1),
+                    device=self.device,
+                    dtype=torch.int32,
                 ).contiguous()
 
         self._data.output = data_dict
@@ -391,11 +476,17 @@ class MultiTiledCamera(MultiCamera):
 
     def _create_annotator_data(self):
         # we do not need to create annotator data for the tiled camera sensor
-        raise RuntimeError("This function should not be called for the tiled camera sensor.")
+        raise RuntimeError(
+            "This function should not be called for the tiled camera sensor."
+        )
 
-    def _process_annotator_output(self, name: str, output: Any) -> tuple[torch.tensor, dict | None]:
+    def _process_annotator_output(
+        self, name: str, output: Any
+    ) -> tuple[torch.tensor, dict | None]:
         # we do not need to process annotator output for the tiled camera sensor
-        raise RuntimeError("This function should not be called for the tiled camera sensor.")
+        raise RuntimeError(
+            "This function should not be called for the tiled camera sensor."
+        )
 
     """
     Internal simulation callbacks.
