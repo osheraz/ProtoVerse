@@ -467,11 +467,15 @@ class IsaacLabSimulator(Simulator):
         """
         if hasattr(self, "_foot_contact_sensor"):
             foot_body_names = self._foot_contact_sensor.body_names
+            robot_body_names = [
+                n for n in self._robot.data.body_names if n not in foot_body_names
+            ]
         else:
             foot_body_names = self._contact_sensor.body_names  # TODO: fix
+            robot_body_names = self._robot.data.body_names
 
         return SimBodyOrdering(
-            body_names=self._robot.data.body_names,
+            body_names=robot_body_names,  # "common" no foot sensors
             dof_names=self._robot.data.joint_names,
             contact_sensor_body_names=self._contact_sensor.body_names,
             foot_contact_sensor_body_names=foot_body_names,
@@ -494,23 +498,52 @@ class IsaacLabSimulator(Simulator):
         isaacsim_bodies_velocities = self._robot.data.body_lin_vel_w.clone()
         isaacsim_bodies_ang_velocities = self._robot.data.body_ang_vel_w.clone()
 
+        num_sim_bodies = isaacsim_bodies_positions.numel() // (self.num_envs * 3)
+
+        # TODO: check num_sim_bodies <-- self._num_bodies
         isaacsim_bodies_positions = isaacsim_bodies_positions.view(
-            self.num_envs, self._num_bodies, 3
+            self.num_envs, num_sim_bodies, 3
         )
         isaacsim_bodies_rotations = isaacsim_bodies_rotations.view(
-            self.num_envs, self._num_bodies, 4
+            self.num_envs, num_sim_bodies, 4
         )
         isaacsim_bodies_velocities = isaacsim_bodies_velocities.view(
-            self.num_envs, self._num_bodies, 3
+            self.num_envs, num_sim_bodies, 3
         )
         isaacsim_bodies_ang_velocities = isaacsim_bodies_ang_velocities.view(
-            self.num_envs, self._num_bodies, 3
+            self.num_envs, num_sim_bodies, 3
         )
         if env_ids is not None:
             isaacsim_bodies_positions = isaacsim_bodies_positions[env_ids]
             isaacsim_bodies_rotations = isaacsim_bodies_rotations[env_ids]
             isaacsim_bodies_velocities = isaacsim_bodies_velocities[env_ids]
             isaacsim_bodies_ang_velocities = isaacsim_bodies_ang_velocities[env_ids]
+
+        # (remove foot sensors only; keep simulator ordering)
+        if self.robot_config.with_foot_sensors and hasattr(
+            self, "_foot_contact_sensor"
+        ):
+            # Build a keep-index over the sim body list (preserves order)
+            sim_body_names = list(self._robot.data.body_names)
+            foot_set = set(self._foot_contact_sensor.body_names)
+
+            keep_idx_list = [
+                i for i, n in enumerate(sim_body_names) if n not in foot_set
+            ]
+            if len(keep_idx_list) < len(
+                sim_body_names
+            ):  # only index if something to drop
+                keep_idx = torch.tensor(
+                    keep_idx_list, dtype=torch.long, device=self.device
+                )
+
+                isaacsim_bodies_positions = isaacsim_bodies_positions[:, keep_idx, :]
+                isaacsim_bodies_rotations = isaacsim_bodies_rotations[:, keep_idx, :]
+                isaacsim_bodies_velocities = isaacsim_bodies_velocities[:, keep_idx, :]
+                isaacsim_bodies_ang_velocities = isaacsim_bodies_ang_velocities[
+                    :, keep_idx, :
+                ]
+
         return RobotState(
             rigid_body_pos=isaacsim_bodies_positions,
             rigid_body_rot=isaacsim_bodies_rotations,
@@ -986,6 +1019,8 @@ class IsaacLabSimulator(Simulator):
 
     def _update_viser(self) -> None:
 
+        # TODO: everything is is sim-specific
+
         e = self.viser_lab.env
 
         # Cache last env to skip terrain updates if not changed
@@ -994,14 +1029,23 @@ class IsaacLabSimulator(Simulator):
 
         env_origins = self.init_states_on_resets[e].cpu().detach().numpy()
 
-        root_pos = (self._robot.data.root_pos_w[e].cpu().detach().numpy()) - env_origins
+        # root_state = self.get_root_state([e])
+        # root_pos = root_state.root_pos.cpu().detach().numpy() - env_origins
+        # root_rot = root_state.root_rot.cpu().detach().numpy()
+        # dof_state = self.get_dof_state([e])
+        # joint_state = dof_state.dof_pos
+        # self.body_ordering.body_names
 
-        isaacsim_root_rot = self._robot.data.root_quat_w[e].cpu().detach().numpy()
+        root_pos = (self._robot.data.root_pos_w[e].cpu().detach().numpy()) - env_origins
+        isaacsim_root_rot = (
+            self._robot.data.root_quat_w[e].cpu().detach().numpy()
+        )  # wxyz - as in viser
 
         joint_dict = {
             self._robot.data.joint_names[i]: self._robot.data.joint_pos[e][i].item()
             for i in range(len(self._robot.data.joint_pos[0]))
         }
+
         self.viser_lab.update_robot_configuration(
             root_pos, isaacsim_root_rot, joint_dict
         )
@@ -1011,18 +1055,17 @@ class IsaacLabSimulator(Simulator):
             self.viser_lab.render_wrapped_impl(self.init_states_on_resets.cpu())
 
         if self.robot_config.with_foot_sensors:
-            contact_tensor = self._get_simulator_bodies_contact_buf()
+
+            contact_tensor = self._get_simulator_foot_contact_buf()
             contact_tensor = contact_tensor.clone().cpu().detach().numpy()
 
-            contact_norms = np.linalg.norm(
-                contact_tensor, axis=-1
-            )  # (num_envs, num_bodies)
+            contact_norms = np.linalg.norm(contact_tensor, axis=-1)
 
             self.viser_lab.update_per_foot_history_plot(contact_norms, "left")
             self.viser_lab.update_per_foot_history_plot(contact_norms, "right")
 
         if self.without_env_markers:
-
+            # plot if terrain is not presented in the markers info
             terrain_patch = (
                 self.terrain.get_height_maps(
                     self.get_root_state([e]), [e], return_all_dims=True
@@ -1036,6 +1079,8 @@ class IsaacLabSimulator(Simulator):
             )
 
         if self._last_viser_env != e:
+
+            # update only on changes
 
             terrain_patch = (
                 self.terrain.get_height_maps_vis(

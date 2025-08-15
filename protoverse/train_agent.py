@@ -142,9 +142,3 @@ def main(config: OmegaConf):
 
 if __name__ == "__main__":
     main()
-
-
-# HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_slow +exp=steering_mlp +robot=g1 +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true
-# python protoverse/train_agent.py +exp=path_follower_mlp +robot=g1 +simulator=isaaclab +experiment_name=g1_follow_fixed +opt=wandb
-# HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +exp=path_follower_amp_mlp motion_file=protomotions/data/motions/amp_humanoid_walk.npy +simulator=isaaclab +opt=wandb +experiment_name=test_amp
-# HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +exp=amp_mlp +robot=h1 motion_file=protoverse/data/motions/h1_walk.npy +simulator=isaaclab +opt=wandb +experiment_name=test_amp ++num_envs=512

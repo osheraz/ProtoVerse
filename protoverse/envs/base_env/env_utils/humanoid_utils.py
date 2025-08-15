@@ -173,27 +173,30 @@ def compute_humanoid_observations(
 
 @torch.jit.script
 def compute_humanoid_observations_max(
-    body_pos: Tensor,
-    body_rot: Tensor,
-    body_vel: Tensor,
-    body_ang_vel: Tensor,
-    ground_height: Tensor,
-    local_root_obs: bool,
-    root_height_obs: bool,
-    w_last: bool,
+    body_pos: Tensor,  # [B, Nb, 3] world positions for all bodies (index 0 = root)
+    body_rot: Tensor,  # [B, Nb, 4] world quaternions for all bodies
+    body_vel: Tensor,  # [B, Nb, 3] world linear velocities
+    body_ang_vel: Tensor,  # [B, Nb, 3] world angular velocities
+    ground_height: Tensor,  # [B, 1] (or [B]) ground z-height under the root
+    local_root_obs: bool,  # if False, overwrite root's local rot with world rot (in tan-norm)
+    root_height_obs: bool,  # if False, zero-out the root-height feature
+    w_last: bool,  # quaternion layout: True => (x,y,z,w), False => (w,x,y,z)
 ) -> Tensor:
-
-    root_pos = body_pos[:, 0, :]
+    # Extract root pose (env-wise)
+    root_pos = body_pos[:, 0, :]  # TODO: Might be super noisy\drifty in Real.
     root_rot = body_rot[:, 0, :]
 
+    # Root height (z) and inverse heading rotation (aligns x with facing direction)
     root_h = root_pos[:, 2:3]
     heading_rot = torch_utils.calc_heading_quat_inv(root_rot, w_last)
 
+    # Optionally include height above ground (privileged if ground is GT)
     if not root_height_obs:
         root_h_obs = torch.zeros_like(root_h)
     else:
         root_h_obs = root_h - ground_height
 
+    # Expand heading rotation to per-body and flatten for batched ops
     heading_rot_expand = heading_rot.unsqueeze(-2)
     heading_rot_expand = heading_rot_expand.repeat((1, body_pos.shape[1], 1))
     flat_heading_rot = heading_rot_expand.reshape(
@@ -201,32 +204,38 @@ def compute_humanoid_observations_max(
         heading_rot_expand.shape[2],
     )
 
-    root_pos_expand = root_pos.unsqueeze(-2)
-    local_body_pos = body_pos - root_pos_expand
+    # ---- Positions in heading-aligned *local* frame (relative to root) ----
+    root_pos_expand = root_pos.unsqueeze(-2)  # [B,1,3]
+    local_body_pos = body_pos - root_pos_expand  # [B,Nb,3]
     flat_local_body_pos = local_body_pos.reshape(
         local_body_pos.shape[0] * local_body_pos.shape[1], local_body_pos.shape[2]
     )
     flat_local_body_pos = rotations.quat_rotate(
         flat_heading_rot, flat_local_body_pos, w_last
     )
+    # Repack to [B, Nb*3] and drop the root entry (keep only children)
     local_body_pos = flat_local_body_pos.reshape(
         local_body_pos.shape[0], local_body_pos.shape[1] * local_body_pos.shape[2]
     )
     local_body_pos = local_body_pos[..., 3:]  # remove root pos
 
+    # ---- Orientations in heading-aligned frame ----
     flat_body_rot = body_rot.reshape(
         body_rot.shape[0] * body_rot.shape[1], body_rot.shape[2]
     )
     flat_local_body_rot = rotations.quat_mul(flat_heading_rot, flat_body_rot, w_last)
+    # Convert quats to tan-normalized 6D representation (stable)
     flat_local_body_rot_obs = torch_utils.quat_to_tan_norm(flat_local_body_rot, w_last)
     local_body_rot_obs = flat_local_body_rot_obs.reshape(
         body_rot.shape[0], body_rot.shape[1] * flat_local_body_rot_obs.shape[1]
     )
 
+    # Optionally *not* localize the root: overwrite its 6D block with world rot
     if not local_root_obs:
-        root_rot_obs = torch_utils.quat_to_tan_norm(root_rot, w_last)
+        root_rot_obs = torch_utils.quat_to_tan_norm(root_rot, w_last)  # [B,6]
         local_body_rot_obs[..., 0:6] = root_rot_obs
 
+    # ---- Linear velocities in heading-aligned frame ----
     flat_body_vel = body_vel.reshape(
         body_vel.shape[0] * body_vel.shape[1], body_vel.shape[2]
     )
@@ -235,6 +244,7 @@ def compute_humanoid_observations_max(
         body_vel.shape[0], body_vel.shape[1] * body_vel.shape[2]
     )
 
+    # ---- Angular velocities in heading-aligned frame ----
     flat_body_ang_vel = body_ang_vel.reshape(
         body_ang_vel.shape[0] * body_ang_vel.shape[1], body_ang_vel.shape[2]
     )
@@ -245,6 +255,8 @@ def compute_humanoid_observations_max(
         body_ang_vel.shape[0], body_ang_vel.shape[1] * body_ang_vel.shape[2]
     )
 
+    # ---- Final observation vector per env ----
+    # Concatenate: [root_height, local_positions(wo root), local_rot6D(all), local_lin_vel, local_ang_vel]
     obs = torch.cat(
         (
             root_h_obs,

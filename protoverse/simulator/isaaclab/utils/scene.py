@@ -168,6 +168,7 @@ class SceneCfg(InteractiveSceneCfg):
             )
 
         if config.record0:
+            # Attach a camera to env0 for headless recording
 
             self.record_camera = MultiTiledCameraCfg(
                 prim_path="/World/envs/env_0/Record",

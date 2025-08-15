@@ -1,0 +1,13 @@
+# @package _global_
+
+defaults:
+  - g1
+  
+robot:
+
+  with_foot_sensors: True
+  
+  asset:
+
+    asset_file_name: "urdf/g1_29dof_with_sensors.urdf"
+    usd_asset_file_name: "usd/g1_29dof_with_sensors.usd"

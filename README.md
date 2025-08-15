@@ -1,7 +1,7 @@
 # ProtoVerse: ~
 
-**ProtoVerse** is a unified simulation and learning framework for physics-based humanoid animation and control.  
-It merges capabilities from two powerful libraries:
+**ProtoVerse**   
+It merges capabilities from two libraries:
 - [ProtoMotions](https://github.com/NVlabs/ProtoMotions) – for interactive character animation and learning.
 - [HumanoidVerse](https://github.com/LeCAR-Lab/HumanoidVerse) – for humanoid simulation and multi-task learning.
 

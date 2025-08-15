@@ -79,13 +79,20 @@ class ViserLab:
         self._setup_viser_gui()
         self._handle_client_connection()
 
-        # body_ordering.contact_sensor_body_names
-        sensor_names = self.robot_config.contact_bodies  # TODO: make sure common order
         # self.add_per_foot_snapshot_plot("left", sensor_names)
         # self.add_per_foot_snapshot_plot("right", sensor_names)
+        if self.robot_config.with_foot_sensors:
 
-        self.add_per_foot_history_plot("left", sensor_names)
-        self.add_per_foot_history_plot("right", sensor_names)
+            sensor_names = self.robot_config.foot_contact_links
+            if (
+                isinstance(sensor_names, tuple)
+                and len(sensor_names) == 1
+                and isinstance(sensor_names[0], list)
+            ):
+                sensor_names = sensor_names[0]
+
+            self.add_per_foot_history_plot("left", sensor_names)
+            self.add_per_foot_history_plot("right", sensor_names)
 
         self.setup_marker_toggles(marker_names)
 

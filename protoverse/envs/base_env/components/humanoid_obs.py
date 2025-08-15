@@ -14,6 +14,7 @@ from isaac_utils import rotations
 class HumanoidObs(BaseComponent):
     def __init__(self, config, env):
         super().__init__(config, env)
+
         self.humanoid_obs = torch.zeros(
             self.env.num_envs,
             self.config.obs_size,
@@ -178,7 +179,7 @@ class HumanoidObs(BaseComponent):
         self.humanoid_obs[env_ids] = obs
         self.humanoid_obs_hist_buf.set_curr(obs, env_ids)
 
-        self.projected_gravity = rotations.quat_rotate_inverse(
+        self.projected_gravity = rotations.quat_rotate_inverse(  # [x,y,z,w]
             current_state.rigid_body_rot[:, 0, :], self.gravity_vec
         )
 

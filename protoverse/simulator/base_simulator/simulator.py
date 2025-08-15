@@ -162,11 +162,11 @@ class Simulator(ABC):
         """
         self._process_dof_props()
 
-        body_ordering = self._get_sim_body_ordering()
+        self.body_ordering = self._get_sim_body_ordering()
 
         body_convert_to_common = torch.tensor(
             [
-                body_ordering.body_names.index(body_name)
+                self.body_ordering.body_names.index(body_name)
                 for body_name in self.robot_config.body_names
             ],
             dtype=torch.long,
@@ -176,7 +176,7 @@ class Simulator(ABC):
         body_convert_to_sim = torch.tensor(
             [
                 self.robot_config.body_names.index(body_name)
-                for body_name in body_ordering.body_names
+                for body_name in self.body_ordering.body_names
                 if body_name in self.robot_config.body_names  # TODO: WHY?
             ],
             dtype=torch.long,
@@ -185,9 +185,9 @@ class Simulator(ABC):
 
         contact_sensor_convert_to_common = torch.tensor(
             [
-                body_ordering.contact_sensor_body_names.index(body_name)
+                self.body_ordering.contact_sensor_body_names.index(body_name)
                 for body_name in self.robot_config.body_names  # deafult is the body
-                if body_name in body_ordering.contact_sensor_body_names
+                if body_name in self.body_ordering.contact_sensor_body_names
             ],
             dtype=torch.long,
             device=self.device,
@@ -195,9 +195,9 @@ class Simulator(ABC):
 
         foot_contact_sensor_convert_to_common = torch.tensor(
             [
-                body_ordering.foot_contact_sensor_body_names.index(body_name)
+                self.body_ordering.foot_contact_sensor_body_names.index(body_name)
                 for body_name in self.robot_config.foot_contact_links
-                if body_name in body_ordering.foot_contact_sensor_body_names
+                if body_name in self.body_ordering.foot_contact_sensor_body_names
             ],
             dtype=torch.long,
             device=self.device,
@@ -206,14 +206,14 @@ class Simulator(ABC):
         dof_convert_to_sim = torch.tensor(
             [
                 self.robot_config.dof_names.index(dof_name)
-                for dof_name in body_ordering.dof_names
+                for dof_name in self.body_ordering.dof_names
             ],
             dtype=torch.long,
             device=self.device,
         )
         dof_convert_to_common = torch.tensor(
             [
-                body_ordering.dof_names.index(dof_name)
+                self.body_ordering.dof_names.index(dof_name)
                 for dof_name in self.robot_config.dof_names
             ],
             dtype=torch.long,

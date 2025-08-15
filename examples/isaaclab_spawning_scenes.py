@@ -33,14 +33,17 @@ from protoverse.utils.scene_lib import (
 
 with_foot_sensor = True
 with_cam_obs = False
-with_multi_viewport_camera = False
+with_multi_viewport_camera = True
+record0 = False
+init_viser = True
+
 # Create robot asset configuration
 robot_asset_config = RobotAssetConfig(
     robot_type="g1",
-    # asset_file_name="urdf/g1_29dof_with_sensors.urdf",
-    # usd_asset_file_name="usd/g1_29dof_with_sensors.usd",
-    asset_file_name="urdf/g1.urdf",
-    usd_asset_file_name="usd/g1.usd",
+    asset_file_name="urdf/g1_29dof_with_sensors.urdf",
+    usd_asset_file_name="usd/g1_29dof_with_sensors.usd",
+    # asset_file_name="urdf/g1.urdf",
+    # usd_asset_file_name="usd/g1.usd",
     self_collisions=False,
     collapse_fixed_joints=True,
 )
@@ -163,7 +166,7 @@ robot_config = RobotConfig(
     foot_contact_links=[
         f"{side}_ankle_roll_link_sensor_{i}"
         for side in ["left", "right"]
-        for i in range(50)  # modify to be dynamic
+        for i in range(49)  # modify to be dynamic
     ],
     non_termination_contact_bodies=[
         "left_wrist_yaw_link",
@@ -333,6 +336,8 @@ simulator_config = IsaacLabSimulatorConfig(
     w_last=False,  # IsaacLab uses wxyz quaternions
     with_cam_obs=with_cam_obs,
     with_multi_viewport_camera=with_multi_viewport_camera,
+    init_viser=init_viser,
+    record0=record0,
 )
 
 device = torch.device("cuda")
@@ -439,21 +444,39 @@ simulator.reset_envs(
     default_state, env_ids=torch.arange(simulator_config.num_envs, device=device)
 )
 
-while True:
-    sim_start_time = time.time()
-    """
-    Camera controls in IsaacLab and IsaacGym:
-    1. L - start/stop recording. Once stopped it will save the video.
-    2. ; - cancel recording and delete the video.
-    3. O - toggle camera target. This will cycle through the available camera targets, such as humanoids and objects in the scene.
-    4. Q - close the simulator.
-    """
-    actions = torch.randn(
-        simulator_config.num_envs,
-        simulator_config.robot.number_of_actions,
-        device=device,
-    )
-    simulator.step(actions)
-    sim_step_time_ms = time.time() - sim_start_time
+# while True:
+#     sim_start_time = time.time()
+#     """
+#     Camera controls in IsaacLab and IsaacGym:
+#     1. L - start/stop recording. Once stopped it will save the video.
+#     2. ; - cancel recording and delete the video.
+#     3. O - toggle camera target. This will cycle through the available camera targets, such as humanoids and objects in the scene.
+#     4. Q - close the simulator.
+#     """
+#     actions = torch.randn(
+#         simulator_config.num_envs,
+#         simulator_config.robot.number_of_actions,
+#         device=device,
+#     )
+#     simulator.step(actions)
+#     sim_step_time_ms = time.time() - sim_start_time
 
-    print(f"fps={simulator_config.num_envs / sim_step_time_ms:.1f}")
+#     print(f"fps={simulator_config.num_envs / sim_step_time_ms:.1f}")
+
+from rich.live import Live
+from rich.text import Text
+from rich.console import Console
+
+console = Console()
+with Live(auto_refresh=False, console=console) as live:
+    while True:
+        t0 = time.time()
+        actions = torch.randn(
+            simulator_config.num_envs,
+            simulator_config.robot.number_of_actions,
+            device=device,
+        )
+        simulator.step(actions)
+        fps = simulator_config.num_envs / (time.time() - t0)
+        live.update(Text(f"fps={fps:6.1f}"))
+        live.refresh()

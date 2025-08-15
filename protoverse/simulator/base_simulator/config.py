@@ -291,7 +291,7 @@ class RobotConfig(ConfigBuilder):
                 [
                     f"{side}_ankle_roll_link_sensor_{i}"
                     for side in ["left", "right"]
-                    for i in range(50)  # TODO: make sure..
+                    for i in range(49)  # TODO: make sure..
                 ],
             )
 
@@ -353,7 +353,7 @@ class SimulatorConfig(ConfigBuilder):
     sim: SimParams
     experiment_name: str
 
-    camera: CameraConfig
+    camera: CameraConfig = CameraConfig()
     with_multi_viewport_camera: bool = False
     with_cam_obs: bool = False
 
