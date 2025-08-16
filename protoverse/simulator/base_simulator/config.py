@@ -228,6 +228,8 @@ class RobotConfig(ConfigBuilder):
     joint_axis: List[str]
     number_of_actions: int
     self_obs_max_coords_size: int
+    robot_obs_size: int
+
     left_foot_name: str
     right_foot_name: str
     head_body_name: str
@@ -235,7 +237,7 @@ class RobotConfig(ConfigBuilder):
     asset: RobotAssetConfig
 
     with_cam_obs: bool = False  # Whether to include camera observations
-
+    use_robot_obs: bool = False
     with_foot_sensors: bool = False  # Whether to include foot sensors
     foot_contact_links: Optional[List[str]] = None
 
@@ -246,7 +248,7 @@ class RobotConfig(ConfigBuilder):
     num_key_bodies: Optional[int] = None  # Computed from len(key_bodies)
     contact_bodies: Optional[List[str]] = None  # Defaults to body_names
     trackable_bodies_subset: Optional[List[str]] = None  # Defaults to body_names
-    self_obs_size: Optional[int] = None  # Defaults to self_obs_max_coords_size
+    self_obs_size: Optional[int] = None  # Defaults to self_obs_max_coords_size - No
 
     # Optional fields
     dof_effort_limits: Optional[List[float]] = None
@@ -275,7 +277,10 @@ class RobotConfig(ConfigBuilder):
             self.trackable_bodies_subset = self.body_names.copy()
 
         if self.self_obs_size is None:
-            self.self_obs_size = self.self_obs_max_coords_size
+            if self.use_robot_obs:
+                self.self_obs_size = self.robot_obs_size
+            else:
+                self.self_obs_size = self.self_obs_max_coords_size
 
         if self.num_key_bodies is None:
             self.num_key_bodies = len(self.key_bodies)

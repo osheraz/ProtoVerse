@@ -4,6 +4,7 @@ from torch import Tensor
 from protoverse.envs.base_env.env_utils.humanoid_utils import (
     compute_humanoid_observations,
     compute_humanoid_observations_max,
+    compute_robot_observations,
 )
 from protoverse.envs.base_env.components.base_component import BaseComponent
 from protoverse.envs.base_env.env_utils.general import HistoryBuffer
@@ -14,6 +15,8 @@ from isaac_utils import rotations
 class HumanoidObs(BaseComponent):
     def __init__(self, config, env):
         super().__init__(config, env)
+
+        self.use_robot_obs = config.use_robot_obs
 
         self.humanoid_obs = torch.zeros(
             self.env.num_envs,
@@ -37,17 +40,10 @@ class HumanoidObs(BaseComponent):
             dtype=torch.float,  # bool
             device=self.env.device,
         )
+
         self.gravity_vec = torch.tensor(
             [0, 0, -1], dtype=torch.float, device=self.env.device
         ).repeat(self.env.num_envs, 1)
-
-        self.projected_gravity = torch.zeros(
-            self.env.num_envs,
-            num_bodies,
-            3,
-            dtype=torch.bool,
-            device=self.env.device,
-        )
 
     def post_physics_step(self):
         self.humanoid_obs_hist_buf.rotate()
@@ -136,7 +132,29 @@ class HumanoidObs(BaseComponent):
             current_state.rigid_body_pos[:, 0]
         ).clone()
 
-        if self.config.use_max_coords_obs:
+        if self.use_robot_obs:
+            current_state = self.env.simulator.get_bodies_state(env_ids)
+            dof_state = self.env.simulator.get_dof_state(env_ids)
+
+            dof_pos = dof_state.dof_pos
+            dof_vel = dof_state.dof_vel
+
+            root_rot = current_state.rigid_body_rot[:, 0, :]
+            root_vel = current_state.rigid_body_vel[:, 0, :]
+            root_ang_vel = current_state.rigid_body_ang_vel[:, 0, :]
+
+            obs = compute_robot_observations(
+                root_rot,
+                root_vel,
+                root_ang_vel,
+                dof_pos,
+                dof_vel,
+                self.gravity_vec,
+                self.env.actions,
+                True,
+            )
+
+        elif self.config.use_max_coords_obs:
             obs = compute_humanoid_observations_max(
                 current_state.rigid_body_pos,
                 current_state.rigid_body_rot,
@@ -175,13 +193,10 @@ class HumanoidObs(BaseComponent):
                 self.env.simulator.get_dof_offsets(),
                 True,
             )
+
         self.body_contacts[:] = body_contacts
         self.humanoid_obs[env_ids] = obs
         self.humanoid_obs_hist_buf.set_curr(obs, env_ids)
-
-        self.projected_gravity = rotations.quat_rotate_inverse(  # [x,y,z,w]
-            current_state.rigid_body_rot[:, 0, :], self.gravity_vec
-        )
 
     def build_self_obs_demo(
         self, motion_ids: Tensor, motion_times0: Tensor, num_steps: int

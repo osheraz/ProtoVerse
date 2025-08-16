@@ -236,19 +236,19 @@ class PathFollowing(BaseEnv):
         #     self.log_dict[f"scaled/{rew_name}_mean"] = rew.mean()
         #     self.log_dict[f"scaled/{rew_name}_std"] = rew.std()
 
-        other_log_terms = {
-            # "tracking_rew": tracking_rew,
-            # "total_rew": self.rew_buf,
-            # "cartesian_err": cartesian_err,
-            # "gt_err": gt_err,
-            # "gr_err": gr_err,
-            # "gr_err_degrees": gr_err_degrees,
-            # "lr_err_degrees": lr_err_degrees,
-            # "max_joint_err": max_joint_err,
-            # "max_lr_err_degrees": max_lr_err_degrees,
-            # "max_gr_err_degrees": max_gr_err_degrees,
-            # "root_height_error": rh_err,
-        }
+        # other_log_terms = {
+        # "tracking_rew": tracking_rew,
+        # "total_rew": self.rew_buf,
+        # "cartesian_err": cartesian_err,
+        # "gt_err": gt_err,
+        # "gr_err": gr_err,
+        # "gr_err_degrees": gr_err_degrees,
+        # "lr_err_degrees": lr_err_degrees,
+        # "max_joint_err": max_joint_err,
+        # "max_lr_err_degrees": max_lr_err_degrees,
+        # "max_gr_err_degrees": max_gr_err_degrees,
+        # "root_height_error": rh_err,
+        # }
 
         # for rew_name, rew in other_log_terms.items():
         #     self.log_dict[f"follow_other/{rew_name}_mean"] = rew.mean()

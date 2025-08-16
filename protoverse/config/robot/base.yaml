@@ -4,10 +4,15 @@ robot:
   # Observation parameters
   dof_obs_size: ???
   number_of_actions: ???
-  self_obs_size: ${.self_obs_max_coords_size}
+  # self_obs_size: ${.self_obs_max_coords_size} 
+  self_obs_size: ${eval:"${.robot_obs_size} if ${.use_robot_obs} else ${.self_obs_max_coords_size}"}
+
+  robot_obs_size: ???
   self_obs_max_coords_size: ???
   num_bodies: ${len:${.body_names}}
   contact_bodies: ${.body_names}
+
+  use_robot_obs: False # robot_obs < humanoid_obs
 
   # Control parameters
   body_names: ???  # DFS ordering (IsaacGym)

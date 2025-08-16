@@ -107,6 +107,68 @@ def build_pd_action_offset_scale(
 
 
 @torch.jit.script
+def compute_robot_observations(
+    root_rot: Tensor,
+    root_vel: Tensor,
+    root_ang_vel: Tensor,
+    dof_pos: Tensor,
+    dof_vel: Tensor,
+    gravity_vec: Tensor,
+    actions: Tensor,
+    # local_root_obs: bool,
+    w_last: bool,
+    use_heading_vel: bool = False,
+    use_heading_gravity: bool = False,
+) -> Tensor:
+
+    # NOTE:
+    # quat_rotate_inverse(root_rot, v) → transforms v from world to *full body frame*
+    #     Removes yaw, pitch, and roll (full orientation).
+    # quat_rotate(heading_rot, v) → transforms v from world to *heading frame*
+    #     Removes yaw only, keeps pitch/roll effects.
+    # They match if the robot is perfectly upright (no pitch/roll),
+    # but differ whenever the robot tilts.
+
+    heading_rot = torch_utils.calc_heading_quat_inv(root_rot, w_last)
+
+    # Root orientation (optionally heading-aligned) in 6D
+    # if local_root_obs:
+    #     root_rot_obs = rotations.quat_mul(heading_rot, root_rot, w_last)
+    # else:
+    #     root_rot_obs = root_rot
+    # root_rot_obs = torch_utils.quat_to_tan_norm(root_rot_obs, w_last)
+
+    # Velocities
+    if use_heading_vel:
+        local_root_vel = rotations.quat_rotate(heading_rot, root_vel, w_last)
+        local_root_ang_vel = rotations.quat_rotate(heading_rot, root_ang_vel, w_last)
+    else:
+        local_root_vel = rotations.quat_rotate_inverse(root_rot, root_vel, w_last)
+        local_root_ang_vel = rotations.quat_rotate_inverse(
+            root_rot, root_ang_vel, w_last
+        )
+
+    # Gravity vector
+    if use_heading_gravity:
+        projected_gravity = rotations.quat_rotate(heading_rot, gravity_vec, w_last)
+    else:
+        projected_gravity = rotations.quat_rotate_inverse(root_rot, gravity_vec, w_last)
+
+    obs = torch.cat(
+        (
+            local_root_vel,  # 3 dims
+            local_root_ang_vel,  # 3 dims
+            projected_gravity,  # 3 dims
+            dof_pos,  # Nd dims
+            dof_vel,  # Nd dims
+            actions,  # Nd dims
+        ),
+        dim=-1,
+    )
+    return obs
+
+
+@torch.jit.script
 def compute_humanoid_observations(
     root_pos: Tensor,
     root_rot: Tensor,

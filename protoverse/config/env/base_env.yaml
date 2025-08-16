@@ -23,10 +23,18 @@ env:
     humanoid_obs:
       use_max_coords_obs: True
       obs_size: ${robot.self_obs_size}
+      use_robot_obs: ${robot.use_robot_obs}
       local_root_obs: True
       root_height_obs: True
       num_historical_steps: 1
-    
+
+    robot_obs:
+      some_flag: True
+      obs_size: ${robot.self_obs_size}
+      local_root_obs: True
+      root_height_obs: True
+      num_historical_steps: 1
+
     # foot_obs:
     #   obs_size: 100 # ${eval:${robot.num_legs}*${}}
 

@@ -14,6 +14,8 @@ robot:
   number_of_actions: 19
   self_obs_max_coords_size: 373  # ${eval:1+25*(3+6+3+3)-3}
   
+  robot_obs_size: 66
+
   with_cam_obs: False  
 
   # Control parameters

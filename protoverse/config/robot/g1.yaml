@@ -13,6 +13,7 @@ robot:
   dof_obs_size: ${eval:${len:${.dof_body_ids}}*6}
   number_of_actions: 29
   self_obs_max_coords_size: 493  # ${eval:1+33*(3+6+3+3)-3}
+  robot_obs_size: 96
 
   with_cam_obs: False  
   with_foot_sensors: False
