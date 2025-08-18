@@ -7,6 +7,7 @@ from copy import deepcopy
 import time
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
+import trimesh
 
 try:
     import viser
@@ -32,6 +33,12 @@ from protoverse.simulator.isaaclab.utils.camera_manager import (
     FrameStore,
 )
 from protoverse.simulator.isaaclab.utils.camera_io import IsaacLabMultiCameraIO
+from protoverse.simulator.isaaclab.utils.viser_utils import (
+    simple_colormap,
+    xy_to_img,
+    draw_disks,
+    load_foot_sensors_from_urdf,
+)
 
 
 class ViserLab:
@@ -94,6 +101,23 @@ class ViserLab:
 
             self.add_per_foot_history_plot("left", sensor_names)
             self.add_per_foot_history_plot("right", sensor_names)
+
+            left_samples, right_samples = load_foot_sensors_from_urdf(
+                urdf_path=Path(self.urdf_path["robot"]),
+                left_parent_link="left_ankle_roll_link",
+                right_parent_link="right_ankle_roll_link",
+            )
+
+            self.add_feet_spatial_image(
+                left_mesh=Path(config.robot.asset.left_foot_file_path),
+                right_mesh=Path(config.robot.asset.right_foot_file_path),
+                left_sensor_xyz_local=left_samples,  # (M_left, 3)
+                right_sensor_xyz_local=right_samples,  # (M_right, 3)
+                image_size=(260, 260),
+                gap=8,
+                rotate_each="cw",  # "cw" | "ccw" | "none"
+                background=230,
+            )
 
         self.setup_marker_toggles(marker_names)
 
@@ -265,7 +289,7 @@ class ViserLab:
                         else np.asarray(v)
                     )
 
-    # Foot
+    # Foot as sequence
 
     def add_per_foot_snapshot_plot(self, side: str, sensor_names: list[str]):
         """Create a marker-only plot for one foot's contact sensors (norm values)."""
@@ -485,3 +509,181 @@ class ViserLab:
             marker = self._viser_marker_dict[name]
             marker.points = positions
             marker.colors = colors
+
+    # Foot as img
+
+    def add_feet_spatial_image(
+        self,
+        left_mesh: Path,
+        right_mesh: Path,
+        left_sensor_xyz_local: np.ndarray,
+        right_sensor_xyz_local: np.ndarray,
+        image_size: Tuple[int, int] = (260, 260),
+        gap: int = 8,
+        rotate_each: str = "cw",  # "cw" | "ccw" | "none"
+        background: int = 230,
+    ):
+        """Create a single combined (left+right) side-panel image."""
+        # Prepare per-foot state (geometry + layout)
+        self._left_foot_state = self._prepare_foot_state(
+            left_mesh, left_sensor_xyz_local, image_size, background
+        )
+        self._right_foot_state = self._prepare_foot_state(
+            right_mesh, right_sensor_xyz_local, image_size, background
+        )
+
+        H, W = image_size
+        combo = np.full((H, W * 2 + gap, 3), background, dtype=np.uint8)
+        with self.plot_folder:
+            self._feet_combo_widget = self.viser_server.gui.add_image(
+                combo, label="Feet (combined)"
+            )
+        self._feet_combo_cfg = {
+            "gap": gap,
+            "background": background,
+            "rotate_each": rotate_each,
+        }
+
+    def _rotate_img(self, img: np.ndarray, mode: str) -> np.ndarray:
+        if mode == "cw":
+            return np.rot90(img, k=3)  # 90° clockwise
+        if mode == "ccw":
+            return np.rot90(img, k=1)  # 90° counter-clockwise
+        return img
+
+    def _prepare_foot_state(
+        self,
+        mesh_path: Path,
+        sensor_xyz_local: np.ndarray,
+        image_size: Tuple[int, int],
+        background: int,
+    ):
+        """Compute XY bounds from the sole of the mesh and store sensor XY layout."""
+        mesh = trimesh.load_mesh(str(mesh_path))
+        if not isinstance(mesh, trimesh.Trimesh):
+            mesh = mesh.dump().sum()
+
+        z_min = float(mesh.vertices[:, 2].min())
+        faces, verts = mesh.faces, mesh.vertices
+        face_zmin = verts[faces].min(axis=(1, 2))
+        keep = face_zmin <= (z_min + 1e-3)
+        sole_verts = verts[np.unique(faces[keep].ravel())] if keep.any() else verts
+
+        bb_min = sole_verts[:, :2].min(axis=0).astype(np.float32)
+        bb_max = sole_verts[:, :2].max(axis=0).astype(np.float32)
+
+        return {
+            "H": image_size[0],
+            "W": image_size[1],
+            "bb_min": bb_min,
+            "bb_max": bb_max,
+            "radius": 5,
+            "background": background,
+            "sensor_xy": np.asarray(sensor_xyz_local[:, :2], dtype=np.float32),
+        }
+
+    def _render_foot_image(
+        self,
+        state: Dict[str, Any],
+        vals,  # (E, M) or (M,)
+        env_id: int = 0,
+        vmin: float = 0.0,
+        vmax: float | None = None,
+        threshold: float | None = None,
+    ):
+        """Render one foot as an RGB numpy image using the stored state."""
+        H, W = state["H"], state["W"]
+        bb_min, bb_max = state["bb_min"], state["bb_max"]
+        sensor_xy = state["sensor_xy"]
+        bg = state["background"]
+
+        if isinstance(vals, torch.Tensor):
+            vals = vals.detach().cpu().numpy()
+        vals = np.asarray(vals, dtype=np.float32)
+        if vals.ndim == 2:
+            vals = vals[env_id]
+
+        assert (
+            vals.shape[0] == sensor_xy.shape[0]
+        ), f"contact length {vals.shape[0]} != sensors {sensor_xy.shape[0]}"
+
+        if vmax is None:
+            vmax = float(np.max(vals)) if vals.size else 1.0
+        colors = simple_colormap(vals, vmin=vmin, vmax=vmax)
+        if threshold is not None:
+            colors[vals < threshold] = np.array([160, 160, 160], dtype=np.uint8)
+
+        img = np.full((H, W, 3), bg, dtype=np.uint8)
+        rows, cols = xy_to_img(sensor_xy, bb_min, bb_max, H, W)
+        draw_disks(img, rows, cols, colors, radius=state["radius"])
+        return img
+
+    def update_feet_spatial_image(
+        self,
+        contact_norms: np.ndarray,  # (E, N_total)
+        left_indices: np.ndarray,  # indices into N_total
+        right_indices: np.ndarray,  # indices into N_total
+        env_id: int = 0,
+        threshold: float = 1.0,
+        vmin: float = 0.0,
+        vmax: float | None = None,
+    ):
+        """Update the combined image with current contact values."""
+        if not hasattr(self, "_feet_combo_widget"):
+            return
+
+        # per-foot slices
+        left_vals = contact_norms[:, left_indices]
+        right_vals = contact_norms[:, right_indices]
+
+        # shared vmax for consistent colors
+        if vmax is None:
+            l = left_vals[env_id] if left_vals.ndim == 2 else left_vals
+            r = right_vals[env_id] if right_vals.ndim == 2 else right_vals
+            vmax = float(
+                max(1e-6, np.max(l) if l.size else 0.0, np.max(r) if r.size else 0.0)
+            )
+
+        # render both feet
+        left_img = self._render_foot_image(
+            self._left_foot_state, left_vals, env_id, vmin, vmax, threshold
+        )
+        right_img = self._render_foot_image(
+            self._right_foot_state, right_vals, env_id, vmin, vmax, threshold
+        )
+
+        # rotate EACH image, then stitch left→right
+        mode = self._feet_combo_cfg["rotate_each"]
+        left_img = self._rotate_img(left_img, mode)
+        right_img = self._rotate_img(right_img, mode)
+
+        # canvas sized after rotation (H/W may swap)
+        H, W, _ = left_img.shape
+        gap = self._feet_combo_cfg["gap"]
+        bg = self._feet_combo_cfg["background"]
+        combo = np.full((H, W * 2 + gap, 3), bg, dtype=np.uint8)
+        combo[:, :W] = left_img
+        combo[:, W + gap :] = right_img
+
+        self._feet_combo_widget.image = combo
+
+    def update_feet_spatial_image_with_internal_indices(
+        self,
+        contact_norms: np.ndarray,
+        env_id: int = 0,
+        threshold: float = 1.0,
+        vmin: float = 0.0,
+        vmax: float | None = None,
+    ):
+        """Convenience: use the indices you already stored in add_per_foot_history_plot."""
+        left_idx = getattr(self, "left_foot_indices")
+        right_idx = getattr(self, "right_foot_indices")
+        self.update_feet_spatial_image(
+            contact_norms=contact_norms,
+            left_indices=left_idx,
+            right_indices=right_idx,
+            env_id=env_id,
+            threshold=threshold,
+            vmin=vmin,
+            vmax=vmax,
+        )

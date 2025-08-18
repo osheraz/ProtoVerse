@@ -2,7 +2,7 @@
 ```
 HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_new_obs_terrain +exp=steering_mlp +robot=g1 +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++robot.use_robot_obs=true
 
-HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_new_obs_terrain_foot +robot=g1_w_foot_sensors +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++robot.use_robot_obs=true ++num_envs=2048
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_new_obs_terrain_foot +robot=g1_w_foot_sensors +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++robot.use_robot_obs=true 
 
 HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_new_obs_terrain_foot_no_obs +robot=g1_w_foot_sensors +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++robot.use_robot_obs=true ++num_envs=1024
 

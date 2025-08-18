@@ -33,16 +33,18 @@ from protoverse.utils.scene_lib import (
 )
 
 with_foot_sensor = True
-with_multi_viewport_camera = False
+with_multi_viewport_camera = True
 with_cam_obs = False
 
 # Create robot asset configuration
 robot_asset_config = RobotAssetConfig(
     robot_type="g1",
-    # asset_file_name="urdf/g1_29dof_with_sensors.urdf",
-    # usd_asset_file_name="usd/g1_29dof_with_sensors.usd",
-    asset_file_name="urdf/g1.urdf",
-    usd_asset_file_name="usd/g1.usd",
+    asset_file_name="urdf/g1_29dof_with_sensors.urdf",
+    usd_asset_file_name="usd/g1_29dof_with_sensors.usd",
+    left_foot_file_path="protoverse/data/assets/mesh/G1/left_ankle_roll_link.stl",
+    right_foot_file_path="protoverse/data/assets/mesh/G1/right_ankle_roll_link.stl",
+    # asset_file_name="urdf/g1.urdf",
+    # usd_asset_file_name="usd/g1.usd",
     self_collisions=False,
     collapse_fixed_joints=True,
 )
@@ -150,6 +152,7 @@ robot_config = RobotConfig(
     ],
     dof_obs_size=174,  # 29 DOFs * 6
     number_of_actions=29,
+    robot_obs_size=96,
     with_cam_obs=with_cam_obs,
     with_foot_sensors=with_foot_sensor,
     self_obs_max_coords_size=493,
@@ -165,7 +168,7 @@ robot_config = RobotConfig(
     foot_contact_links=[
         f"{side}_ankle_roll_link_sensor_{i}"
         for side in ["left", "right"]
-        for i in range(20)  # modify to be dynamic
+        for i in range(21)  # modify to be dynamic
     ],
     non_termination_contact_bodies=[
         "left_wrist_yaw_link",

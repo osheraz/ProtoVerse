@@ -164,6 +164,9 @@ class RobotAssetConfig(ConfigBuilder):
     # Optional fields
     asset_file_name: str = None
     usd_asset_file_name: str = None
+    left_foot_file_path: str = None
+    right_foot_file_path: str = None
+
     replace_cylinder_with_capsule: Optional[bool] = None
     flip_visual_attachments: Optional[bool] = None
     armature: Optional[float] = None
@@ -295,7 +298,7 @@ class RobotConfig(ConfigBuilder):
             self.foot_contact_links = [
                 f"{side}_ankle_roll_link_sensor_{i}"
                 for side in ["left", "right"]
-                for i in range(20)  # TODO: check the range
+                for i in range(21)  # TODO: check the range
             ]
 
     def _compute_dof_offsets(self, joint_axis: List[str]) -> List[int]:

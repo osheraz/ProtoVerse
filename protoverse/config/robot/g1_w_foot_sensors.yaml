@@ -11,3 +11,10 @@ robot:
 
     asset_file_name: "urdf/g1_29dof_with_sensors.urdf"
     usd_asset_file_name: "usd/g1_29dof_with_sensors.usd"
+
+    # left_foot_file_path: "mesh/G1/left_ankle_roll_link.stl"
+    # right_foot_file_path: "/mesh/G1/right_ankle_roll_link.stl" 
+    # TODO: use relative paths..
+    left_foot_file_path: "protoverse/data/assets/mesh/G1/left_ankle_roll_link.stl"
+    right_foot_file_path: "protoverse/data/assets/mesh/G1/right_ankle_roll_link.stl"
+    # asset_file_name="urdf/g1.urdf",

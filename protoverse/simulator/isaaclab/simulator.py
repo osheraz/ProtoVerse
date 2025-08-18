@@ -1071,6 +1071,12 @@ class IsaacLabSimulator(Simulator):
             self.viser_lab.update_per_foot_history_plot(contact_norms, "left")
             self.viser_lab.update_per_foot_history_plot(contact_norms, "right")
 
+            self.viser_lab.update_feet_spatial_image_with_internal_indices(
+                contact_norms,
+                env_id=e,
+                # threshold=1.0,  # optional
+                # vmin=0.0, vmax=None,
+            )
         if self.without_env_markers:
             # plot if terrain is not presented in the markers info
             terrain_patch = (
