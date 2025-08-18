@@ -379,6 +379,7 @@ class IsaacLabSimulator(Simulator):
         Advance the simulation by stepping for a number of iterations equal to the decimation factor.
         Applies PD control or motor forces as required.
         """
+
         for idx in range(self.decimation):
 
             if self.control_type == ControlType.BUILT_IN_PD:
@@ -389,14 +390,20 @@ class IsaacLabSimulator(Simulator):
             self._scene.write_data_to_sim()
             self._sim.step(render=False)
 
-            if (idx + 1) % self.decimation == 0 and (
-                not self.headless
-                or self._sim.has_rtx_sensors()
-                or hasattr(self, "viser_lab")
-            ):
+            if (idx + 1) % self.decimation == 0:
+                if (
+                    not self.headless
+                    or (self._sim.has_rtx_sensors() and self._user_is_recording)
+                    or (  # its costly to render
+                        self._sim.has_rtx_sensors()
+                        and hasattr(self, "viser_lab")
+                        and self.config.with_multi_viewport_camera
+                    )
+                ):
+                    self._sim.render()
+
                 if hasattr(self, "viser_lab"):
                     self._update_viser()
-                self._sim.render()
 
             self._scene.update(dt=self._sim.get_physics_dt())
 

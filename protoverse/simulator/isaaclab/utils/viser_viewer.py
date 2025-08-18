@@ -81,6 +81,7 @@ class ViserLab:
 
         # self.add_per_foot_snapshot_plot("left", sensor_names)
         # self.add_per_foot_snapshot_plot("right", sensor_names)
+
         if self.robot_config.with_foot_sensors:
 
             sensor_names = self.robot_config.foot_contact_links
@@ -264,7 +265,7 @@ class ViserLab:
                         else np.asarray(v)
                     )
 
-    # Plots
+    # Foot
 
     def add_per_foot_snapshot_plot(self, side: str, sensor_names: list[str]):
         """Create a marker-only plot for one foot's contact sensors (norm values)."""
@@ -348,7 +349,7 @@ class ViserLab:
                 series=tuple(series),
                 scales={
                     "x": viser.uplot.Scale(auto=True),
-                    "y": viser.uplot.Scale(range=(0, 1.0)),
+                    "y": viser.uplot.Scale(range=(0, 400.0)),
                 },
                 legend=viser.uplot.Legend(show=False),
                 aspect=2.0,
@@ -369,7 +370,7 @@ class ViserLab:
         indices = getattr(self, f"{side}_foot_indices")
 
         raw = contact_norms[env_id, indices]
-        normed = raw / (raw.max() + 1e-6)
+        normed = raw  #  / (raw.max() + 1e-6)
 
         for val, buf in zip(normed, y_deques):
             buf.append(val)
@@ -380,7 +381,7 @@ class ViserLab:
         # Update plot data
         plot.data = (x.copy(), *[np.array(buf) for buf in y_deques])
 
-    # terrain:
+    # Terrain
 
     def update_local_terrain_pointcloud(
         self,
@@ -426,7 +427,7 @@ class ViserLab:
             pcl.points = xyz_points
             pcl.colors = colors
 
-    # markers:
+    # Markers
 
     def setup_marker_toggles(self, marker_names: list[str]):
 

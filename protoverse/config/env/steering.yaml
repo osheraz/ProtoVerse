@@ -8,23 +8,28 @@ env:
   _target_: protoverse.envs.steering.env.Steering
   config:
     enable_height_termination: True
+    with_foot_obs: False
+
     steering_params:
       heading_change_steps_min: 40
       heading_change_steps_max: 150
       random_heading_probability: 0.2
       standard_heading_change: 1.57
-      tar_speed_min: 1.2
-      tar_speed_max: 3 # 6
+      tar_speed_min: 0.1 # 1.2
+      tar_speed_max: 2.0 # 6
       standard_speed_change: 0.3
       stop_probability: 0.05
       obs_size: 3
 
+    foot_obs_params:
+      obs_size: 40
+      
     reward_config:
       positive_constant: 0.0
       scale_with_dt: True
 
       reward_scales:
-        path:             1.5 # aux
+        path:             2.0 # aux
         lin_vel_z:       -2.0
         ang_vel_xy:      -0.05
         torque:          -0.00001

@@ -1,0 +1,35 @@
+# @package _global_
+env:
+  config:
+    with_foot_obs: True
+
+agent:
+  config:
+    task_reward_w: 1.0
+
+    modules:
+      foot_obs:
+        _target_: protoverse.agents.common.common.Flatten
+        num_in: ${env.config.foot_obs_params.obs_size}
+        num_out: ${.num_in}
+        config:
+          obs_key: foot_obs
+          normalize_obs: false
+          norm_clamp_value: 5
+
+    # Append the direction obs to the actor and critic inputs
+    model:
+      config: 
+        actor:
+          config:
+            mu_model:
+              config:
+                input_models:
+                  foot_obs: ${agent.config.modules.foot_obs}
+        critic:
+          config:
+            input_models:
+              foot_obs: ${agent.config.modules.foot_obs}
+
+    extra_inputs:
+      foot_obs: true

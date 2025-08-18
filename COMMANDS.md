@@ -1,8 +1,10 @@
 # Train
 ```
-HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=h1_new_obs +exp=steering_mlp +robot=h1 +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++robot.use_robot_obs=true
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_new_obs_terrain +exp=steering_mlp +robot=g1 +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++robot.use_robot_obs=true
 
-HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +exp=path_follower_amp_mlp motion_file=protomotions/data/motions/amp_humanoid_walk.npy +simulator=isaaclab +opt=wandb +experiment_name=test_amp
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_new_obs_terrain_foot +robot=g1_w_foot_sensors +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++robot.use_robot_obs=true ++num_envs=2048
+
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_new_obs_terrain_foot_no_obs +robot=g1_w_foot_sensors +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++robot.use_robot_obs=true ++num_envs=1024
 
 HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +exp=amp_mlp +robot=h1 motion_file=protoverse/data/motions/h1_walk.npy +simulator=isaaclab +opt=wandb +experiment_name=test_amp ++num_envs=512
 
@@ -12,9 +14,9 @@ HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +exp=amp_mlp +robot=h1 motio
 ```
 python protoverse/eval_agent.py +robot=h1 +simulator=isaaclab +checkpoint=results/test_amp/last.ckpt +init_viser=true
 
-python protoverse/eval_agent.py +robot=g1 +simulator=isaaclab +checkpoint=results/g1_slow/last.ckpt +init_viser=true ++env.config.enable_height_termination=true
+python protoverse/eval_agent.py +robot=g1_w_foot_sensors +simulator=isaaclab +checkpoint=results/g1_slow/last.ckpt +init_viser=true ++env.config.enable_height_termination=true ++simulator.config.with_multi_viewport_camera=true ++robot.use_robot_obs=false 
 
-HYDRA_FULL_ERROR=1 python protoverse/eval_agent.py +robot=h1 +simulator=isaaclab +checkpoint=results/h1_new_obs/last.ckpt +init_viser=true ++env.config.enable_height_termination=true ++simulator.config.with_multi_viewport_camera=true
+HYDRA_FULL_ERROR=1 python protoverse/eval_agent.py +robot=g1 +simulator=isaaclab +checkpoint=results/g1_new_obs_terrain_foot_no_obs/last.ckpt +init_viser=true ++env.config.enable_height_termination=true ++simulator.config.with_multi_viewport_camera=true ++robot.use_robot_obs=true 
 
 HYDRA_FULL_ERROR=1 python protoverse/eval_agent.py +robot=g1_w_foot_sensors +simulator=isaaclab +checkpoint=results/g1_slow/last.ckpt +init_viser=true ++env.config.enable_height_termination=true ++simulator.config.with_multi_viewport_camera=true
 ```
@@ -27,3 +29,11 @@ HYDRA_FULL_ERROR=1 python protoverse/eval_agent.py +robot=g1_w_foot_sensors +sim
 ++simulator.config.record0=true
 +robot=g1_w_foot_sensors
 ```
+
+
+# defaults:
+#   - /robot/g1_29dof_with_sensors
+
+# Runnnig
+g1_new_obs_terrain_foot_no_obs - terrain with g1usd with foots sensors but not in obs
+g1_new_obs_terrain_foot - terrain with g1usd with foot in obs as well

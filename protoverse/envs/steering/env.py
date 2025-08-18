@@ -40,6 +40,13 @@ class Steering(BaseEnv):
             dtype=torch.float,
         )
 
+        if self.config.with_foot_obs:
+            self.foot_obs = torch.zeros(
+                (self.config.num_envs, self.config.foot_obs_params.obs_size),
+                device=device,
+                dtype=torch.float,
+            )
+
         self._heading_change_steps = torch.zeros(
             [self.num_envs], device=self.device, dtype=torch.int64
         )
@@ -172,91 +179,28 @@ class Steering(BaseEnv):
         obs = compute_heading_observations(root_states.root_rot, tar_dir, tar_speed)
         self.steering_obs[env_ids] = obs
 
+        if self.config.with_foot_obs:
+            foot_obs = torch.norm(self.simulator.get_foot_contact_buf(), dim=-1)
+            foot_obs = torch.where(foot_obs >= 1.0, 1.0, 0.0)
+            self.foot_obs[env_ids] = foot_obs[env_ids]
+
     def get_obs(self):
         obs = super().get_obs()
         obs.update({"steering": self.steering_obs})
+        if self.config.with_foot_obs:
+            obs.update({"foot_obs": self.foot_obs})
+
         return obs
 
     def compute_reward(self):
 
-        # root_pos = self.simulator.get_root_state().root_pos
-        # path_rew = compute_heading_reward(
-        #     root_pos, self._prev_root_pos, self._tar_dir, self._tar_speed, self.dt
-        # )
-        # self._prev_root_pos[:] = root_pos
-
         rew_dict = self.rew_manager.compute_rewards()
-        # rew_dict["path_rew"] = 2.0 * path_rew
-
-        # scaled_rewards: Dict[str, Tensor] = {  # move to rew class
-        #     k: v
-        #     * 1.0  # ,getattr(self.config.reward_config.reward_scales, f"{k}_w")
-        #     for k, v in rew_dict.items()
-        # }
 
         self.rew_buf = sum(rew_dict.values())
-
-        # logging & fun
 
         for rew_name, rew in rew_dict.items():
             self.log_dict[f"raw/{rew_name}_mean"] = rew.mean()
             self.log_dict[f"raw/{rew_name}_std"] = rew.std()
-
-        # ----
-        # Aux:
-        # dof_state = self.simulator.get_dof_state()
-        # root_states = self.simulator.get_root_state(d)
-        # bodies_contact_buf = self.simulator.get_bodies_contact_buf()
-
-        # # 2)
-        # rew_lin_vel_z = torch.square(root_states.root_vel[:, 2])
-        # rew_dict["rew_lin_vel_z"] = -2.0 * rew_lin_vel_z
-
-        # 3)
-        # rew_ang_vel_xy = torch.sum(torch.square(root_states.root_ang_vel[:, :2]), dim=1)
-        # rew_dict["rew_ang_vel_xy"] = -0.05 * rew_ang_vel_xy
-
-        # 4)
-        # rew_torque = torch.sum(torch.square(self.simulator.torques), dim=1)
-        # rew_dict["rew_torque"] = -0.00001 * rew_torque
-
-        # 5)
-        # rew_dof_acc = torch.sum(
-        #     torch.square((self.last_dof_vel - dof_state.dof_vel) / self.dt), dim=1
-        # )
-        # rew_dict["rew_dof_acc"] = -2.5e-7 * rew_dof_acc
-
-        # 6)
-        # contact = bodies_contact_buf[:, self.feet_indices, 2] > 1.0
-        # contact_filt = torch.logical_or(contact, self.last_contacts)
-        # self.last_contacts = contact
-        # first_contact = (self.feet_air_time > 0.0) * contact_filt
-        # self.feet_air_time += self.dt
-        # rew_feet_air_time = torch.sum(
-        #     (self.feet_air_time - 0.5) * first_contact, dim=1
-        # )  #  reward only on first contact with the ground
-        # # rew_feet_air_time *= torch.norm(self.commands[:, :2], dim=1) > 0.1
-        # self.feet_air_time *= ~contact_filt
-        # rew_dict["rew_feet_air_time"] = 1.0 * rew_feet_air_time
-
-        # 7)
-        # rew_collision = torch.sum(
-        #     1.0
-        #     * (
-        #         torch.norm(bodies_contact_buf[:, self.penelized_body_ids, :], dim=-1)
-        #         > 0.1
-        #     ),
-        #     dim=1,
-        # )
-        # rew_dict["rew_collision"] = -1.0 * rew_collision
-
-        # 8)
-        # rew_action_rate = torch.sum(
-        #     torch.square(self.last_actions - self.actions), dim=1
-        # )
-        # rew_dict["rew_action_rate"] = -0.01 * rew_action_rate
-
-        # ------------
 
 
 #####################################################################

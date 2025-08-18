@@ -165,7 +165,7 @@ robot_config = RobotConfig(
     foot_contact_links=[
         f"{side}_ankle_roll_link_sensor_{i}"
         for side in ["left", "right"]
-        for i in range(49)  # modify to be dynamic
+        for i in range(20)  # modify to be dynamic
     ],
     non_termination_contact_bodies=[
         "left_wrist_yaw_link",

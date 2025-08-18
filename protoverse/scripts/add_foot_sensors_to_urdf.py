@@ -5,6 +5,71 @@ import numpy as np
 import os
 
 
+def structured_grid_sample(mesh, n_points=50, z_offset=0.00, bottom_tol=1e-3):
+    bounds = mesh.bounds
+    (x_min, y_min, _), (x_max, y_max, _) = bounds
+
+    # Estimate spacing from XY area so we seed enough points.
+    area_xy = max((x_max - x_min) * (y_max - y_min), 1e-9)
+    # Hex grid spacing ~ sqrt(area / count)
+    spacing = (area_xy / n_points) ** 0.5
+    dx = spacing
+    dy = spacing * (3**0.5) / 2
+
+    # Build a hex grid that oversamples (factor ~3) so FPS can pick well-spaced points.
+    xs = []
+    ys = []
+    ny = int(np.ceil((y_max - y_min) / dy)) + 2
+    nx = int(np.ceil((x_max - x_min) / dx)) + 2
+    for j in range(ny):
+        y = y_min - dy + j * dy
+        shift = (dx / 2) if (j % 2) else 0.0
+        for i in range(nx):
+            x = x_min - dx + shift + i * dx
+            if (x_min - dx) <= x <= (x_max + dx) and (y_min - dy) <= y <= (y_max + dy):
+                xs.append(x)
+                ys.append(y)
+    seeds = np.column_stack([np.array(xs), np.array(ys), np.zeros(len(xs))])
+
+    # Project to mesh
+    closest_points, _, _ = trimesh.proximity.closest_point(mesh, seeds)
+
+    # Keep only seeds that land near the bottom surface (avoid sides)
+    z_min = mesh.vertices[:, 2].min()
+    keep = closest_points[:, 2] <= z_min + bottom_tol
+    pts = closest_points[keep]
+
+    # If we lost too many (e.g., very narrow footprint), fall back to all
+    if len(pts) == 0:
+        pts = closest_points
+
+    # Farthest Point Sampling to enforce spacing and exact count
+    def fps(points, k):
+        points = np.asarray(points)
+        n = len(points)
+        if n == 0:
+            return points
+        k = min(k, n)
+        chosen_idx = [np.random.randint(0, n)]
+        dists = np.full(n, np.inf)
+        for _ in range(k - 1):
+            # update distances to nearest chosen
+            diff = points - points[chosen_idx[-1]]
+            dists = np.minimum(dists, np.einsum("ij,ij->i", diff, diff))
+            next_idx = int(np.argmax(dists))
+            chosen_idx.append(next_idx)
+        return points[chosen_idx]
+
+    pts_xy = pts[:, :2]
+    chosen = fps(pts_xy, n_points)
+
+    # Recover the corresponding 3D (xy from fps + flatten z to a plane just below sole)
+    out = np.column_stack(
+        [chosen[:, 0], chosen[:, 1], np.full(len(chosen), z_min - z_offset)]
+    )
+    return out
+
+
 def sample_foot_surface(
     mesh_path,
     n_points=20,
@@ -22,11 +87,12 @@ def sample_foot_surface(
     elif sampling_method == "uniform":
         return farthest_point_sample(bottom_samples, n_points)
     elif sampling_method == "structured":
-        return structured_grid_sample(
-            mesh,
-            grid_size=(int(n_points**0.5), int(n_points**0.5)),
-            z_offset=z_threshold,
-        )
+        # return structured_grid_sample(
+        #     mesh,
+        #     grid_size=(int(n_points**0.5), int(n_points**0.5)),
+        #     z_offset=z_threshold,
+        # )
+        return structured_grid_sample(mesh, n_points=n_points, z_offset=z_threshold)
     else:
         raise ValueError(f"Unknown sampling_method: {sampling_method}")
 
@@ -49,24 +115,24 @@ def farthest_point_sample(points, n_samples):
     return np.array(selected)
 
 
-def structured_grid_sample(mesh, grid_size=(10, 10), z_offset=0.00):
-    bounds = mesh.bounds
-    x_min, y_min = bounds[0][0], bounds[0][1]
-    x_max, y_max = bounds[1][0], bounds[1][1]
+# def structured_grid_sample(mesh, grid_size=(10, 10), z_offset=0.00):
+#     bounds = mesh.bounds
+#     x_min, y_min = bounds[0][0], bounds[0][1]
+#     x_max, y_max = bounds[1][0], bounds[1][1]
 
-    x_lin = np.linspace(x_min, x_max, grid_size[0])
-    y_lin = np.linspace(y_min, y_max, grid_size[1])
-    xx, yy = np.meshgrid(x_lin, y_lin)
-    grid_points = np.stack([xx.ravel(), yy.ravel(), np.zeros(xx.size)], axis=1)
+#     x_lin = np.linspace(x_min, x_max, grid_size[0])
+#     y_lin = np.linspace(y_min, y_max, grid_size[1])
+#     xx, yy = np.meshgrid(x_lin, y_lin)
+#     grid_points = np.stack([xx.ravel(), yy.ravel(), np.zeros(xx.size)], axis=1)
 
-    # Correct input shape (n, 3)
-    closest_points, _, _ = trimesh.proximity.closest_point(mesh, grid_points)
+#     # Correct input shape (n, 3)
+#     closest_points, _, _ = trimesh.proximity.closest_point(mesh, grid_points)
 
-    # Flatten all to the same Z-plane
-    z_min = mesh.vertices[:, 2].min()
-    closest_points[:, 2] = z_min - z_offset
+#     # Flatten all to the same Z-plane
+#     z_min = mesh.vertices[:, 2].min()
+#     closest_points[:, 2] = z_min - z_offset
 
-    return closest_points
+#     return closest_points
 
 
 def add_sensors_to_urdf(
@@ -156,10 +222,10 @@ if __name__ == "__main__":
     sampling_method = "structured"  # "random", "uniform", or "structured"
 
     left_samples = sample_foot_surface(
-        left_stl_path, n_points=50, z_threshold=-0.01, sampling_method=sampling_method
+        left_stl_path, n_points=20, z_threshold=-0.01, sampling_method=sampling_method
     )
     right_samples = sample_foot_surface(
-        right_stl_path, n_points=50, z_threshold=-0.01, sampling_method=sampling_method
+        right_stl_path, n_points=20, z_threshold=-0.01, sampling_method=sampling_method
     )
 
     sensor_shape = "box"  # or "sphere"

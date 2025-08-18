@@ -95,7 +95,7 @@ class Simulator(ABC):
 
         # auto-record config (examples)
         self.auto_record_every = getattr(
-            config, "auto_record_every", 5000  # epoch is 32 steps ~ 16 epochs.
+            config, "auto_record_every", 5000  # epoch is 32 steps ~ 150 epochs.
         )  # e.g. 2000 steps; 0 disables - TODO: should be w.r.t max_episode_length
         self.auto_record_len = getattr(config, "auto_record_len", 300)
         self.auto_record_stride = getattr(config, "auto_record_stride", 1)
@@ -1029,14 +1029,14 @@ class Simulator(ABC):
         ):
             self._auto_record_active = True
             self._auto_record_frames_left = int(self.auto_record_len)
-            self._toggle_video_record()  # flips _user_is_recording and sets _user_recording_state_change
+            self._toggle_video_record()
 
         # Stop when we’ve written enough frames (only if this session was auto-started)
         if self._user_is_recording and self._auto_record_active:
-            # Decrement after a frame is attempted (call this once per agent step; stride still applies downstream)
+            # Decrement after a frame is attempted
             if self._auto_record_frames_left <= 0:
                 self._auto_record_active = False
-                self._toggle_video_record()  # request stop
+                self._toggle_video_record()
             else:
                 self._auto_record_frames_left -= 1
 

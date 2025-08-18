@@ -1085,7 +1085,7 @@
   <joint name="left_ankle_roll_link_sensor_0_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_0" />
-    <origin xyz="-0.05147892742460647 -0.020779196468829614 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="-0.055637020617723465 -0.01753056049346924 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_1">
     <inertial>
@@ -1112,7 +1112,7 @@
   <joint name="left_ankle_roll_link_sensor_1_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_1" />
-    <origin xyz="-0.030403543373492832 -0.027194422708087983 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.1408048627815518 -0.00906185914414626 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_2">
     <inertial>
@@ -1139,7 +1139,7 @@
   <joint name="left_ankle_roll_link_sensor_2_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_2" />
-    <origin xyz="0.004008545243229822 -0.027817265905054577 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.04541489083289126 0.027900194092415006 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_3">
     <inertial>
@@ -1166,7 +1166,7 @@
   <joint name="left_ankle_roll_link_sensor_3_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_3" />
-    <origin xyz="0.03728386552887426 -0.02872146074463769 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.07325843192029541 -0.03380060481763203 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_4">
     <inertial>
@@ -1193,7 +1193,7 @@
   <joint name="left_ankle_roll_link_sensor_4_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_4" />
-    <origin xyz="0.07093099047943345 -0.02619078630258939 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.004731578841937134 -0.02784947292223757 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_5">
     <inertial>
@@ -1220,7 +1220,7 @@
   <joint name="left_ankle_roll_link_sensor_5_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_5" />
-    <origin xyz="0.10503671665431294 -0.025746526307404365 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="-0.02317839828495936 0.02798237626144621 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_6">
     <inertial>
@@ -1247,7 +1247,7 @@
   <joint name="left_ankle_roll_link_sensor_6_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_6" />
-    <origin xyz="0.13085034489631653 -0.023347636684775352 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.09899076865652882 0.024958457052427854 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_7">
     <inertial>
@@ -1274,7 +1274,7 @@
   <joint name="left_ankle_roll_link_sensor_7_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_7" />
-    <origin xyz="-0.054654310640277905 -0.016594955381014194 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.0997927493567405 -0.011936409671415803 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_8">
     <inertial>
@@ -1301,7 +1301,7 @@
   <joint name="left_ankle_roll_link_sensor_8_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_8" />
-    <origin xyz="-0.031315424305345486 -0.026428060127047254 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="-0.05797726616714158 0.014480404713548677 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_9">
     <inertial>
@@ -1328,7 +1328,7 @@
   <joint name="left_ankle_roll_link_sensor_9_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_9" />
-    <origin xyz="0.0035820337917938823 -0.024652038169573665 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.005852564344176935 0.028306550455700824 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_10">
     <inertial>
@@ -1355,7 +1355,7 @@
   <joint name="left_ankle_roll_link_sensor_10_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_10" />
-    <origin xyz="0.03815935789983044 -0.024326121316740106 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.04781141494230334 -0.021126070210746486 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_11">
     <inertial>
@@ -1382,7 +1382,7 @@
   <joint name="left_ankle_roll_link_sensor_11_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_11" />
-    <origin xyz="0.07185805629856089 -0.02284244607846517 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="-0.023337149098129915 -0.027376816511906567 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_12">
     <inertial>
@@ -1409,7 +1409,7 @@
   <joint name="left_ankle_roll_link_sensor_12_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_12" />
-    <origin xyz="0.10420953773494139 -0.020340784162721975 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.1270152921434886 0.026402693238038264 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_13">
     <inertial>
@@ -1436,7 +1436,7 @@
   <joint name="left_ankle_roll_link_sensor_13_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_13" />
-    <origin xyz="0.13351999559828798 -0.017105046694074273 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.11906076967716217 -0.02979634888470173 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_14">
     <inertial>
@@ -1463,7 +1463,7 @@
   <joint name="left_ankle_roll_link_sensor_14_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_14" />
-    <origin xyz="-0.05795339814852556 -0.01035503404033698 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.07290523644131497 0.025760665389379885 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_15">
     <inertial>
@@ -1490,7 +1490,7 @@
   <joint name="left_ankle_roll_link_sensor_15_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_15" />
-    <origin xyz="-0.026499983852078746 -0.01254755427615068 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.024363292923737324 0.010831752146772088 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_16">
     <inertial>
@@ -1517,7 +1517,7 @@
   <joint name="left_ankle_roll_link_sensor_16_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_16" />
-    <origin xyz="0.003049850150604592 -0.02444328066435545 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.02074342886617637 -0.013454411505767637 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_17">
     <inertial>
@@ -1544,7 +1544,7 @@
   <joint name="left_ankle_roll_link_sensor_17_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_17" />
-    <origin xyz="0.040099611243184986 -0.022163588004883588 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.113345970228873 0.009750836066674937 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_18">
     <inertial>
@@ -1571,7 +1571,7 @@
   <joint name="left_ankle_roll_link_sensor_18_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_18" />
-    <origin xyz="0.07271741908204299 -0.012411505339728467 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.07486605616136241 -0.013717407289456382 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="left_ankle_roll_link_sensor_19">
     <inertial>
@@ -1598,790 +1598,7 @@
   <joint name="left_ankle_roll_link_sensor_19_joint" type="fixed">
     <parent link="left_ankle_roll_link" />
     <child link="left_ankle_roll_link_sensor_19" />
-    <origin xyz="0.10457053378734785 -0.011151025291145214 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_20">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_20_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_20" />
-    <origin xyz="0.13681907467613633 -0.010145958960596384 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_21">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_21_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_21" />
-    <origin xyz="-0.05922419821173717 0.00010739565682747304 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_22">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_22_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_22" />
-    <origin xyz="-0.0262499908001741 -0.005984953963802079 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_23">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_23_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_23" />
-    <origin xyz="0.0035608642155556865 4.9560039428368075e-05 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_24">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_24_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_24" />
-    <origin xyz="0.038261988399023505 4.955734801711267e-05 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_25">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_25_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_25" />
-    <origin xyz="0.07320485979826237 6.860472295831987e-05 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_26">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_26_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_26" />
-    <origin xyz="0.10490943131061078 9.739725267179343e-05 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_27">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_27_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_27" />
-    <origin xyz="0.13776152423912533 6.440720240348226e-05 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_28">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_28_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_28" />
-    <origin xyz="-0.0577644559385961 0.010500682762709296 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_29">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_29_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_29" />
-    <origin xyz="-0.026499990645761893 0.012646676214051654 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_30">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_30_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_30" />
-    <origin xyz="0.0030460716929169556 0.02463821403826059 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_31">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_31_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_31" />
-    <origin xyz="0.04011447790303023 0.022340269001596323 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_32">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_32_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_32" />
-    <origin xyz="0.07272592738178599 0.01251184394373693 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_33">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_33_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_33" />
-    <origin xyz="0.10457482796474882 0.011233994821511363 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_34">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_34_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_34" />
-    <origin xyz="0.13683523690974694 0.010385669331591523 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_35">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_35_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_35" />
-    <origin xyz="-0.05464453070609158 0.016785660576853278 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_36">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_36_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_36" />
-    <origin xyz="-0.03136357704862891 0.02659287456803997 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_37">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_37_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_37" />
-    <origin xyz="0.003577907981471794 0.024846931269105064 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_38">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_38_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_38" />
-    <origin xyz="0.038169697464874586 0.024507736783875342 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_39">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_39_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_39" />
-    <origin xyz="0.07178329263407268 0.02313524455497987 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_40">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_40_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_40" />
-    <origin xyz="0.10443672214540789 0.020417329765378214 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_41">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_41_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_41" />
-    <origin xyz="0.13345379779326969 0.01700604381602516 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_42">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_42_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_42" />
-    <origin xyz="-0.051604356949161476 0.02086911053130067 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_43">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_43_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_43" />
-    <origin xyz="-0.03074988581711633 0.027313085419073634 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_44">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_44_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_44" />
-    <origin xyz="0.004025918527107048 0.02801715079198863 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_45">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_45_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_45" />
-    <origin xyz="0.0372030292529531 0.028874703966386847 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_46">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_46_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_46" />
-    <origin xyz="0.07091681886267169 0.026382393274782357 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_47">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_47_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_47" />
-    <origin xyz="0.10496144732623251 0.025855155310038964 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="left_ankle_roll_link_sensor_48">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="left_ankle_roll_link_sensor_48_joint" type="fixed">
-    <parent link="left_ankle_roll_link" />
-    <child link="left_ankle_roll_link_sensor_48" />
-    <origin xyz="0.1312895268201828 0.023115674033761024 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.09925884753465652 -0.03344310075044632 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_0">
     <inertial>
@@ -2408,7 +1625,7 @@
   <joint name="right_ankle_roll_link_sensor_0_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_0" />
-    <origin xyz="-0.05152185988034221 -0.020928998573039936 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.0592622877612515 0.03225596051598955 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_1">
     <inertial>
@@ -2435,7 +1652,7 @@
   <joint name="right_ankle_roll_link_sensor_1_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_1" />
-    <origin xyz="-0.03041028205981262 -0.02738614059429512 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="-0.06105424633451832 -0.007378061747620619 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_2">
     <inertial>
@@ -2462,7 +1679,7 @@
   <joint name="right_ankle_roll_link_sensor_2_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_2" />
-    <origin xyz="0.004059180358040036 -0.028005031016869932 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.14080649614334106 -0.009282348677515984 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_3">
     <inertial>
@@ -2489,7 +1706,7 @@
   <joint name="right_ankle_roll_link_sensor_3_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_3" />
-    <origin xyz="0.03744334661330561 -0.02886953889508301 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.02097146717677151 -0.029712819657697946 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_4">
     <inertial>
@@ -2516,7 +1733,7 @@
   <joint name="right_ankle_roll_link_sensor_4_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_4" />
-    <origin xyz="0.07091681886267169 -0.026382393274782357 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="-0.009652182537602937 0.02755135291814013 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_5">
     <inertial>
@@ -2543,7 +1760,7 @@
   <joint name="right_ankle_roll_link_sensor_5_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_5" />
-    <origin xyz="0.10471389989576807 -0.025953373021419368 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.08573751036989502 -0.02626644118289932 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_6">
     <inertial>
@@ -2570,7 +1787,7 @@
   <joint name="right_ankle_roll_link_sensor_6_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_6" />
-    <origin xyz="0.13094720244407654 -0.023374522104859352 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.11035671830177307 0.03188828378915787 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_7">
     <inertial>
@@ -2597,7 +1814,7 @@
   <joint name="right_ankle_roll_link_sensor_7_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_7" />
-    <origin xyz="-0.05468999799628186 -0.01672481232289301 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="-0.023341336837108352 -0.027571243090429517 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_8">
     <inertial>
@@ -2624,7 +1841,7 @@
   <joint name="right_ankle_roll_link_sensor_8_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_8" />
-    <origin xyz="-0.0313277469941269 -0.026617733549849767 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.02438298362611916 0.010755967509670474 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_9">
     <inertial>
@@ -2651,7 +1868,7 @@
   <joint name="right_ankle_roll_link_sensor_9_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_9" />
-    <origin xyz="0.00357793349989041 -0.024846397227688177 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="-0.04199344780509925 0.026611821000404094 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_10">
     <inertial>
@@ -2678,7 +1895,7 @@
   <joint name="right_ankle_roll_link_sensor_10_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_10" />
-    <origin xyz="0.03814782263652075 -0.024497435592205883 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.08719900466373262 0.010253541258251989 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_11">
     <inertial>
@@ -2705,7 +1922,7 @@
   <joint name="right_ankle_roll_link_sensor_11_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_11" />
-    <origin xyz="0.07187671672392552 -0.022980581989981968 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.11918276679729722 -0.029825987792755918 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_12">
     <inertial>
@@ -2732,7 +1949,7 @@
   <joint name="right_ankle_roll_link_sensor_12_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_12" />
-    <origin xyz="0.1043953294899373 -0.020356481670025635 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.047853862920995485 -0.021288241919016404 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_13">
     <inertial>
@@ -2759,7 +1976,7 @@
   <joint name="right_ankle_roll_link_sensor_13_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_13" />
-    <origin xyz="0.1333885536811086 -0.01707114036162157 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.13669402246317006 0.01762913770410026 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_14">
     <inertial>
@@ -2786,7 +2003,7 @@
   <joint name="right_ankle_roll_link_sensor_14_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_14" />
-    <origin xyz="-0.05794387204414322 -0.010486026496501518 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.08706002214229262 0.0342641778290631 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_15">
     <inertial>
@@ -2813,7 +2030,7 @@
   <joint name="right_ankle_roll_link_sensor_15_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_15" />
-    <origin xyz="-0.026499991257030585 -0.012646673083963802 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="-0.046314858565519076 -0.025671661221727718 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_16">
     <inertial>
@@ -2840,7 +2057,7 @@
   <joint name="right_ankle_roll_link_sensor_16_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_16" />
-    <origin xyz="0.0030461061646167033 -0.024635589597541026 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.11331249280105574 0.009674593082315731 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_17">
     <inertial>
@@ -2867,7 +2084,7 @@
   <joint name="right_ankle_roll_link_sensor_17_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_17" />
-    <origin xyz="0.0396506008242065 -0.02266048856743494 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="-0.026499986090228213 0.010744321969178997 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_18">
     <inertial>
@@ -2894,7 +2111,7 @@
   <joint name="right_ankle_roll_link_sensor_18_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_18" />
-    <origin xyz="0.0727271252849399 -0.0124747704520709 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.032736116758765976 0.030724363625874825 -0.035409145057201385" rpy="0 0 0" />
   </joint>
   <link name="right_ankle_roll_link_sensor_19">
     <inertial>
@@ -2921,789 +2138,6 @@
   <joint name="right_ankle_roll_link_sensor_19_joint" type="fixed">
     <parent link="right_ankle_roll_link" />
     <child link="right_ankle_roll_link_sensor_19" />
-    <origin xyz="0.10457482796474882 -0.011233994821511363 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_20">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_20_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_20" />
-    <origin xyz="0.13684036963432133 -0.010383461167274588 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_21">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_21_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_21" />
-    <origin xyz="-0.05922419821173717 -0.00010739565682747304 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_22">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_22_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_22" />
-    <origin xyz="-0.0262499908001741 0.005984953963802079 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_23">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_23_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_23" />
-    <origin xyz="0.003560895586819504 -4.9561292295427495e-05 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_24">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_24_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_24" />
-    <origin xyz="0.03826199186460405 -4.9557884535766233e-05 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_25">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_25_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_25" />
-    <origin xyz="0.07317574212146999 -4.80390740748432e-05 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_26">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_26_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_26" />
-    <origin xyz="0.10490959703756027 2.362343020577114e-06 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_27">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_27_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_27" />
-    <origin xyz="0.13776152423912533 -6.440720240348226e-05 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_28">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_28_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_28" />
-    <origin xyz="-0.05796601996607482 0.010333814786470795 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_29">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_29_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_29" />
-    <origin xyz="-0.026499983852078746 0.01254755427615068 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_30">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_30_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_30" />
-    <origin xyz="0.003049883399648701 0.024440679728048503 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_31">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_31_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_31" />
-    <origin xyz="0.03963900922375675 0.022478250054329258 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_32">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_32_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_32" />
-    <origin xyz="0.07271739213951815 0.012406782227277648 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_33">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_33_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_33" />
-    <origin xyz="0.10457053378734785 0.011151025291145214 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_34">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_34_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_34" />
-    <origin xyz="0.13666261524746184 0.01050881576071932 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_35">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_35_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_35" />
-    <origin xyz="-0.05431328938811975 0.017053972029563106 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_36">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_36_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_36" />
-    <origin xyz="-0.03134880546545046 0.02640434144820047 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_37">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_37_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_37" />
-    <origin xyz="0.003582059224127682 0.02465152190223807 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_38">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_38_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_38" />
-    <origin xyz="0.038135652541645526 0.024318699218689933 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_39">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_39_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_39" />
-    <origin xyz="0.07179707432187356 0.02294339523416318 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_40">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_40_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_40" />
-    <origin xyz="0.10432623214342915 0.02050059748946359 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_41">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_41_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_41" />
-    <origin xyz="0.13327977061271667 0.0171144288033247 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_42">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_42_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_42" />
-    <origin xyz="-0.05147572970796883 0.020778575504341767 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_43">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_43_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_43" />
-    <origin xyz="-0.030746168555210698 0.027120595622169324 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_44">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_44_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_44" />
-    <origin xyz="0.0040085836138400565 0.027825747649271593 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_45">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_45_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_45" />
-    <origin xyz="0.03720144045197219 0.028679968604689708 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_46">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_46_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_46" />
-    <origin xyz="0.07093099047943345 0.02619078630258939 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_47">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_47_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_47" />
-    <origin xyz="0.1047684499397711 0.025946323800390976 -0.035409145057201385" rpy="0 0 0" />
-  </joint>
-  <link name="right_ankle_roll_link_sensor_48">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="0.001" />
-      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-      <material name="blue">
-        <color rgba="0 0 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.01 0.01 0.004" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="right_ankle_roll_link_sensor_48_joint" type="fixed">
-    <parent link="right_ankle_roll_link" />
-    <child link="right_ankle_roll_link_sensor_48" />
-    <origin xyz="0.1312868744134903 0.023020034655928612 -0.035409145057201385" rpy="0 0 0" />
+    <origin xyz="0.0625661186581081 0.01184758864172776 -0.035409145057201385" rpy="0 0 0" />
   </joint>
 </robot>

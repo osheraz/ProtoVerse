@@ -292,13 +292,11 @@ class RobotConfig(ConfigBuilder):
             self.num_dof = self.dof_offsets[-1]
 
         if self.foot_contact_links is None:
-            self.foot_contact_links = (
-                [
-                    f"{side}_ankle_roll_link_sensor_{i}"
-                    for side in ["left", "right"]
-                    for i in range(49)  # TODO: make sure..
-                ],
-            )
+            self.foot_contact_links = [
+                f"{side}_ankle_roll_link_sensor_{i}"
+                for side in ["left", "right"]
+                for i in range(20)  # TODO: check the range
+            ]
 
     def _compute_dof_offsets(self, joint_axis: List[str]) -> List[int]:
         """
