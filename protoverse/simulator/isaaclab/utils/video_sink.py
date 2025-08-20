@@ -24,7 +24,7 @@ def to_uint8_rgb(x) -> np.ndarray:
 class VideoSink:
     """Simple streaming MP4 writer (libx264, yuv420p)."""
 
-    def __init__(self, mp4_path: str, fps: int = 30):
+    def __init__(self, mp4_path: str, fps: int = 10):
         self._mp4_path = mp4_path
         self._fps = fps
         self._writer = None  # lazy-open on first frame

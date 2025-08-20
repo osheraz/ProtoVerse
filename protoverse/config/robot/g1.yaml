@@ -27,9 +27,12 @@ robot:
   dof_joint_frictions: [0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03]
 
   key_bodies: [ "left_wrist_yaw_link",  "right_wrist_yaw_link", "left_ankle_pitch_link", "right_ankle_pitch_link" ]
+  upper_dof_names: ['left_shoulder_pitch_joint', 'left_shoulder_roll_joint', 'left_shoulder_yaw_joint', 'left_elbow_joint','right_shoulder_pitch_joint', 'right_shoulder_roll_joint', 'right_shoulder_yaw_joint', 'right_elbow_joint']
   non_termination_contact_bodies: [ "left_wrist_yaw_link", "left_wrist_pitch_link", "left_wrist_roll_link", "right_wrist_yaw_link", "right_wrist_pitch_link", "right_wrist_roll_link", "left_ankle_pitch_link", "left_ankle_roll_link", "right_ankle_pitch_link", "right_ankle_roll_link", ]
-  right_foot_name: "right_ankle_pitch_link"
-  left_foot_name: "left_ankle_pitch_link"
+  
+  right_foot_name: "right_ankle_roll_link"
+  left_foot_name: "left_ankle_roll_link"
+  
   head_body_name: "head"
   penalize_contacts_on: ['pelvis', 'head', 'left_hip_pitch_link', 'left_hip_roll_link', 'left_hip_yaw_link', 'right_hip_pitch_link', 'right_hip_roll_link', 'right_hip_yaw_link', 'left_shoulder_pitch_link', 'left_shoulder_roll_link', 'left_shoulder_yaw_link', 'right_shoulder_pitch_link', 'right_shoulder_roll_link','right_shoulder_yaw_link'] 
 
@@ -122,7 +125,7 @@ robot:
     asset_file_name: "urdf/g1.urdf"
     usd_asset_file_name: "usd/g1/g1.usd"
     robot_type: g1
-    self_collisions: True # False
+    self_collisions: False
     default_dof_drive_mode: 3
 
   sim:

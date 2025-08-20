@@ -88,6 +88,99 @@ def compute_heading_reward(
     return dir_reward
 
 
+@torch.jit.script
+def reward_slippage(
+    rigid_body_vel: Tensor, feet_indices: Tensor, contact_forces: Tensor
+) -> Tensor:
+    foot_vel = rigid_body_vel[:, feet_indices]
+    return torch.sum(
+        torch.norm(foot_vel, dim=-1)
+        * (torch.norm(contact_forces[:, feet_indices, :], dim=-1) > 1.0),
+        dim=1,
+    )
+
+
+@torch.jit.script
+def reward_feet_ori(
+    rigid_body_rot: Tensor, feet_indices: Tensor, gravity_vec: Tensor
+) -> Tensor:
+    # Penalize non-flat feet orientation wrt gravity
+    # TODO: what about uneven terrain?
+    left_quat = rigid_body_rot[:, feet_indices[0]]
+    left_gravity = rotations.quat_rotate_inverse(left_quat, gravity_vec)
+
+    right_quat = rigid_body_rot[:, feet_indices[1]]
+    right_gravity = rotations.quat_rotate_inverse(right_quat, gravity_vec)
+
+    left_pen = torch.sqrt(torch.sum(torch.square(left_gravity[:, :2]), dim=1))
+    right_pen = torch.sqrt(torch.sum(torch.square(right_gravity[:, :2]), dim=1))
+
+    return left_pen + right_pen
+
+
+@torch.jit.script
+def reward_dof_pos_limits(dof_pos: Tensor, dof_pos_limits: Tensor) -> Tensor:
+    # Penalize dof positions too close to the limit
+
+    lower_violation = -(dof_pos - dof_pos_limits[:, 0]).clamp(max=0.0)
+    upper_violation = (dof_pos - dof_pos_limits[:, 1]).clamp(min=0.0)
+    return torch.sum(lower_violation + upper_violation, dim=1)
+
+
+@torch.jit.script
+def reward_base_height(
+    root_states: Tensor, measured_heights: Tensor, base_height_target: float
+) -> Tensor:
+    # Penalize base height away from target
+
+    base_height = torch.mean(root_states[:, 2].unsqueeze(1) - measured_heights, dim=1)
+    return torch.square(base_height - base_height_target)
+
+
+@torch.jit.script
+def reward_penalty_feet_height(
+    rigid_body_pos: Tensor, feet_indices: Tensor, feet_height_target: float
+) -> Tensor:
+    feet_height = rigid_body_pos[:, feet_indices, 2]
+    dif = torch.abs(feet_height - feet_height_target)
+    min_dif = torch.min(dif, dim=1).values
+    return torch.clamp(min_dif - 0.02, min=0.0)
+
+
+@torch.jit.script
+def reward_upperbody_joint_angle_freeze(
+    dof_pos: Tensor, default_dof_pos: Tensor, upper_dof_indices: Tensor
+) -> Tensor:
+    deviation = torch.abs(
+        dof_pos[:, upper_dof_indices] - default_dof_pos[:, upper_dof_indices]
+    )
+    return torch.sum(deviation, dim=1)
+
+
+@torch.jit.script
+def reward_feet_heading_alignment(
+    rigid_body_rot: Tensor, feet_indices: Tensor, root_rot: Tensor
+) -> Tensor:
+    B = rigid_body_rot.shape[0]
+    fwd = torch.zeros((B, 3), dtype=rigid_body_rot.dtype, device=rigid_body_rot.device)
+    fwd[:, 0] = 1.0  # TODO: check local +X as foot forward
+
+    lq = rigid_body_rot[:, feet_indices[0]]
+    rq = rigid_body_rot[:, feet_indices[1]]
+
+    lf = rotations.quat_apply(lq, fwd, True)
+    rf = rotations.quat_apply(rq, fwd, True)
+    bf = rotations.quat_apply(root_rot, fwd, True)
+
+    hl = torch.atan2(lf[:, 1], lf[:, 0])
+    hr = torch.atan2(rf[:, 1], rf[:, 0])
+    hb = torch.atan2(bf[:, 1], bf[:, 0])
+
+    dl = torch.abs(torch_utils.wrap_to_pi(hl - hb))
+    dr = torch.abs(torch_utils.wrap_to_pi(hr - hb))
+    return dl + dr
+
+
 # ----------------
 # ----------------
 
@@ -104,15 +197,6 @@ def reward_termination(reset_buf: Tensor, time_out_buf: Tensor) -> Tensor:
     # Terminal reward / penalty
 
     return reset_buf * (~time_out_buf)
-
-
-@torch.jit.script
-def reward_dof_pos_limits(dof_pos: Tensor, dof_pos_limits: Tensor) -> Tensor:
-    # Penalize dof positions too close to the limit
-
-    lower_violation = -(dof_pos - dof_pos_limits[:, 0]).clamp(max=0.0)
-    upper_violation = (dof_pos - dof_pos_limits[:, 1]).clamp(min=0.0)
-    return torch.sum(lower_violation + upper_violation, dim=1)
 
 
 @torch.jit.script
@@ -271,13 +355,3 @@ def reward_orientation(projected_gravity: Tensor) -> Tensor:
     # Penalize non flat base orientation
 
     return torch.sum(torch.square(projected_gravity[:, :2]), dim=1)
-
-
-@torch.jit.script
-def reward_base_height(
-    root_states: Tensor, measured_heights: Tensor, base_height_target: float
-) -> Tensor:
-    # Penalize base height away from target
-
-    base_height = torch.mean(root_states[:, 2].unsqueeze(1) - measured_heights, dim=1)
-    return torch.square(base_height - base_height_target)

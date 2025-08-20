@@ -58,10 +58,54 @@ init_joint_pos = {
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(dir_path, "../data")
-urdf_path = {
-    "robot": Path(f"{data_dir}/assets/urdf/g1_29dof_with_sensors.urdf"),
-    # "robot": Path(f"{data_dir}/assets/urdf/g1.urdf"),
+
+# ---- choose one of: "g1_29", "g1_29_with_sensors", "g1_23"
+VARIANT = "rel3_4"
+
+ROBOTS = {
+    "g1_29": {
+        "urdf_rel": "assets/urdf/g1.urdf",
+        "hands": ("left_rubber_hand", "right_rubber_hand"),
+        "feet": ("left_ankle_pitch_link", "right_ankle_pitch_link"),
+    },
+    "g1_29_with_sensors": {
+        "urdf_rel": "assets/urdf/g1_29dof_with_sensors.urdf",
+        "hands": ("left_rubber_hand", "right_rubber_hand"),
+        "feet": ("left_ankle_roll_link", "right_ankle_roll_link"),
+    },
+    "g1_23": {
+        "urdf_rel": "assets/urdf/g1_29dof_anneal_23dof.urdf",
+        "hands": ("left_elbow_link", "right_elbow_link"),
+        "feet": ("left_ankle_roll_link", "right_ankle_roll_link"),
+    },
+    "g1_23_with_sensors": {
+        "urdf_rel": "assets/urdf/g1_29dof_anneal_23dof_29dof_with_sensors.urdf",
+        "hands": ("left_elbow_link", "right_elbow_link"),  #  23-DoF has no hand links
+        "feet": ("left_ankle_roll_link", "right_ankle_roll_link"),
+    },
+    "h1": {
+        "urdf_rel": "assets/urdf/h1.urdf",
+        "hands": ("left_elbow_link", "right_elbow_link"),
+        "feet": ("left_foot_link", "right_foot_link"),
+    },
+    "h1_29dof_with_sensors": {
+        "urdf_rel": "assets/urdf/h1_29dof_with_sensors.urdf",
+        "hands": ("left_elbow_link", "right_elbow_link"),
+        "feet": ("left_foot_link", "right_foot_link"),
+    },
+    "rel3_4": {
+        "urdf_rel": "assets/urdf/rel3_4.urdf",
+        "hands": ("left_hand_flange_link", "right_hand_flange_link"),
+        "feet": ("left_foot_ee_link", "right_foot_ee_link"),
+    },
 }
+
+cfg = ROBOTS[VARIANT]
+LEFT_HAND, RIGHT_HAND = cfg["hands"]
+LEFT_FOOT, RIGHT_FOOT = cfg["feet"]
+
+urdf_path = {"robot": Path(os.path.join(data_dir, cfg["urdf_rel"]))}
+
 
 from yourdfpy import URDF, Robot
 
@@ -179,12 +223,8 @@ def main(
     if not split_robots:
         robot = pk.Robot.from_urdf(urdf)
     else:
-        target_link_names = [
-            "right_rubber_hand",
-            "left_rubber_hand",
-            "right_ankle_roll_link",
-            "left_ankle_roll_link",
-        ]
+        target_link_names = [RIGHT_HAND, LEFT_HAND, RIGHT_FOOT, LEFT_FOOT]
+
         sub_robots = {
             link_name: pk.Robot.from_urdf(extract_sub_urdf(urdf, "pelvis", link_name))
             for link_name in target_link_names
@@ -198,11 +238,7 @@ def main(
         "/grid",
         width=2,
         height=2,
-        position=(
-            0.0,
-            0.0,
-            trimesh_scene.bounds[0, 2] if trimesh_scene is not None else 0.0,
-        ),
+        position=(0.0, 0.0, 0.0),
     )
 
     # Reset button.
@@ -215,40 +251,37 @@ def main(
 
     # IK targets (4 links).
     ik_targets = {
-        "right_rubber_hand": server.scene.add_transform_controls(
+        RIGHT_HAND: server.scene.add_transform_controls(
             "/ik_target_right_hand",
             scale=0.2,
             position=(0.3, -0.3, 0.1),
             wxyz=(1, 0, 0, 0),
         ),
-        "left_rubber_hand": server.scene.add_transform_controls(
+        LEFT_HAND: server.scene.add_transform_controls(
             "/ik_target_left_hand",
             scale=0.2,
             position=(0.3, 0.3, 0.1),
             wxyz=(1, 0, 0, 0),
         ),
-        "right_ankle_roll_link": server.scene.add_transform_controls(
+        RIGHT_FOOT: server.scene.add_transform_controls(
             "/ik_target_right_foot",
             scale=0.2,
             position=(0.0, -0.2, -0.8),
             wxyz=(1, 0, 0, 0),
         ),
-        "left_ankle_roll_link": server.scene.add_transform_controls(
+        LEFT_FOOT: server.scene.add_transform_controls(
             "/ik_target_left_foot",
             scale=0.2,
             position=(0.0, 0.2, -0.8),
             wxyz=(1, 0, 0, 0),
         ),
     }
-    target_link_names = [
-        "right_rubber_hand",
-        "left_rubber_hand",
-        "right_ankle_roll_link",
-        "left_ankle_roll_link",
-    ]
 
     timing_handle = server.gui.add_number("Elapsed (ms)", 0.001, disabled=True)
-    # viser_urdf.update_cfg(init_joint_pos)
+    viser_urdf.update_cfg(
+        {j: init_joint_pos.get(j, 0.0) for j in robot.joints.actuated_names}
+    )
+
     # Loop.
     while True:
         start_time = time.time()
@@ -270,7 +303,9 @@ def main(
             )
 
             # Solve IK for hands (together)
-            hand_targets = ["left_rubber_hand", "right_rubber_hand"]
+            # hand_targets = ["left_rubber_hand", "right_rubber_hand"]
+            hand_targets = [LEFT_HAND, RIGHT_HAND]
+            foot_targets = [LEFT_FOOT, RIGHT_FOOT]
             hand_solution = solve_ik_with_multiple_targets(
                 robot=robot,
                 target_link_names=hand_targets,
@@ -284,7 +319,7 @@ def main(
                 cfg_array[idx] = value
 
             # Solve IK for each foot (separately)
-            foot_targets = ["left_ankle_roll_link", "right_ankle_roll_link"]
+            # foot_targets = ["left_ankle_roll_link", "right_ankle_roll_link"]
             for link_name in foot_targets:
                 sub_robot = sub_robots[link_name]
                 target = ik_targets[link_name]

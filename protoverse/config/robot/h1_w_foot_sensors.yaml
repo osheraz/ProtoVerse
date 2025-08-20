@@ -1,0 +1,18 @@
+# @package _global_
+
+defaults:
+  - h1
+  
+robot:
+
+  with_foot_sensors: True
+  
+  asset:
+
+    asset_file_name: "urdf/h1_29dof_with_sensors.urdf"
+    usd_asset_file_name: "usd/h1_29dof_with_sensors.usd"
+
+    # TODO: use relative paths..
+    left_foot_file_path: "protoverse/data/assets/mesh/H1/left_ankle_link.stl"
+    right_foot_file_path: "protoverse/data/assets/mesh/H1/right_ankle_link.stl"
+    # asset_file_name="urdf/g1.urdf",

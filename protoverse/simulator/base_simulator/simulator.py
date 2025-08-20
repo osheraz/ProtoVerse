@@ -155,6 +155,23 @@ class Simulator(ABC):
         body_ids = torch_utils.to_torch(body_ids, device=self.device, dtype=torch.long)
         return body_ids
 
+    def build_dof_ids_tensor(self, dof_names: List[str]) -> torch.Tensor:
+        """
+        Build a tensor of DOF indices from joint (DOF) names, using common ordering.
+
+        Args:
+            dof_names (List[str]): List of joint/DOF names.
+
+        Returns:
+            torch.Tensor: Long tensor of indices in self.robot_config.dof_names.
+        """
+        dof_ids: List[int] = []
+        for name in dof_names:
+            idx = self.robot_config.dof_names.index(name)
+            assert idx != -1, f"DOF {name} not found in {self.robot_config.dof_names}"
+            dof_ids.append(idx)
+        return torch_utils.to_torch(dof_ids, device=self.device, dtype=torch.long)
+
     def on_environment_ready(self) -> None:
         """
         Configure internal tensors after the simulation environment is initialized.
@@ -183,16 +200,18 @@ class Simulator(ABC):
             device=self.device,
         )
 
+        # Filtering contact sensors
         contact_sensor_convert_to_common = torch.tensor(
             [
                 self.body_ordering.contact_sensor_body_names.index(body_name)
-                for body_name in self.robot_config.body_names  # deafult is the body
+                for body_name in self.robot_config.body_names  # TODO: assuming all bodies have contact sensors
                 if body_name in self.body_ordering.contact_sensor_body_names
             ],
             dtype=torch.long,
             device=self.device,
         )
 
+        print(self.body_ordering.foot_contact_sensor_body_names)
         foot_contact_sensor_convert_to_common = torch.tensor(
             [
                 self.body_ordering.foot_contact_sensor_body_names.index(body_name)

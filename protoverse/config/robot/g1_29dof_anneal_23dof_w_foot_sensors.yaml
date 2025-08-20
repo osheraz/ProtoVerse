@@ -1,0 +1,18 @@
+# @package _global_
+
+defaults:
+  - g1_29dof_anneal_23dof
+  
+robot:
+
+  with_foot_sensors: True
+  
+  asset:
+
+    asset_file_name: "urdf/g1_29dof_anneal_23dof_29dof_with_sensors.urdf"
+    usd_asset_file_name: "usd/g1_29dof_anneal_23dof_29dof_with_sensors.usd"
+
+    # TODO: use relative paths..
+    left_foot_file_path: "protoverse/data/assets/mesh/G1_23/left_ankle_roll_link.stl"
+    right_foot_file_path: "protoverse/data/assets/mesh/G1_23/right_ankle_roll_link.stl"
+    # asset_file_name="urdf/g1.urdf",

@@ -14,6 +14,14 @@ from typing import Tuple
 
 
 @torch.jit.script
+def wrap_to_pi(angles: Tensor) -> Tensor:
+    two_pi = 2.0 * torch.pi
+    x = torch.remainder(angles, two_pi)  # [0, 2π)
+    x = torch.where(x > torch.pi, x - two_pi, x)  # (-π, π]
+    return x
+
+
+@torch.jit.script
 def quat_to_angle_axis(q: Tensor, w_last: bool = False) -> Tuple[Tensor, Tensor]:
     # computes axis-angle representation from quaternion q
     # q must be normalized
@@ -27,7 +35,7 @@ def quat_to_angle_axis(q: Tensor, w_last: bool = False) -> Tuple[Tensor, Tensor]
     angle = 2 * torch.acos(q[..., qw])
     angle = normalize_angle(angle)
     sin_theta_expand = sin_theta.unsqueeze(-1)
-    axis = q[..., qx:qz+1] / sin_theta_expand
+    axis = q[..., qx : qz + 1] / sin_theta_expand
 
     mask = torch.abs(sin_theta) > min_theta
     default_axis = torch.zeros_like(axis)
@@ -62,11 +70,11 @@ def quat_to_tan_norm(q: Tensor, w_last: bool) -> Tensor:
     ref_tan = torch.zeros_like(q[..., 0:3])
     ref_tan[..., 0] = 1
     tan = quat_rotate(q, ref_tan, w_last)
-    
+
     ref_norm = torch.zeros_like(q[..., 0:3])
     ref_norm[..., -1] = 1
     norm = quat_rotate(q, ref_norm, w_last)
-    
+
     norm_tan = torch.cat([tan, norm], dim=len(tan.shape) - 1)
     return norm_tan
 
@@ -161,13 +169,12 @@ def slerp(q0: Tensor, q1: Tensor, t: Tensor) -> Tensor:
     return new_q
 
 
-def get_axis_params(value, axis_idx, x_value=0., dtype=float, n_dims=3):
-    """construct arguments to `Vec` according to axis index.
-    """
+def get_axis_params(value, axis_idx, x_value=0.0, dtype=float, n_dims=3):
+    """construct arguments to `Vec` according to axis index."""
     zs = np.zeros((n_dims,))
     assert axis_idx < n_dims, "the axis dim should be within the vector dimensions"
-    zs[axis_idx] = 1.
-    params = np.where(zs == 1., value, zs)
+    zs[axis_idx] = 1.0
+    params = np.where(zs == 1.0, value, zs)
     params[0] = x_value
     return list(params.astype(dtype))
 
@@ -180,7 +187,9 @@ def grad_norm(params):
     return torch.sqrt(grad_norm)
 
 
-def to_torch(x, dtype=torch.float, device='cuda:0', requires_grad=False) -> torch.Tensor:
+def to_torch(
+    x, dtype=torch.float, device="cuda:0", requires_grad=False
+) -> torch.Tensor:
     return torch.tensor(x, dtype=dtype, device=device, requires_grad=requires_grad)
 
 
@@ -188,4 +197,3 @@ def to_torch(x, dtype=torch.float, device='cuda:0', requires_grad=False) -> torc
 def heading_to_vec(h_theta):
     v = torch.stack([torch.cos(h_theta), torch.sin(h_theta)], dim=-1)
     return v
-

@@ -79,16 +79,16 @@ class BaseEnv:
             self.config.robot.contact_bodies
         )
 
-        # self.foot_contact_body_ids = self.simulator.build_body_ids_tensor(
-        #     self.config.robot.foot_contact_links
-        # )
-
         self.penelized_body_ids = self.simulator.build_body_ids_tensor(
             self.config.robot.penalize_contacts_on
         )
 
         self.feet_indices = self.simulator.build_body_ids_tensor(
             [self.config.robot.left_foot_name, self.config.robot.right_foot_name]
+        )
+
+        self.upper_dof_indices = self.simulator.build_dof_ids_tensor(
+            self.config.robot.upper_dof_names
         )
 
         self.build_termination_heights()
@@ -137,7 +137,7 @@ class BaseEnv:
         self.extras = {}
         self.log_dict = {}
 
-        self.force_respawn_on_flat = False
+        self.force_respawn_on_flat = True  # TODO: make configurable
 
         # After objects have been populated, finalize structure
         if self.scene_lib is not None:
@@ -155,7 +155,6 @@ class BaseEnv:
             self.num_envs, 3, dtype=torch.float, device=self.device
         )
 
-        # TODO: Check for duplicate
         self.actions = torch.zeros(
             self.num_envs,
             self.get_action_size(),

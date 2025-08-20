@@ -378,10 +378,26 @@ if __name__ == "__main__":
     data_dir = os.path.join(dir_path, "../data")
 
     # Paths
-    left_stl_path = Path(f"{data_dir}/assets/mesh/G1/left_ankle_roll_link.stl")
-    right_stl_path = Path(f"{data_dir}/assets/mesh/G1/right_ankle_roll_link.stl")
 
-    urdf_path = Path(f"{data_dir}/assets/urdf/g1.urdf")
+    robot = "g1"
+    stl_robot = "G1"
+    left_foot_name = "left_ankle_roll_link"  # g1
+    right_foot_name = "right_ankle_roll_link"  # g1
+
+    # robot = "g1_29dof_anneal_23dof"
+    # stl_robot = "G1_23"
+    # left_foot_name = "left_ankle_roll_link"  # g1
+    # right_foot_name = "right_ankle_roll_link"  # g1
+
+    # robot = "h1"
+    # stl_robot = "H1"
+    # left_foot_name = "left_ankle_link"
+    # right_foot_name = "right_ankle_link"
+
+    left_stl_path = Path(f"{data_dir}/assets/mesh/{stl_robot}/{left_foot_name}.stl")
+    right_stl_path = Path(f"{data_dir}/assets/mesh/{stl_robot}/{right_foot_name}.stl")
+
+    urdf_path = Path(f"{data_dir}/assets/urdf/{robot}.urdf")
 
     sampling_method = "structured"  # "random", "uniform", or "structured"
 
@@ -396,10 +412,10 @@ if __name__ == "__main__":
 
     add_sensors_to_urdf(
         urdf_path=urdf_path,
-        output_path=Path(f"{data_dir}/assets/urdf/g1_29dof_with_sensors.urdf"),
+        output_path=Path(f"{data_dir}/assets/urdf/{robot}_29dof_with_sensors.urdf"),
         parent_links_and_points={
-            "left_ankle_roll_link": left_samples,
-            "right_ankle_roll_link": right_samples,
+            f"{left_foot_name}": left_samples,
+            f"{right_foot_name}": right_samples,
         },
         sensor_radius=0.005,
         sensor_shape=sensor_shape,

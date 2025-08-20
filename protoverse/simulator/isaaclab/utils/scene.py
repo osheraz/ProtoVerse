@@ -18,7 +18,11 @@ from protoverse.simulator.isaaclab.utils.robots import (
     H1_CFG,
     G1_CFG,
     G1_W_FOOT_SENSOR_CFG,
+    H1_W_FOOT_SENSOR_CFG,
+    G1_23_CFG,
+    G1_23_CFG_W_FOOT_SENSOR_CFG,
 )
+import re
 
 
 @configclass
@@ -81,7 +85,7 @@ class SceneCfg(InteractiveSceneCfg):
                 prim_path="/World/envs/env_.*/Robot/bodies/.*",
                 filter_prim_paths_expr=[f"/World/objects/object_{i}" for i in range(0)],
             )
-        elif robot_type in ["h1", "g1"]:
+        elif robot_type in ["h1", "g1", "g1_29dof_anneal_23dof"]:
             init_state = ArticulationCfg.InitialStateCfg(
                 pos=tuple(robot_config.init_state.pos),
                 joint_pos={
@@ -106,14 +110,28 @@ class SceneCfg(InteractiveSceneCfg):
             }
 
             if robot_type == "h1":
-                self.robot: ArticulationCfg = H1_CFG.replace(
+
+                H1_ROBOT_CONFIG = (
+                    H1_W_FOOT_SENSOR_CFG if robot_config.with_foot_sensors else H1_CFG
+                )
+
+                prim_foot_path = (
+                    r"/World/envs/env_.*/Robot/(left|right)_ankle_link_sensor_.*"
+                )
+
+                self.robot: ArticulationCfg = H1_ROBOT_CONFIG.replace(
                     prim_path="/World/envs/env_.*/Robot",
                     init_state=init_state,
                     actuators=actuators,
                 )
+
             elif robot_type == "g1":
                 G1_ROBOT_CONFIG = (
                     G1_W_FOOT_SENSOR_CFG if robot_config.with_foot_sensors else G1_CFG
+                )
+
+                prim_foot_path = (
+                    r"/World/envs/env_.*/Robot/(left|right)_ankle_roll_link_sensor_.*"
                 )
 
                 self.robot: ArticulationCfg = G1_ROBOT_CONFIG.replace(
@@ -122,13 +140,32 @@ class SceneCfg(InteractiveSceneCfg):
                     actuators=actuators,
                 )
 
-            # Body \ Foot
+            elif robot_type == "g1_29dof_anneal_23dof":
+                G1_ROBOT_CONFIG = (
+                    G1_23_CFG_W_FOOT_SENSOR_CFG
+                    if robot_config.with_foot_sensors
+                    else G1_23_CFG
+                )
 
-            #  r"/World/envs/env_.*/Robot/(left|right)_ankle_roll_link_sensor_.*"
+                prim_foot_path = (
+                    r"/World/envs/env_.*/Robot/(left|right)_ankle_roll_link_sensor_.*"
+                )
+
+                self.robot: ArticulationCfg = G1_ROBOT_CONFIG.replace(
+                    prim_path="/World/envs/env_.*/Robot",
+                    init_state=init_state,
+                    actuators=actuators,
+                )
+
             # except the foot
+            body_links = [n for n in robot_config.body_names if "_sensor_" not in n]
+            alternation = "|".join(map(re.escape, body_links))
+            prim_path = rf"/World/envs/env_.*/Robot/(?!.*_sensor_)({alternation}).*"
+
             self.contact_sensor: ContactSensorCfg = ContactSensorCfg(
                 # prim_path="/World/envs/env_.*/Robot/.*",
-                prim_path=r"/World/envs/env_.*/Robot/(?!left_ankle_roll_link_sensor_|right_ankle_roll_link_sensor_).*",
+                prim_path=prim_path,
+                # prim_path=r"/World/envs/env_.*/Robot/(?!left_ankle_roll_link_sensor_|right_ankle_roll_link_sensor_).*",
                 filter_prim_paths_expr=[f"/World/objects/object_{i}" for i in range(0)],
             )
 
@@ -138,10 +175,13 @@ class SceneCfg(InteractiveSceneCfg):
                 ), f"please load the right urdf"
 
                 self.foot_contact_sensor: ContactSensorCfg = ContactSensorCfg(
-                    prim_path=r"/World/envs/env_.*/Robot/(left|right)_ankle_roll_link_sensor_.*",
+                    prim_path=prim_foot_path,
                     filter_prim_paths_expr=[
                         f"/World/objects/object_{i}" for i in range(0)
                     ],
+                    update_period=0.005,
+                    # history_length=3,
+                    # track_air_time=True,
                 )
 
         else:

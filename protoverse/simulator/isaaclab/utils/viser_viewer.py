@@ -104,8 +104,8 @@ class ViserLab:
 
             left_samples, right_samples = load_foot_sensors_from_urdf(
                 urdf_path=Path(self.urdf_path["robot"]),
-                left_parent_link="left_ankle_roll_link",
-                right_parent_link="right_ankle_roll_link",
+                left_parent_link=self.robot_config.left_foot_name,
+                right_parent_link=self.robot_config.right_foot_name,
             )
 
             self.add_feet_spatial_image(
@@ -549,6 +549,8 @@ class ViserLab:
             return np.rot90(img, k=3)  # 90° clockwise
         if mode == "ccw":
             return np.rot90(img, k=1)  # 90° counter-clockwise
+        if mode == "180":
+            return np.rot90(img, k=2)  # 180°
         return img
 
     def _prepare_foot_state(
@@ -609,7 +611,9 @@ class ViserLab:
 
         if vmax is None:
             vmax = float(np.max(vals)) if vals.size else 1.0
+
         colors = simple_colormap(vals, vmin=vmin, vmax=vmax)
+
         if threshold is not None:
             colors[vals < threshold] = np.array([160, 160, 160], dtype=np.uint8)
 
@@ -624,7 +628,7 @@ class ViserLab:
         left_indices: np.ndarray,  # indices into N_total
         right_indices: np.ndarray,  # indices into N_total
         env_id: int = 0,
-        threshold: float = 1.0,
+        threshold: float = 0.0,
         vmin: float = 0.0,
         vmax: float | None = None,
     ):
@@ -665,7 +669,7 @@ class ViserLab:
         combo[:, :W] = left_img
         combo[:, W + gap :] = right_img
 
-        self._feet_combo_widget.image = combo
+        self._feet_combo_widget.image = self._rotate_img(combo, "180")
 
     def update_feet_spatial_image_with_internal_indices(
         self,
@@ -678,6 +682,7 @@ class ViserLab:
         """Convenience: use the indices you already stored in add_per_foot_history_plot."""
         left_idx = getattr(self, "left_foot_indices")
         right_idx = getattr(self, "right_foot_indices")
+
         self.update_feet_spatial_image(
             contact_norms=contact_norms,
             left_indices=left_idx,

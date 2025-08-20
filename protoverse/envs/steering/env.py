@@ -177,7 +177,7 @@ class Steering(BaseEnv):
             tar_speed = self._tar_speed[env_ids]
 
         obs = compute_heading_observations(root_states.root_rot, tar_dir, tar_speed)
-        self.steering_obs[env_ids] = obs
+        self.steering_obs[env_ids] = obs  # [ local_tar_x, local_tar_y, target_speed ]
 
         if self.config.with_foot_obs:
             foot_obs = torch.norm(self.simulator.get_foot_contact_buf(), dim=-1)

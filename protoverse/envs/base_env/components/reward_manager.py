@@ -89,6 +89,7 @@ class RewardManager(BaseComponent):
     def _pre_compute(self):
         self.dof_state = self.env.simulator.get_dof_state()
         self.root_states = self.env.simulator.get_root_state()
+        self.body_states = self.env.simulator.get_bodies_state()
         self.body_contacts = self.env.simulator.get_bodies_contact_buf()
 
     def _post_compute(self):
@@ -139,8 +140,22 @@ class RewardManager(BaseComponent):
 
     def _reward_feet_air_time(self):
 
-        # TODO: to jit
-        contact = self.body_contacts[:, self.env.feet_indices, 2] > 1.0
+        if self.env.config.with_foot_obs:
+            forces = self.simulator.get_foot_contact_buf()  # [B, S, 3] (common order)
+            names = self.simulator.robot_config.foot_contact_links
+
+            # contact per sensor: any component over threshold
+            contact_per_sensor = (torch.abs(forces) > 1.0).any(dim=-1)  # [B, S]
+
+            left_idx = [i for i, n in enumerate(names) if "left" in n]
+            right_idx = [i for i, n in enumerate(names) if "right" in n]
+
+            left_contact = contact_per_sensor[:, left_idx].any(dim=1)  # [B]
+            right_contact = contact_per_sensor[:, right_idx].any(dim=1)  # [B]
+            contact = torch.stack([left_contact, right_contact], dim=1)  # [B, 2]
+        else:
+            contact = self.body_contacts[:, self.env.feet_indices, 2] > 1.0
+
         contact_filt = torch.logical_or(contact, self.last_contacts)
         self.last_contacts = contact
         first_contact = (self.feet_air_time > 0.0) * contact_filt
@@ -148,7 +163,9 @@ class RewardManager(BaseComponent):
         rew_feet_air_time = torch.sum(
             (self.feet_air_time - 0.5) * first_contact, dim=1
         )  #  reward only on first contact with the ground
-        # rew_feet_air_time *= torch.norm(self.commands[:, :2], dim=1) > 0.1
+        rew_feet_air_time *= (
+            self.env._tar_speed > 0.1
+        )  # TODO: no reward for zero command
         self.feet_air_time *= ~contact_filt
         return rew_feet_air_time
 
@@ -160,4 +177,66 @@ class RewardManager(BaseComponent):
             self.env._tar_dir,
             self.env._tar_speed,
             self.env.dt,
+        )
+
+    def _reward_slippage(self):
+        return rewards.reward_slippage(
+            self.body_states.rigid_body_vel, self.env.feet_indices, self.body_contacts
+        )
+
+    def _reward_feet_ori(self):
+        gravity_vec = getattr(
+            self.env,
+            "gravity_vec",
+            torch.tensor([0.0, 0.0, -1.0], device=self.env.device),
+        )
+        return rewards.reward_feet_ori(
+            self.body_states.rigid_body_rot,
+            self.env.feet_indices,
+            gravity_vec,
+        )
+
+    def _reward_dof_pos_limits(self):
+        limits = torch.stack(
+            (
+                self.env.simulator._dof_limits_lower_common,  # [num_dof]
+                self.env.simulator._dof_limits_upper_common,  # [num_dof]
+            ),
+            dim=1,  # -> [num_dof, 2]
+        )
+        return rewards.reward_dof_pos_limits(self.dof_state.dof_pos, limits)
+
+    def _reward_base_height(self):
+        # Adjust current global translations to be relative to the data origin
+        measured_heights = self.env.terrain.get_ground_heights(
+            self.body_states.rigid_body_pos[:, 0]
+        )
+        return rewards.reward_base_height(
+            self.root_states.root_pos,
+            measured_heights,
+            float(self.config.target_base_height),
+        )
+
+    def _reward_penalty_feet_height(self):
+        return rewards.reward_penalty_feet_height(
+            self.body_states.rigid_body_pos,
+            self.env.feet_indices,
+            float(self.config.target_feet_height),
+        )
+
+    def _reward_upperbody_joint_angle_freeze(self):
+
+        default = self.env.simulator._default_dof_pos.to(self.env.device)
+        default = default.expand(self.env.num_envs, -1)
+        return rewards.reward_upperbody_joint_angle_freeze(
+            self.dof_state.dof_pos,
+            default,
+            self.env.upper_dof_indices,
+        )
+
+    def _reward_feet_heading_alignment(self):
+        return rewards.reward_feet_heading_alignment(
+            self.body_states.rigid_body_rot,
+            self.env.feet_indices,
+            self.root_states.root_rot,
         )

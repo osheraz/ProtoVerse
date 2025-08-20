@@ -17,6 +17,7 @@ robot:
   robot_obs_size: 66
 
   with_cam_obs: False  
+  with_foot_sensors: False
 
   # Control parameters
   dof_body_ids: [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
@@ -27,9 +28,12 @@ robot:
   dof_joint_frictions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
   key_bodies: [ "left_foot_link", "right_foot_link", "left_arm_end_effector",  "right_arm_end_effector" ]
+  upper_dof_names: ['left_shoulder_pitch_joint', 'left_shoulder_roll_joint', 'left_shoulder_yaw_joint', 'left_elbow_joint', 'right_shoulder_pitch_joint', 'right_shoulder_roll_joint', 'right_shoulder_yaw_joint', 'right_elbow_joint']
   non_termination_contact_bodies: [ "left_foot_link", "left_ankle_link", "right_foot_link", "right_ankle_link" ]
-  right_foot_name: "right_foot_link"
-  left_foot_name: "left_foot_link"
+  
+  right_foot_name: "right_ankle_link" # "right_foot_link" --> thats a sphere
+  left_foot_name: "left_ankle_link" # "left_foot_link"
+
   head_body_name: "head"
 
   penalize_contacts_on: ['pelvis', 'head', 'left_hip_pitch_link', 'left_hip_roll_link', 'left_hip_yaw_link', 'right_hip_pitch_link', 'right_hip_roll_link', 'right_hip_yaw_link', 'left_shoulder_pitch_link', 'left_shoulder_roll_link', 'left_shoulder_yaw_link', 'right_shoulder_pitch_link', 'right_shoulder_roll_link','right_shoulder_yaw_link'] 

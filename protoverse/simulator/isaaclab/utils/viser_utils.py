@@ -7,7 +7,9 @@ data_dir = os.path.join(dir_path, "../../../data/assets/")
 
 def simple_colormap(vals, vmin=None, vmax=None):
     """Blue (low) -> Red (high), uint8 RGB."""
+
     vals = np.asarray(vals, dtype=np.float32)
+
     if vmin is None:
         vmin = float(np.min(vals)) if vals.size else 0.0
     if vmax is None:
