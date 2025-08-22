@@ -39,5 +39,26 @@
                 "WANDB_DISABLE_CODE": "true"
             }
         }
+        {
+            "name": "Debug train_agent.py (g1_asap_reward2)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/protoverse/train_agent.py",
+            "console": "integratedTerminal",
+            "args": [
+                "+experiment_name=g1_asap_reward2",
+                "+robot=g1_29dof_anneal_23dof",
+                "+exp=steering_mlp",
+                "+simulator=isaaclab",
+                "+opt=wandb",
+                "++env.config.enable_height_termination=true",
+                "++robot.use_robot_obs=true"
+            ],
+            "env": {
+                "WANDB_DISABLE_SENTRY": "true",
+                "WANDB_SILENT": "true",
+                "WANDB_DISABLE_CODE": "true"
+            }
+        }
     ]
 }

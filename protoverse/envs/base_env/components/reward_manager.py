@@ -61,6 +61,17 @@ class RewardManager(BaseComponent):
                 )
             )
 
+        # pull termination out, but still follow the same scale policy (including dt if enabled)
+        term_val = float(self.reward_scales.pop("termination", 0.0))
+        if scale_with_dt and term_val != 0.0:
+            term_val = term_val * self.env.dt
+        self.termination_scale = term_val
+        if self.termination_scale != 0.0:
+            logger.info(
+                f"Scale: termination = {self.termination_scale}"
+                f"{' (x dt)' if scale_with_dt else ''}"
+            )
+
         # Remove zero/None scales and optionally scale by dt
         for key in list(self.reward_scales.keys()):
             val = self.reward_scales[key]
@@ -139,20 +150,22 @@ class RewardManager(BaseComponent):
         return rewards.reward_action_rate(self.env.actions, self.last_actions)
 
     def _reward_feet_air_time(self):
-
+        # Reward long steps
+        # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
         if self.env.config.with_foot_obs:
-            forces = self.simulator.get_foot_contact_buf()  # [B, S, 3] (common order)
-            names = self.simulator.robot_config.foot_contact_links
+            forces = self.simulator.get_foot_contact_buf()  # [B, S, 3]
+            z = forces[..., 2]  # only Z component, like else
 
-            # contact per sensor: any component over threshold
-            contact_per_sensor = (torch.abs(forces) > 1.0).any(dim=-1)  # [B, S]
-
+            names = [n.lower() for n in self.simulator.robot_config.foot_contact_links]
             left_idx = [i for i, n in enumerate(names) if "left" in n]
             right_idx = [i for i, n in enumerate(names) if "right" in n]
 
-            left_contact = contact_per_sensor[:, left_idx].any(dim=1)  # [B]
-            right_contact = contact_per_sensor[:, right_idx].any(dim=1)  # [B]
-            contact = torch.stack([left_contact, right_contact], dim=1)  # [B, 2]
+            thresh = 1.0  # consider making this a config param
+            left_contact = (z[:, left_idx] > thresh).any(dim=1)  # [B]
+            right_contact = (z[:, right_idx] > thresh).any(dim=1)  # [B]
+
+            # same shape/semantics as else: [B, 2] (left, right)
+            contact = torch.stack([left_contact, right_contact], dim=1)
         else:
             contact = self.body_contacts[:, self.env.feet_indices, 2] > 1.0
 
@@ -180,8 +193,25 @@ class RewardManager(BaseComponent):
         )
 
     def _reward_slippage(self):
+
+        if self.env.config.with_foot_obs:
+            forces = self.simulator.get_foot_contact_buf()  # [B, S, 3]
+            names = [n.lower() for n in self.simulator.robot_config.foot_contact_links]
+
+            left_idx = [i for i, n in enumerate(names) if "left" in n]
+            right_idx = [i for i, n in enumerate(names) if "right" in n]
+
+            left = forces[:, left_idx, :].mean(dim=1)
+            right = forces[:, right_idx, :].mean(dim=1)
+
+            foot_contact_forces = torch.stack([left, right], dim=1)  # [B, 2, 3]
+        else:
+            foot_contact_forces = self.body_contacts[:, self.env.feet_indices, :]
+
         return rewards.reward_slippage(
-            self.body_states.rigid_body_vel, self.env.feet_indices, self.body_contacts
+            self.body_states.rigid_body_vel,
+            self.env.feet_indices,
+            foot_contact_forces,
         )
 
     def _reward_feet_ori(self):
@@ -189,7 +219,8 @@ class RewardManager(BaseComponent):
             self.env,
             "gravity_vec",
             torch.tensor([0.0, 0.0, -1.0], device=self.env.device),
-        )
+        ).repeat((self.env.num_envs, 1))
+
         return rewards.reward_feet_ori(
             self.body_states.rigid_body_rot,
             self.env.feet_indices,
@@ -217,11 +248,26 @@ class RewardManager(BaseComponent):
             float(self.config.target_base_height),
         )
 
-    def _reward_penalty_feet_height(self):
-        return rewards.reward_penalty_feet_height(
+    def _reward_feet_height(self):
+        feet_pos = self.body_states.rigid_body_pos[
+            :, self.env.feet_indices, :
+        ]  # [B, F, 3]
+        F = feet_pos.shape[1]
+
+        # ground_z: [B, F]
+        ground_z = torch.stack(
+            [
+                self.env.terrain.get_ground_heights(feet_pos[:, j, :]).squeeze(1)
+                for j in range(F)
+            ],
+            dim=1,
+        )
+        return rewards.reward_feet_height(
             self.body_states.rigid_body_pos,
             self.env.feet_indices,
-            float(self.config.target_feet_height),
+            ground_z,
+            float(self.config.target_feet_height),  # clearance target (m)
+            0.02,
         )
 
     def _reward_upperbody_joint_angle_freeze(self):
@@ -240,3 +286,44 @@ class RewardManager(BaseComponent):
             self.env.feet_indices,
             self.root_states.root_rot,
         )
+
+    def _reward_penalty_close_feet_xy(self):
+        return rewards.reward_penalty_close_feet_xy(
+            self.body_states.rigid_body_pos,
+            self.env.feet_indices,
+            float(self.config.rewards.close_feet_threshold),
+        )
+
+    def _reward_penalty_ang_vel_xy_torso(self):
+
+        return rewards.reward_penalty_ang_vel_xy_torso(
+            self.body_states.rigid_body_rot,
+            self.body_states.rigid_body_ang_vel,
+            self.env.torso_index,
+        )
+
+    def _reward_penalty_hip_pos(self):
+        # Expect a list/array of hip DOF ids where indices 1:3 and 4:6 are roll/yaw (as in the original repo)
+        assert NotImplementedError
+        hips_dof_id = getattr(
+            self.env, "hips_dof_id", self.hips_dof_id
+        )  # list or tensor
+        if not torch.is_tensor(hips_dof_id):
+            hips_dof_id = torch.tensor(
+                hips_dof_id, device=self.env.device, dtype=torch.long
+            )
+        # roll+yaw for left (1:3) and right (4:6); concatenated
+        roll_yaw = torch.cat([hips_dof_id[1:3], hips_dof_id[4:6]], dim=0)  # [4]
+        return rewards.reward_penalty_hip_pos(
+            self.dof_state.dof_pos,
+            roll_yaw,
+        )
+
+    def _reward_termination(self):
+        # timeout if we hit the last step this frame
+        timeout_buf = self.env.progress_buf >= (self.env.max_episode_length - 1)
+
+        # 1 where we terminated this step AND it was NOT a time-limit termination
+        term_rew = (self.env.reset_buf.bool() & (~timeout_buf)).float()
+
+        return term_rew

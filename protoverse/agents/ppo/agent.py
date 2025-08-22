@@ -23,6 +23,8 @@ from protoverse.envs.base_env.env import BaseEnv
 from protoverse.utils.running_mean_std import RunningMeanStd
 from rich.progress import track
 from protoverse.agents.ppo.utils import discount_values, bounds_loss
+import os, time, wandb
+from lightning.pytorch.loggers import WandbLogger
 
 log = logging.getLogger(__name__)
 
@@ -75,6 +77,9 @@ class PPO:
         self.best_evaluated_score = None
 
         self.force_full_restart = False
+
+        self._video_path = None
+        self._last_video_key = None  # (mtime_ns, size)
 
     @property
     def should_stop(self):
@@ -605,6 +610,46 @@ class PPO:
             log_dict.update(env_log_dict)
         log_dict.update(training_log_dict)
         self.fabric.log_dict(log_dict)
+        self._log_last_mp4_if_updated()
+
+    def _log_last_mp4_if_updated(self):
+
+        # only rank 0 to avoid duplicates
+        if getattr(self.fabric, "global_rank", 0) != 0:
+            return
+
+        path = self.env.simulator._user_recording_video_path % "last.mp4"
+
+        if not path or not os.path.exists(path):
+            return
+
+        if self.env.simulator._user_is_recording:
+            self._was_recording = True
+            return
+
+        if not getattr(self, "_was_recording", False):
+            return
+
+        st = os.stat(path)
+        key = (st.st_mtime_ns, st.st_size)
+
+        # avoid partials (ensure file is finalized)
+        if (time.time() - st.st_mtime) < 2.0:
+            return
+
+        # de-dupe same saved file
+        if key == getattr(self, "_last_video_key", None):
+            self._was_recording = False
+            return
+
+        # upload to W&B (first WandbLogger found)
+        for lg in getattr(self.fabric, "loggers", []):
+            if isinstance(lg, WandbLogger):
+                lg.experiment.log({"videos/env0": wandb.Video(path, fps=30)})
+                break
+        log.info(f"Logged Env0 video to wandb, {path}")
+        self._last_video_key = key
+        self._was_recording = False
 
     # -----------------------------
     # Helper Functions

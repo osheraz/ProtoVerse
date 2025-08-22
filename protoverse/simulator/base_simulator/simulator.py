@@ -79,7 +79,10 @@ class Simulator(ABC):
         self._user_is_recording, self._user_recording_state_change = False, False
         self._user_recording_video_queue_size = 100000
         self._delete_user_viewer_recordings = False
-        base_dir = os.path.join("output", "renderings", self.config.experiment_name)
+
+        # base_dir = os.path.join("output", "renderings", self.config.experiment_name)
+        base_dir = os.path.join("results", self.config.experiment_name, "renderings")
+
         os.makedirs(base_dir, exist_ok=True)
 
         self._user_recording_video_path = os.path.join(base_dir, "auto-%s")
@@ -95,7 +98,7 @@ class Simulator(ABC):
 
         # auto-record config (examples)
         self.auto_record_every = getattr(
-            config, "auto_record_every", 5000  # epoch is 32 steps ~ 150 epochs.
+            config, "auto_record_every", 10000  # epoch is 32 steps ~ 150 epochs.
         )  # e.g. 2000 steps; 0 disables - TODO: should be w.r.t max_episode_length
         self.auto_record_len = getattr(config, "auto_record_len", 300)
         self.auto_record_stride = getattr(config, "auto_record_stride", 1)
@@ -211,7 +214,6 @@ class Simulator(ABC):
             device=self.device,
         )
 
-        print(self.body_ordering.foot_contact_sensor_body_names)
         foot_contact_sensor_convert_to_common = torch.tensor(
             [
                 self.body_ordering.foot_contact_sensor_body_names.index(body_name)
@@ -969,7 +971,7 @@ class Simulator(ABC):
 
             if self._user_is_recording:
                 # Start session
-                base = self._user_recording_video_path % self._global_step
+                base = self._user_recording_video_path % "last"  # self._global_step
                 self._curr_user_recording_name = base
                 self._user_recording_frame = 0
                 self._recorded_motion = {

@@ -42,4 +42,4 @@ self_collisions
 # Runnnig
 
 
-HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_verify_3 +robot=g1_29dof_anneal_23dof +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++robot.use_robot_obs=true
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_23_term +robot=g1_29dof_anneal_23dof +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++num_envs=1024

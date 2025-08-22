@@ -87,6 +87,8 @@ class BaseEnv:
             [self.config.robot.left_foot_name, self.config.robot.right_foot_name]
         )
 
+        self.torso_index = self.simulator.build_body_ids_tensor(["torso_link"])
+
         self.upper_dof_indices = self.simulator.build_dof_ids_tensor(
             self.config.robot.upper_dof_names
         )
@@ -164,6 +166,7 @@ class BaseEnv:
         )
 
         self.rew_manager = RewardManager(config.reward_config, self)
+        self.max_episode_length = self.config.max_episode_length
 
     ###############################################################
     # Getters
@@ -335,6 +338,13 @@ class BaseEnv:
 
         if self.config.sync_motion:
             self.sync_motion()
+
+        term_scale = float(getattr(self.rew_manager, "termination_scale", 0.0))
+        if term_scale != 0.0:
+            term_bonus = self.rew_manager._reward_termination()  # [B]
+            self.rew_buf = self.rew_buf + term_scale * term_bonus
+            self.log_dict["raw/termination_mean"] = (term_scale * term_bonus).mean()
+            self.log_dict["raw/termination_std"] = (term_scale * term_bonus).std()
 
         self.log_dict["terminate_frac"] = self.terminate_buf.float().mean()
 

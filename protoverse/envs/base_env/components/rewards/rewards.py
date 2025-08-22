@@ -90,12 +90,19 @@ def compute_heading_reward(
 
 @torch.jit.script
 def reward_slippage(
-    rigid_body_vel: Tensor, feet_indices: Tensor, contact_forces: Tensor
+    rigid_body_vel: Tensor, feet_indices: Tensor, foot_contact_forces: Tensor
 ) -> Tensor:
+    """Penalize feet sliding.
+
+    This function penalizes the agent for sliding its feet on the ground. The reward is computed as the
+    norm of the linear velocity of the feet multiplied by a binary contact sensor. This ensures that the
+    agent is penalized only when the feet are in contact with the ground.
+    """
+
     foot_vel = rigid_body_vel[:, feet_indices]
+
     return torch.sum(
-        torch.norm(foot_vel, dim=-1)
-        * (torch.norm(contact_forces[:, feet_indices, :], dim=-1) > 1.0),
+        torch.norm(foot_vel, dim=-1) * (torch.norm(foot_contact_forces, dim=-1) > 1.0),
         dim=1,
     )
 
@@ -138,13 +145,17 @@ def reward_base_height(
 
 
 @torch.jit.script
-def reward_penalty_feet_height(
-    rigid_body_pos: Tensor, feet_indices: Tensor, feet_height_target: float
+def reward_feet_height(
+    rigid_body_pos: Tensor,  # [B, N, 3]
+    feet_indices: Tensor,  # [F]
+    ground_z: Tensor,  # [B, F]
+    target_clearance: float,
+    tol: float = 0.02,
 ) -> Tensor:
-    feet_height = rigid_body_pos[:, feet_indices, 2]
-    dif = torch.abs(feet_height - feet_height_target)
-    min_dif = torch.min(dif, dim=1).values
-    return torch.clamp(min_dif - 0.02, min=0.0)
+    feet_z = rigid_body_pos[:, feet_indices, 2]  # [B, F]
+    clr = feet_z - ground_z  # [B, F]
+    dif = (clr - target_clearance).abs()  # [B, F]
+    return torch.clamp(dif.min(dim=1).values - tol, min=0.0)  # [B]
 
 
 @torch.jit.script
@@ -193,10 +204,11 @@ def reward_dof_vel(dof_vel: Tensor) -> Tensor:
 
 
 @torch.jit.script
-def reward_termination(reset_buf: Tensor, time_out_buf: Tensor) -> Tensor:
-    # Terminal reward / penalty
-
-    return reset_buf * (~time_out_buf)
+def reward_termination(done_mask: Tensor, timeout_mask: Tensor) -> Tensor:
+    # 1 where episode ended this step AND it was NOT a time-limit
+    return (done_mask.to(torch.bool) & (~timeout_mask.to(torch.bool))).to(
+        done_mask.dtype
+    )
 
 
 @torch.jit.script
@@ -291,34 +303,6 @@ def reward_feet_contact_forces(
 
 
 @torch.jit.script
-def reward_feet_air_time(
-    contact_forces: Tensor,
-    last_contacts: Tensor,
-    feet_air_time: Tensor,
-    dt: float,
-    commands: Tensor,
-    feet_indices: Tensor,
-) -> Tuple[Tensor, Tensor, Tensor]:
-
-    # Reward long steps
-    # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
-    contact = contact_forces[:, feet_indices, 2] > 1.0
-    contact_filt = torch.logical_or(contact, last_contacts)
-    first_contact = (feet_air_time > 0.0) * contact_filt
-
-    feet_air_time = feet_air_time + dt
-    rew_air_time = torch.sum((feet_air_time - 0.5) * first_contact, dim=1)
-    # reward only on first contact with the ground
-    command_mask = torch.norm(commands[:, :2], dim=1) > 0.1
-    rew_air_time = rew_air_time * command_mask
-    # no reward for zero command
-    feet_air_time = feet_air_time * (~contact_filt)
-    last_contacts = contact
-
-    return rew_air_time, feet_air_time, last_contacts
-
-
-@torch.jit.script
 def reward_feet_step(
     rb_states: Tensor,
     contact_forces: Tensor,
@@ -355,3 +339,37 @@ def reward_orientation(projected_gravity: Tensor) -> Tensor:
     # Penalize non flat base orientation
 
     return torch.sum(torch.square(projected_gravity[:, :2]), dim=1)
+
+
+@torch.jit.script
+def reward_penalty_close_feet_xy(
+    rigid_body_pos: Tensor,  # [B, N_bodies, 3]
+    feet_indices: Tensor,  # [2] (left, right)
+    threshold: float,
+) -> Tensor:
+    left_xy = rigid_body_pos[:, feet_indices[0], :2]  # [B, 2]
+    right_xy = rigid_body_pos[:, feet_indices[1], :2]  # [B, 2]
+    dist = torch.norm(left_xy - right_xy, dim=1)  # [B]
+    return (dist < threshold).float()  # [B]
+
+
+@torch.jit.script
+def reward_penalty_ang_vel_xy_torso(
+    rigid_body_rot: Tensor,  # [B, N_bodies, 4]
+    rigid_body_ang_vel: Tensor,  # [B, N_bodies, 3]
+    torso_index: int,
+) -> Tensor:
+    # Angular velocity in the torso (local) frame; penalize x,y components
+    torso_q = rigid_body_rot[:, torso_index]  # [B, 4]
+    torso_wld = rigid_body_ang_vel[:, torso_index]  # [B, 3]
+    torso_loc = rotations.quat_rotate_inverse(torso_q, torso_wld, True)  # [B, 3]
+    return torch.sum(torso_loc[:, :2].pow(2), dim=1)  # [B]
+
+
+@torch.jit.script
+def reward_penalty_hip_pos(
+    dof_pos: Tensor,  # [B, D]
+    roll_yaw_indices: Tensor,  # [K] long, DOF indices for both hips (roll & yaw only)
+) -> Tensor:
+    # Penalize hip roll/yaw joint positions
+    return torch.sum(dof_pos[:, roll_yaw_indices].pow(2), dim=1)  # [B]

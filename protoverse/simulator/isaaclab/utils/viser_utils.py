@@ -71,7 +71,7 @@ def load_foot_sensors_from_urdf(
     in the parent link frame, ordered by the index in child link names '*_sensor_<i>'.
     """
     urdf_path = Path(os.path.join(data_dir, urdf_path))
-    print(urdf_path)
+
     tree = ET.parse(urdf_path.as_posix())
     root = tree.getroot()
 
