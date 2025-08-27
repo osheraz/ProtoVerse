@@ -87,7 +87,7 @@ class PhysxCfg:
     """Enable a second broad-phase pass that makes it possible to prevent objects from tunneling through each other.
     Default is False."""
 
-    enable_stabilization: bool = True
+    enable_stabilization: bool = False
     """Enable/disable additional stabilization pass in solver. Default is True."""
 
     enable_enhanced_determinism: bool = False

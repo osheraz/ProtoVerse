@@ -53,7 +53,7 @@ def reward_collision(
 
 
 @torch.jit.script
-def compute_heading_reward(
+def compute_heading_reward_v1(
     root_pos: Tensor,
     prev_root_pos: Tensor,
     tar_dir: Tensor,
@@ -86,6 +86,54 @@ def compute_heading_reward(
     dir_reward[speed_mask] = 0
 
     return dir_reward
+
+
+@torch.jit.script
+def compute_heading_reward(
+    root_pos: Tensor,
+    prev_root_pos: Tensor,
+    root_rot: Tensor,
+    tar_dir: Tensor,  # (N,2) unit-ish
+    tar_speed: Tensor,  # (N,)
+    dt: float,
+) -> Tensor:
+
+    face_w = 0.30  # additive facing shaping
+    face_pow = 1.5
+
+    vel_err_scale = 0.25
+    tangent_err_w = 0.1
+
+    delta_root_pos = root_pos - prev_root_pos
+    root_vel = delta_root_pos / dt
+    tar_dir_speed = torch.sum(tar_dir * root_vel[..., :2], dim=-1)
+
+    tar_dir_vel = tar_dir_speed.unsqueeze(-1) * tar_dir
+    tangent_vel = root_vel[..., :2] - tar_dir_vel
+
+    tangent_speed = torch.sum(tangent_vel, dim=-1)
+
+    tar_vel_err = tar_speed - tar_dir_speed
+    tangent_vel_err = tangent_speed
+    dir_reward = torch.exp(
+        -vel_err_scale
+        * (
+            tar_vel_err * tar_vel_err
+            + tangent_err_w * tangent_vel_err * tangent_vel_err
+        )
+    )
+
+    speed_mask = tar_dir_speed < -0.5
+    dir_reward[speed_mask] = 0
+
+    # soft facing bonus (additive shaping, no gating)
+    tar_dir3d = torch.cat([tar_dir, torch.zeros_like(tar_dir[..., :1])], dim=-1)
+    heading_inv = torch_utils.calc_heading_quat_inv(root_rot, True)  # world->heading
+    local_tar_x = rotations.quat_rotate(heading_inv, tar_dir3d, True)[..., 0]
+    face = torch.clamp(0.5 * (local_tar_x + 1.0), 0.0, 1.0)  # [0,1]
+    face = torch.pow(face, torch.tensor(face_pow, device=face.device))
+
+    return dir_reward + face_w * face
 
 
 @torch.jit.script

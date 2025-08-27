@@ -21,7 +21,7 @@ from protoverse.agents.ppo.model import PPOModel
 from protoverse.agents.common.common import weight_init, get_params
 from protoverse.envs.base_env.env import BaseEnv
 from protoverse.utils.running_mean_std import RunningMeanStd
-from rich.progress import track
+from rich.progress import track, Progress
 from protoverse.agents.ppo.utils import discount_values, bounds_loss
 import os, time, wandb
 from lightning.pytorch.loggers import WandbLogger
@@ -405,56 +405,67 @@ class PPO:
         self.train()
         training_log_dict = {}
 
-        for batch_idx in track(
-            range(self.max_num_batches()),
-            description=f"Epoch {self.current_epoch}, training...",
-        ):
-            iter_log_dict = {}
-            dataset_idx = batch_idx % len(dataset)
-
-            # Reshuffle dataset at the beginning of each mini epoch if configured.
-            if dataset_idx == 0 and batch_idx != 0 and dataset.do_shuffle:
-                dataset.shuffle()
-            batch_dict = dataset[dataset_idx]
-
-            # Check for NaNs in the batch.
-            for key in batch_dict.keys():
-                if torch.isnan(batch_dict[key]).any():
-                    print(f"NaN in {key}: {batch_dict[key]}")
-                    raise ValueError("NaN in training")
-
-            # Update actor
-            actor_loss, actor_loss_dict = self.actor_step(batch_dict)
-            iter_log_dict.update(actor_loss_dict)
-            self.actor_optimizer.zero_grad(set_to_none=True)
-            self.fabric.backward(actor_loss)
-            actor_grad_clip_dict = self.handle_model_grad_clipping(
-                self.model._actor, self.actor_optimizer, "actor"
+        with Progress() as progress:
+            task = progress.add_task(
+                f"Epoch {self.current_epoch}, training...",
+                total=self.max_num_batches(),
             )
-            iter_log_dict.update(actor_grad_clip_dict)
-            self.actor_optimizer.step()
+            for batch_idx in range(self.max_num_batches()):
 
-            # Update critic
-            critic_loss, critic_loss_dict = self.critic_step(batch_dict)
-            iter_log_dict.update(critic_loss_dict)
-            self.critic_optimizer.zero_grad(set_to_none=True)
-            self.fabric.backward(critic_loss)
-            critic_grad_clip_dict = self.handle_model_grad_clipping(
-                self.model._critic, self.critic_optimizer, "critic"
-            )
-            iter_log_dict.update(critic_grad_clip_dict)
-            self.critic_optimizer.step()
+                iter_log_dict = {}
+                dataset_idx = batch_idx % len(dataset)
 
-            # Extra optimization steps if needed.
-            extra_opt_steps_dict = self.extra_optimization_steps(batch_dict, batch_idx)
-            iter_log_dict.update(extra_opt_steps_dict)
+                # Reshuffle dataset at the beginning of each mini epoch if configured.
+                if dataset_idx == 0 and batch_idx != 0 and dataset.do_shuffle:
+                    dataset.shuffle()
+                batch_dict = dataset[dataset_idx]
 
-            for k, v in iter_log_dict.items():
-                if k in training_log_dict:
-                    training_log_dict[k][0] += v
-                    training_log_dict[k][1] += 1
-                else:
-                    training_log_dict[k] = [v, 1]
+                # Check for NaNs in the batch.
+                for key in batch_dict.keys():
+                    if torch.isnan(batch_dict[key]).any():
+                        print(f"NaN in {key}: {batch_dict[key]}")
+                        raise ValueError("NaN in training")
+
+                # Update actor
+                actor_loss, actor_loss_dict = self.actor_step(batch_dict)
+                iter_log_dict.update(actor_loss_dict)
+                self.actor_optimizer.zero_grad(set_to_none=True)
+                self.fabric.backward(actor_loss)
+                actor_grad_clip_dict = self.handle_model_grad_clipping(
+                    self.model._actor, self.actor_optimizer, "actor"
+                )
+                iter_log_dict.update(actor_grad_clip_dict)
+                self.actor_optimizer.step()
+
+                # Update critic
+                critic_loss, critic_loss_dict = self.critic_step(batch_dict)
+                iter_log_dict.update(critic_loss_dict)
+                self.critic_optimizer.zero_grad(set_to_none=True)
+                self.fabric.backward(critic_loss)
+                critic_grad_clip_dict = self.handle_model_grad_clipping(
+                    self.model._critic, self.critic_optimizer, "critic"
+                )
+                iter_log_dict.update(critic_grad_clip_dict)
+                self.critic_optimizer.step()
+
+                # Extra optimization steps if needed.
+                extra_opt_steps_dict = self.extra_optimization_steps(
+                    batch_dict, batch_idx
+                )
+                iter_log_dict.update(extra_opt_steps_dict)
+
+                for k, v in iter_log_dict.items():
+                    if k in training_log_dict:
+                        training_log_dict[k][0] += v
+                        training_log_dict[k][1] += 1
+                    else:
+                        training_log_dict[k] = [v, 1]
+
+                progress.update(
+                    task,
+                    advance=1,
+                    description=f"Epoch {self.current_epoch}, training... (batch {batch_idx+1}/{self.max_num_batches()})",
+                )
 
         for k, v in training_log_dict.items():
             training_log_dict[k] = v[0] / v[1]
@@ -692,5 +703,7 @@ class PPO:
             dataset["values"] = self.running_val_norm.normalize(dataset["values"])
             dataset["returns"] = self.running_val_norm.normalize(dataset["returns"])
 
-        dataset = DictDataset(self.config.batch_size, dataset, shuffle=True)
+        per_update_bs = min(self.config.batch_size, self.num_envs * self.num_steps)
+        dataset = DictDataset(per_update_bs, dataset, shuffle=True)
+        # dataset = DictDataset(self.config.batch_size, dataset, shuffle=True)
         return dataset

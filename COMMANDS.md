@@ -33,6 +33,7 @@ HYDRA_FULL_ERROR=1 python protoverse/eval_agent.py +robot=g1_w_foot_sensors +sim
 +robot=g1_w_foot_sensors
 env.force_respawn_on_flat=true
 self_collisions
+enable_stabilization
 ```
 
 
@@ -42,4 +43,6 @@ self_collisions
 # Runnnig
 
 
-HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_23_term +robot=g1_29dof_anneal_23dof +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++num_envs=1024
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_23_t +robot=g1_29dof_anneal_23dof +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++num_envs=512
+
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=h1_face +robot=h1 +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true

@@ -187,6 +187,7 @@ class RewardManager(BaseComponent):
         return rewards.compute_heading_reward(
             self.root_states.root_pos,
             self.last_root_pos,
+            self.root_states.root_rot,
             self.env._tar_dir,
             self.env._tar_speed,
             self.env.dt,
