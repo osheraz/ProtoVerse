@@ -44,7 +44,7 @@ class RewardManager(BaseComponent):
             requires_grad=False,
         )
 
-        df_state = self.env.simulator.get_default_state()
+        df_state = self.env.default_state
 
         # TODO: Check if this params are common or sim-specific
         self.last_dof_pos = torch.zeros_like(df_state.dof_pos)

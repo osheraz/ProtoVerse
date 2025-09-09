@@ -346,6 +346,7 @@ robot_config = RobotConfig(
     ],
     dof_obs_size=306,
     number_of_actions=153,
+    robot_obs_size=96,
     self_obs_max_coords_size=778,
     left_foot_name="L_Ankle",
     right_foot_name="R_Ankle",

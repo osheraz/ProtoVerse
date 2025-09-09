@@ -410,10 +410,16 @@ class IsaacGymSimulator(Simulator):
         self._load_marker_asset()
 
         self._create_envs(
-            0,
-            int(np.sqrt(self.num_envs)),
+            getattr(self.config, "env_spacing", 3.0),  # 0,
+            int(np.ceil(np.sqrt(self.num_envs))), # int(np.sqrt(self.num_envs)),
             visualization_markers,
         )
+
+        for i, env in enumerate(self._envs):
+            o = self._gym.get_env_origin(env)
+            xy = torch.tensor([[o.x, o.y]], device=self.device, dtype=torch.float)
+            hz = float(self.terrain.get_ground_heights(xy).item())
+            print(f"[DBG] env{i} origin=({o.x:.2f},{o.y:.2f}) terrain_z={hz:.3f}")
 
     def _create_envs(
         self,
@@ -554,6 +560,7 @@ class IsaacGymSimulator(Simulator):
                 self._envs.append(env_ptr)
                 progress.update(task, advance=1)
 
+                
         dof_prop = self._gym.get_actor_dof_properties(
             self._envs[0], self._humanoid_handles[0]
         )
@@ -651,12 +658,31 @@ class IsaacGymSimulator(Simulator):
         env_ptr,
         humanoid_asset,
         visualization_markers: Optional[Dict[str, VisualizationMarker]] = None,
+
     ) -> None:
         col_group = env_id
         col_filter = 0 if self.robot_config.asset.self_collisions else 1
         segmentation_id = 0
 
         start_pose = gymapi.Transform()
+
+        # # 1) get the env's world origin
+        # env_origin = self._gym.get_env_origin(env_ptr)  # Vec3 with world coords
+
+        # # 2) sample terrain height under THIS env's origin (world XY), but
+        # #    keep the actor pose env-local (x=y=0).
+        # if isinstance(self.terrain, FlatTerrain):
+        #     ground_z = 0.0
+        # else:
+        #     xy_world = torch.tensor(
+        #         [[env_origin.x, env_origin.y]], device=self.device, dtype=torch.float
+        #     )
+        #     ground_z = float(self.terrain.get_ground_heights(xy_world).item())
+
+        # # 3) env-local pose: x=y=0, z = terrain height + small clearance
+        # start_pose.p = gymapi.Vec3(0.0, 0.0, ground_z + 0.02)
+        # start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        
         start_offset = [env_id, env_id, env_id]
         start_pose.p = gymapi.Vec3(*start_offset)
         start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)

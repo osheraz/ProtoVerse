@@ -40,19 +40,19 @@
             }
         }
         {
-            "name": "Debug train_agent.py (g1_asap_reward2)",
+            "name": "Debug train_agent.py (isaacgym)",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/protoverse/train_agent.py",
             "console": "integratedTerminal",
             "args": [
-                "+experiment_name=g1_asap_reward2",
-                "+robot=g1_29dof_anneal_23dof",
+                "+experiment_name=test_gym_debug",
+                "+robot=h1",
                 "+exp=steering_mlp",
-                "+simulator=isaaclab",
-                "+opt=wandb",
+                "+simulator=isaacgym",
                 "++env.config.enable_height_termination=true",
-                "++robot.use_robot_obs=true"
+                "++headless=false",
+                "++num_envs=10"
             ],
             "env": {
                 "WANDB_DISABLE_SENTRY": "true",

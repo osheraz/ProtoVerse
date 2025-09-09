@@ -39,6 +39,25 @@ env:
       height_conditioned: True
       num_path_obs_per_point: ${eval:${.height_conditioned}*1+2}
 
+    foot_obs_params:
+      obs_size: 42
+
+    reward_config:
+      positive_constant: 0.0
+      scale_with_dt: True
+
+      use_yaw_frame_tracking: True
+      feet_air_time_mode: positive_biped
+      feet_air_time_threshold: 0.4
+      dof_pos_limits_scope: ankles
+
+      target_base_height: 0.78 # g1
+      target_feet_height: 0.12 # g1
+      close_feet_threshold: 0.15 # g1
+
+      reward_scales:
+        path: 1.0
+        
 eval_overrides:
   env:
     config:
