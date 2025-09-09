@@ -60,7 +60,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(dir_path, "../data")
 
 # ---- choose one of: "g1_29", "g1_29_with_sensors", "g1_23"
-VARIANT = "rel3_4"
+VARIANT = "h1"
 
 ROBOTS = {
     "g1_29": {

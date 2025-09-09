@@ -50,6 +50,7 @@ noisy_loggers = [
     "absl",
     "trimesh",
     "yourdfpy",
+    "asyncio",
     "charset_normalizer",
 ]
 

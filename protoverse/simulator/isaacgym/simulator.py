@@ -17,7 +17,7 @@ from protoverse.simulator.base_simulator.config import (
     ControlType,
     VisualizationMarker,
     SimBodyOrdering,
-    SimulatorConfig
+    SimulatorConfig,
 )
 
 
@@ -31,11 +31,17 @@ class IsaacGymSimulator(Simulator):
         scene_lib: Optional[SceneLib] = None,
         visualization_markers: Optional[Dict[str, VisualizationMarker]] = None,
     ) -> None:
-        super().__init__(config=config, scene_lib=scene_lib, terrain=terrain, visualization_markers=visualization_markers, device=device)
+        super().__init__(
+            config=config,
+            scene_lib=scene_lib,
+            terrain=terrain,
+            visualization_markers=visualization_markers,
+            device=device,
+        )
 
         # Handle the case where device.index is None
         if self.device.index is None:
-            if self.device.type == 'cuda':
+            if self.device.type == "cuda":
                 # Try to get the default CUDA device index
                 try:
                     device_index = torch.cuda.current_device()
@@ -49,6 +55,16 @@ class IsaacGymSimulator(Simulator):
         self._graphics_device_id = device_index
         if self.headless is True:
             self._graphics_device_id = -1
+
+        # pick the CUDA index we already computed as `device_index`
+        want_graphics = (
+            (not self.headless)
+            or getattr(self.config, "record0", False)
+            or getattr(self.config, "with_cam_obs", False)
+            or getattr(self.config, "with_multi_viewport_camera", False)
+        )
+
+        self._graphics_device_id = device_index if want_graphics else -1
 
         self._gym = gymapi.acquire_gym()
 
@@ -66,7 +82,9 @@ class IsaacGymSimulator(Simulator):
         if not self.headless:
             # subscribe to keyboard shortcuts
             self._viewer = self._gym.create_viewer(self._sim, gymapi.CameraProperties())
-            self._gym.subscribe_viewer_keyboard_event(self._viewer, gymapi.KEY_Q, "QUIT")
+            self._gym.subscribe_viewer_keyboard_event(
+                self._viewer, gymapi.KEY_Q, "QUIT"
+            )
             self._gym.subscribe_viewer_keyboard_event(
                 self._viewer, gymapi.KEY_V, "toggle_viewer_sync"
             )
@@ -109,6 +127,7 @@ class IsaacGymSimulator(Simulator):
         dof_state_tensor = self._gym.acquire_dof_state_tensor(self._sim)
         rigid_body_state = self._gym.acquire_rigid_body_state_tensor(self._sim)
         contact_force_tensor = self._gym.acquire_net_contact_force_tensor(self._sim)
+        sensor_tensor = self._gym.acquire_force_sensor_tensor(self._sim)
 
         dof_force_tensor = self._gym.acquire_dof_force_tensor(self._sim)
         self._dof_force_tensor: Tensor = gymtorch.wrap_tensor(dof_force_tensor).view(
@@ -131,7 +150,7 @@ class IsaacGymSimulator(Simulator):
 
         self._object_root_states = self._root_states.view(
             self.num_envs, num_actors, actor_root_state.shape[-1]
-        )[..., 1: self._num_objects_per_scene + 1, :]
+        )[..., 1 : self._num_objects_per_scene + 1, :]
         self._object_indices = torch_utils.to_torch(
             self._object_indices, dtype=torch.int32, device=self.device
         )
@@ -183,16 +202,32 @@ class IsaacGymSimulator(Simulator):
                 self.num_envs, self._num_dof, dtype=torch.float, device=self.device
             ),
             rigid_body_pos=torch.zeros(
-                self.num_envs, self._num_bodies, 3, dtype=torch.float, device=self.device
+                self.num_envs,
+                self._num_bodies,
+                3,
+                dtype=torch.float,
+                device=self.device,
             ),
             rigid_body_rot=torch.zeros(
-                self.num_envs, self._num_bodies, 4, dtype=torch.float, device=self.device
+                self.num_envs,
+                self._num_bodies,
+                4,
+                dtype=torch.float,
+                device=self.device,
             ),
             rigid_body_vel=torch.zeros(
-                self.num_envs, self._num_bodies, 3, dtype=torch.float, device=self.device
+                self.num_envs,
+                self._num_bodies,
+                3,
+                dtype=torch.float,
+                device=self.device,
             ),
             rigid_body_ang_vel=torch.zeros(
-                self.num_envs, self._num_bodies, 3, dtype=torch.float, device=self.device
+                self.num_envs,
+                self._num_bodies,
+                3,
+                dtype=torch.float,
+                device=self.device,
             ),
         )
 
@@ -223,8 +258,34 @@ class IsaacGymSimulator(Simulator):
                 self.num_envs, bodies_per_env, 3
             )[..., self._num_bodies :, :]
 
+        if self.robot_config.with_foot_sensors:
+            force_sensor_readings = gymtorch.wrap_tensor(sensor_tensor)  # (S,6)
+            sensors_per_env = len(self.robot_config.foot_contact_links)
+
+            assert (
+                force_sensor_readings.numel() > 0
+            ), "No force sensors found; check creation."
+            assert (
+                force_sensor_readings.shape[0] == self.num_envs * sensors_per_env
+            ), f"Expected {self.num_envs*sensors_per_env} sensor rows, got {force_sensor_readings.shape[0]}"
+
+            # Keep only forces (fx, fy, fz)
+            force_sensor_forces = force_sensor_readings[:, :3].contiguous()  # (S,3)
+
+            # Reshape to (num_envs, sensors_per_env, 3)
+            self._foot_contact_forces = force_sensor_forces.view(
+                self.num_envs, sensors_per_env, 3
+            )
+
+            # feet_contacts_from_net = self._contact_forces.index_select(dim=1, index=self._feet_body_idx)
+            # shape: (num_envs, num_feet, 3)
+
+        else:
+            self._foot_contact_forces = None
+
         if not self.headless:
             self._init_camera()
+            self._record_cam_io = None
 
         if visualization_markers:
             self._build_marker_state_tensors()
@@ -317,7 +378,9 @@ class IsaacGymSimulator(Simulator):
         gymutil.parse_sim_config(self.config.sim, sim_params)
         return sim_params
 
-    def _create_sim(self, visualization_markers: Optional[Dict[str, VisualizationMarker]] = None) -> None:
+    def _create_sim(
+        self, visualization_markers: Optional[Dict[str, VisualizationMarker]] = None
+    ) -> None:
         self._sim_params = self._parse_sim_params()
         self._physics_engine = gymapi.SIM_PHYSX
 
@@ -328,7 +391,11 @@ class IsaacGymSimulator(Simulator):
         self._up_axis_idx = self._set_sim_params_up_axis(self._sim_params, "z")
 
         sim = self._gym.create_sim(
-            self._graphics_device_id if self.device.index is None else self.device.index,
+            (
+                self._graphics_device_id
+                if self.device.index is None
+                else self.device.index
+            ),
             self._graphics_device_id,
             self._physics_engine,
             self._sim_params,
@@ -349,7 +416,10 @@ class IsaacGymSimulator(Simulator):
         )
 
     def _create_envs(
-        self, spacing: float, num_per_row: int, visualization_markers: Optional[Dict[str, VisualizationMarker]] = None
+        self,
+        spacing: float,
+        num_per_row: int,
+        visualization_markers: Optional[Dict[str, VisualizationMarker]] = None,
     ) -> None:
         lower = gymapi.Vec3(0.0, 0.0, 0.0)
         upper = gymapi.Vec3(spacing, spacing, spacing)
@@ -393,6 +463,64 @@ class IsaacGymSimulator(Simulator):
         self._humanoid_asset = humanoid_asset = self._gym.load_asset(
             self._sim, asset_root, asset_file, asset_options
         )
+
+        self._all_body_names: list[str] = self._gym.get_asset_rigid_body_names(
+            self._humanoid_asset
+        )
+
+        self._foot_sensor_body_names: list[str] = []
+
+        if self.robot_config.with_foot_sensors:
+            # Prefer the explicit list from config if present:
+            if getattr(self.robot_config, "foot_contact_links", None):
+                missing = [
+                    n
+                    for n in self.robot_config.foot_contact_links
+                    if n not in self._all_body_names
+                ]
+                if len(missing) > 0:
+                    raise ValueError(
+                        f"Foot contact links not found in asset: {missing}.\nAsset bodies: {self._all_body_names}"
+                    )
+                self._foot_sensor_body_names = list(
+                    self.robot_config.foot_contact_links
+                )
+            else:
+                # Fallback: infer from naming convention
+                self._foot_sensor_body_names = [
+                    n for n in self._all_body_names if "_sensor_" in n
+                ]
+
+        feet_set = set(self._foot_sensor_body_names)
+        self._body_names_wo_feet: list[str] = [
+            n for n in self._all_body_names if n not in feet_set
+        ]
+
+        self._keep_body_idx = torch.tensor(
+            [i for i, n in enumerate(self._all_body_names) if n not in feet_set],
+            dtype=torch.long,
+            device=self.device,
+        )
+        self._feet_body_idx = torch.tensor(
+            [i for i, n in enumerate(self._all_body_names) if n in feet_set],
+            dtype=torch.long,
+            device=self.device,
+        )
+
+        if self.robot_config.with_foot_sensors:
+            foot_sensors_handles = [
+                self._gym.find_asset_rigid_body_index(self._humanoid_asset, name)
+                for name in self.robot_config.foot_contact_links
+            ]
+            sensor_pose = gymapi.Transform()
+            for ft_handle in foot_sensors_handles:
+                sensor_options = gymapi.ForceSensorProperties()
+                sensor_options.enable_forward_dynamics_forces = False
+                sensor_options.enable_constraint_solver_forces = True
+                sensor_options.use_world_frame = False
+                self._gym.create_asset_force_sensor(
+                    self._humanoid_asset, ft_handle, sensor_pose, sensor_options
+                )
 
         robot_num_bodies = self._gym.get_asset_rigid_body_count(humanoid_asset)
         assert (
@@ -505,7 +633,9 @@ class IsaacGymSimulator(Simulator):
                             object_asset, 0, sensor_pose, sensor_options
                         )
                     else:
-                        object_asset = self._object_assets[object_info.first_instance_id]
+                        object_asset = self._object_assets[
+                            object_info.first_instance_id
+                        ]
 
                     self._object_assets.append(object_asset)
                     self._object_names.append(object_name)
@@ -516,7 +646,11 @@ class IsaacGymSimulator(Simulator):
             )
 
     def _build_env(
-        self, env_id: int, env_ptr, humanoid_asset, visualization_markers: Optional[Dict[str, VisualizationMarker]] = None
+        self,
+        env_id: int,
+        env_ptr,
+        humanoid_asset,
+        visualization_markers: Optional[Dict[str, VisualizationMarker]] = None,
     ) -> None:
         col_group = env_id
         col_filter = 0 if self.robot_config.asset.self_collisions else 1
@@ -646,14 +780,21 @@ class IsaacGymSimulator(Simulator):
                 env_ptr, object_handle, gymapi.DOMAIN_SIM
             )
             self._object_indices.append(object_idx)
-            object_dims = torch.tensor(object_spawn_info.object_dims, device=self.device, dtype=torch.float)
+            object_dims = torch.tensor(
+                object_spawn_info.object_dims, device=self.device, dtype=torch.float
+            )
             self._object_dims[-1].append(object_dims)
 
         self._object_dims[-1] = torch.stack(self._object_dims[-1]).reshape(
             self._num_objects_per_scene, -1
         )
 
-    def _build_markers(self, env_id: int, env_ptr, visualization_markers: Optional[Dict[str, VisualizationMarker]] = None) -> None:
+    def _build_markers(
+        self,
+        env_id: int,
+        env_ptr,
+        visualization_markers: Optional[Dict[str, VisualizationMarker]] = None,
+    ) -> None:
         """Build visualization markers for the environment.
 
         Args:
@@ -705,7 +846,7 @@ class IsaacGymSimulator(Simulator):
         if self._num_objects_per_scene > 0:
             self._marker_states = self._root_states.view(
                 self.num_envs, num_actors, self._root_states.shape[-1]
-            )[..., 1 + self._num_objects_per_scene:, :]
+            )[..., 1 + self._num_objects_per_scene :, :]
         else:
             self._marker_states = self._root_states.view(
                 self.num_envs, num_actors, self._root_states.shape[-1]
@@ -722,17 +863,26 @@ class IsaacGymSimulator(Simulator):
 
     # ===== Group 3: Simulation Steps & State Management =====
     def _physics_step(self) -> None:
+
         if self.control_type == ControlType.BUILT_IN_PD:
             self._apply_pd_control()
+
         for i in range(self.decimation):
+
             if not self.control_type == ControlType.BUILT_IN_PD:
                 self._apply_motor_forces()
+
             self._simulate()
+
             if self.device.type == "cpu":
                 self._gym.fetch_results(self._sim, True)
+
             if not self.control_type == ControlType.BUILT_IN_PD:
                 self._gym.refresh_dof_state_tensor(self._sim)
+
+        self._global_step += 1
         self._refresh_sim_tensors()
+        self._maybe_auto_record()
 
     def _refresh_sim_tensors(self) -> None:
         self._gym.refresh_dof_state_tensor(self._sim)
@@ -750,9 +900,9 @@ class IsaacGymSimulator(Simulator):
             self._humanoid_root_states[env_ids, 7:10] = self._reset_states.root_vel[
                 env_ids
             ]
-            self._humanoid_root_states[env_ids, 10:13] = self._reset_states.root_ang_vel[
-                env_ids
-            ]
+            self._humanoid_root_states[env_ids, 10:13] = (
+                self._reset_states.root_ang_vel[env_ids]
+            )
 
             self._dof_pos[env_ids] = self._reset_states.dof_pos[env_ids]
             self._dof_vel[env_ids] = self._reset_states.dof_vel[env_ids]
@@ -839,13 +989,22 @@ class IsaacGymSimulator(Simulator):
         num_actors = self._root_states.shape[0] // self.num_envs
         return num_actors
 
+    # def _get_sim_body_ordering(self) -> SimBodyOrdering:
+    #     return SimBodyOrdering(
+    #         body_names=self._gym.get_asset_rigid_body_names(self._humanoid_asset),
+    #         dof_names=self._gym.get_asset_dof_names(self._humanoid_asset),
+    #         contact_sensor_body_names=self._gym.get_asset_rigid_body_names(
+    #             self._humanoid_asset
+    #         ),
+    #     )
+
     def _get_sim_body_ordering(self) -> SimBodyOrdering:
+
         return SimBodyOrdering(
-            body_names=self._gym.get_asset_rigid_body_names(self._humanoid_asset),
+            body_names=list(self._body_names_wo_feet),  # feet removed
             dof_names=self._gym.get_asset_dof_names(self._humanoid_asset),
-            contact_sensor_body_names=self._gym.get_asset_rigid_body_names(
-                self._humanoid_asset
-            ),
+            contact_sensor_body_names=list(self._body_names_wo_feet),
+            foot_contact_sensor_body_names=list(self._foot_sensor_body_names),
         )
 
     def _get_simulator_root_state(
@@ -886,8 +1045,17 @@ class IsaacGymSimulator(Simulator):
             root_ang_vel=root_ang_vel,
         )
 
+    # def _get_simulator_bodies_contact_buf(self, env_ids=None):
+    #     contact_forces = self._contact_forces.clone()
+    #     if env_ids is not None:
+    #         contact_forces = contact_forces[env_ids]
+    #     return contact_forces
+
     def _get_simulator_bodies_contact_buf(self, env_ids=None):
-        contact_forces = self._contact_forces.clone()
+        # self._contact_forces: (E, num_bodies_total_in_asset, 3) in asset order
+        contact_forces = self._contact_forces.index_select(
+            dim=1, index=self._keep_body_idx
+        )  # non-feet only
         if env_ids is not None:
             contact_forces = contact_forces[env_ids]
         return contact_forces
@@ -898,23 +1066,64 @@ class IsaacGymSimulator(Simulator):
             object_contact_forces = object_contact_forces[env_ids]
         return object_contact_forces
 
-    def _get_simulator_bodies_state(
-        self, env_ids: Optional[torch.Tensor] = None
-    ) -> RobotState:
-        body_pos = self._rigid_body_pos.clone()
-        body_rot = self._rigid_body_rot.clone()
-        body_vel = self._rigid_body_vel.clone()
-        body_ang_vel = self._rigid_body_ang_vel.clone()
+    def _get_simulator_foot_contact_buf(self, env_ids=None):
+        # preferred: dedicated force sensors (gravity excluded)
+        if self.robot_config.with_foot_sensors and (
+            self._foot_contact_forces is not None
+        ):
+            foot_forces = (
+                self._foot_contact_forces.clone()
+            )  # (E, num_feet, 3), order == self._foot_sensor_body_names
+            if env_ids is not None:
+                foot_forces = foot_forces[env_ids]
+            return foot_forces
+
+        # fallback: take feet rows from net contact buffer
+        feet_from_net = self._contact_forces.index_select(
+            dim=1, index=self._feet_body_idx
+        )
         if env_ids is not None:
-            body_pos = body_pos[env_ids]
-            body_rot = body_rot[env_ids]
-            body_vel = body_vel[env_ids]
-            body_ang_vel = body_ang_vel[env_ids]
+            feet_from_net = feet_from_net[env_ids]
+        return feet_from_net
+
+    # def _get_simulator_bodies_state(
+    #     self, env_ids: Optional[torch.Tensor] = None
+    # ) -> RobotState:
+    #     body_pos = self._rigid_body_pos.clone()
+    #     body_rot = self._rigid_body_rot.clone()
+    #     body_vel = self._rigid_body_vel.clone()
+    #     body_ang_vel = self._rigid_body_ang_vel.clone()
+    #     if env_ids is not None:
+    #         body_pos = body_pos[env_ids]
+    #         body_rot = body_rot[env_ids]
+    #         body_vel = body_vel[env_ids]
+    #         body_ang_vel = body_ang_vel[env_ids]
+    #     return RobotState(
+    #         rigid_body_pos=body_pos,
+    #         rigid_body_rot=body_rot,
+    #         rigid_body_vel=body_vel,
+    #         rigid_body_ang_vel=body_ang_vel,
+    #     )
+
+    def _get_simulator_bodies_state(self, env_ids=None) -> RobotState:
+        body_pos = self._rigid_body_pos.index_select(dim=1, index=self._keep_body_idx)
+        body_rot = self._rigid_body_rot.index_select(dim=1, index=self._keep_body_idx)
+        body_vel = self._rigid_body_vel.index_select(dim=1, index=self._keep_body_idx)
+        body_ang = self._rigid_body_ang_vel.index_select(
+            dim=1, index=self._keep_body_idx
+        )
+        if env_ids is not None:
+            body_pos, body_rot, body_vel, body_ang = (
+                body_pos[env_ids],
+                body_rot[env_ids],
+                body_vel[env_ids],
+                body_ang[env_ids],
+            )
         return RobotState(
             rigid_body_pos=body_pos,
             rigid_body_rot=body_rot,
             rigid_body_vel=body_vel,
-            rigid_body_ang_vel=body_ang_vel,
+            rigid_body_ang_vel=body_ang,
         )
 
     def _get_simulator_dof_forces(self, env_ids=None):
@@ -950,36 +1159,44 @@ class IsaacGymSimulator(Simulator):
         self._gym.set_dof_actuation_force_tensor(self._sim, torques_tensor)
 
     def _push_robot(self):
-        forces = torch.zeros((1, self._rigid_body_state.shape[0], 3), device=self.device, dtype=torch.float)
-        torques = torch.zeros((1, self._rigid_body_state.shape[0], 3), device=self.device, dtype=torch.float)
-        
+        forces = torch.zeros(
+            (1, self._rigid_body_state.shape[0], 3),
+            device=self.device,
+            dtype=torch.float,
+        )
+        torques = torch.zeros(
+            (1, self._rigid_body_state.shape[0], 3),
+            device=self.device,
+            dtype=torch.float,
+        )
+
         # Apply force to the pelvis
         for i in range(self._rigid_body_state.shape[0] // self._num_bodies):
             forces[:, i * self._num_bodies, :] = -8000
-            forces[:, i * self._num_bodies, :] = -8000
 
-        self._gym.apply_rigid_body_force_tensors(self._sim, gymtorch.unwrap_tensor(forces), gymtorch.unwrap_tensor(torques), gymapi.ENV_SPACE)
+        self._gym.apply_rigid_body_force_tensors(
+            self._sim,
+            gymtorch.unwrap_tensor(forces),
+            gymtorch.unwrap_tensor(torques),
+            gymapi.ENV_SPACE,
+        )
 
     # ===== Group 6: Rendering & Visualization =====
     def _init_camera(self) -> None:
-        self._gym.refresh_actor_root_state_tensor(self._sim)
+        # target = root of env 0 in headless; viewer picks up current cam otherwise
         self._cam_prev_char_pos = (
-            self._get_simulator_root_state(self._camera_target["env"])
-            .root_pos.cpu()
-            .numpy()
+            self._get_simulator_root_state(0).root_pos.cpu().numpy()
         )
+        pos = self._cam_prev_char_pos + np.array([0, -3.0, 0.4], dtype=np.float32)
+        tgt = self._cam_prev_char_pos + np.array([0, 0, 0.2], dtype=np.float32)
 
-        cam_pos = gymapi.Vec3(
-            self._cam_prev_char_pos[0],
-            self._cam_prev_char_pos[1] - 3.0,
-            self._cam_prev_char_pos[2] + 0.4,
-        )
-        cam_target = gymapi.Vec3(
-            self._cam_prev_char_pos[0],
-            self._cam_prev_char_pos[1],
-            self._cam_prev_char_pos[2] + 0.2,
-        )
-        self._gym.viewer_camera_look_at(self._viewer, None, cam_pos, cam_target)
+        if not self.headless:
+            cam_pos = gymapi.Vec3(float(pos[0]), float(pos[1]), float(pos[2]))
+            cam_tgt = gymapi.Vec3(float(tgt[0]), float(tgt[1]), float(tgt[2]))
+            self._gym.viewer_camera_look_at(self._viewer, None, cam_pos, cam_tgt)
+        else:
+            if self._record_cam_io is not None:
+                self._record_cam_io.set_camera_view(pos, tgt)
 
     def render(self) -> None:
         if not self.headless:
@@ -1014,9 +1231,34 @@ class IsaacGymSimulator(Simulator):
                 self._gym.draw_viewer(self._viewer, self._sim, True)
             else:
                 self._gym.poll_viewer_events(self._viewer)
+        else:
+            if self.config.record0:
+                if not hasattr(self, "_record_cam_io"):
+
+                    from protoverse.simulator.isaacgym.utils.camera_io import (
+                        IsaacGymSingleCameraIO,
+                    )
+
+                    self._record_cam_io = IsaacGymSingleCameraIO(
+                        gym=self._gym,
+                        sim=self._sim,
+                        env=self._envs[0],  # env_0 only
+                        width=getattr(self.config, "record_width", 320),
+                        height=getattr(self.config, "record_height", 240),
+                        horizontal_fov=70.0,
+                        enable_color=True,
+                        enable_depth=False,
+                        enable_seg=False,
+                    )
+                    self._init_camera()
+                elif self._user_is_recording:
+                    self._update_camera()
+
         super().render()
 
-    def _update_simulator_markers(self, markers_state: Optional[Dict[str, MarkerState]] = None) -> None:
+    def _update_simulator_markers(
+        self, markers_state: Optional[Dict[str, MarkerState]] = None
+    ) -> None:
         if markers_state is None:
             return
 
@@ -1055,48 +1297,66 @@ class IsaacGymSimulator(Simulator):
         self._gym.destroy_sim(self._sim)
 
     def _update_camera(self) -> None:
-        self._gym.refresh_actor_root_state_tensor(self._sim)
-
+        # compute target position
         if self._camera_target["element"] == 0:
-            current_char_pos = (
+            char_root_pos = (
                 self._get_simulator_root_state(self._camera_target["env"])
                 .root_pos.cpu()
                 .numpy()
             )
             height_offset = 0.2
         else:
-            in_scene_object_id = self._camera_target["element"] - 1
-            current_char_pos = (
+            k = self._camera_target["element"] - 1
+            char_root_pos = (
                 self._get_simulator_object_root_state(self._camera_target["env"])
-                .root_pos[in_scene_object_id]
+                .root_pos[k]
                 .cpu()
                 .numpy()
             )
-            height_offset = 0
+            height_offset = 0.0
 
-        current_cam_transform = self._gym.get_viewer_camera_transform(self._viewer, None)
-        current_cam_pos = np.array(
+        if not self.headless:
+            # read viewer camera state, maintain delta (like you already do)
+            current = self._gym.get_viewer_camera_transform(self._viewer, None)
+            cam_pos = np.array(
+                [current.p.x, current.p.y, current.p.z], dtype=np.float32
+            )
+        else:
+            # headless: get current record camera position
+            cam_state = (
+                self._record_cam_io.get_camera_state() if self._record_cam_io else None
+            )
+            cam_pos = (
+                cam_state["pos"]
+                if (cam_state and cam_state["pos"] is not None)
+                else (
+                    self._cam_prev_char_pos + np.array([0, -3.0, 0.4], dtype=np.float32)
+                )
+            )
+
+        cam_delta = cam_pos - self._cam_prev_char_pos
+        new_tgt = np.array(
+            [char_root_pos[0], char_root_pos[1], char_root_pos[2] + height_offset],
+            dtype=np.float32,
+        )
+        new_pos = np.array(
             [
-                current_cam_transform.p.x,
-                current_cam_transform.p.y,
-                current_cam_transform.p.z,
-            ]
+                char_root_pos[0] + cam_delta[0],
+                char_root_pos[1] + cam_delta[1],
+                char_root_pos[2] + cam_delta[2],
+            ],
+            dtype=np.float32,
         )
 
-        cam_offset = current_cam_pos - self._cam_prev_char_pos
+        if not self.headless:
+            self._gym.viewer_camera_look_at(
+                self._viewer,
+                None,
+                gymapi.Vec3(float(new_pos[0]), float(new_pos[1]), float(new_pos[2])),
+                gymapi.Vec3(float(new_tgt[0]), float(new_tgt[1]), float(new_tgt[2])),
+            )
+        else:
+            if self._record_cam_io is not None:
+                self._record_cam_io.set_camera_view(new_pos, new_tgt)
 
-        new_cam_target = gymapi.Vec3(
-            current_char_pos[0],
-            current_char_pos[1],
-            current_char_pos[2] + height_offset,
-        )
-
-        new_cam_pos = gymapi.Vec3(
-            current_char_pos[0] + cam_offset[0],
-            current_char_pos[1] + cam_offset[1],
-            current_char_pos[2] + cam_offset[2],
-        )
-
-        self._gym.viewer_camera_look_at(self._viewer, None, new_cam_pos, new_cam_target)
-
-        self._cam_prev_char_pos[:] = current_char_pos
+        self._cam_prev_char_pos[:] = char_root_pos

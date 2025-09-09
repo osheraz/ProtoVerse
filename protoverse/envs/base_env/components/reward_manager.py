@@ -4,6 +4,7 @@ import torch
 from typing import Dict
 from loguru import logger
 from termcolor import colored
+from isaac_utils import rotations, torch_utils
 
 
 class RewardManager(BaseComponent):
@@ -13,7 +14,15 @@ class RewardManager(BaseComponent):
 
         self.feet_air_time = torch.zeros(
             self.env.num_envs,
-            2,  # HARD code for now
+            len(self.env.feet_indices),
+            dtype=torch.float,
+            device=self.env.device,
+            requires_grad=False,
+        )
+
+        self.feet_contact_time = torch.zeros(
+            self.env.num_envs,
+            len(self.env.feet_indices),
             dtype=torch.float,
             device=self.env.device,
             requires_grad=False,
@@ -21,7 +30,7 @@ class RewardManager(BaseComponent):
 
         self.last_contacts = torch.zeros(
             self.env.num_envs,
-            2,  # HARD code for now
+            len(self.env.feet_indices),
             dtype=torch.bool,
             device=self.env.device,
             requires_grad=False,
@@ -96,6 +105,7 @@ class RewardManager(BaseComponent):
         self.last_dof_pos[env_ids] = 0
         self.last_dof_vel[env_ids] = 0
         self.feet_air_time[env_ids] = 0
+        self.feet_contact_time[env_ids] = 0
 
     def _pre_compute(self):
         self.dof_state = self.env.simulator.get_dof_state()
@@ -149,45 +159,13 @@ class RewardManager(BaseComponent):
     def _reward_action_rate(self):
         return rewards.reward_action_rate(self.env.actions, self.last_actions)
 
-    def _reward_feet_air_time(self):
-        # Reward long steps
-        # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
-        if self.env.config.with_foot_obs:
-            forces = self.simulator.get_foot_contact_buf()  # [B, S, 3]
-            z = forces[..., 2]  # only Z component, like else
-
-            names = [n.lower() for n in self.simulator.robot_config.foot_contact_links]
-            left_idx = [i for i, n in enumerate(names) if "left" in n]
-            right_idx = [i for i, n in enumerate(names) if "right" in n]
-
-            thresh = 1.0  # consider making this a config param
-            left_contact = (z[:, left_idx] > thresh).any(dim=1)  # [B]
-            right_contact = (z[:, right_idx] > thresh).any(dim=1)  # [B]
-
-            # same shape/semantics as else: [B, 2] (left, right)
-            contact = torch.stack([left_contact, right_contact], dim=1)
-        else:
-            contact = self.body_contacts[:, self.env.feet_indices, 2] > 1.0
-
-        contact_filt = torch.logical_or(contact, self.last_contacts)
-        self.last_contacts = contact
-        first_contact = (self.feet_air_time > 0.0) * contact_filt
-        self.feet_air_time += self.env.dt
-        rew_feet_air_time = torch.sum(
-            (self.feet_air_time - 0.5) * first_contact, dim=1
-        )  #  reward only on first contact with the ground
-        rew_feet_air_time *= (
-            self.env._tar_speed > 0.1
-        )  # TODO: no reward for zero command
-        self.feet_air_time *= ~contact_filt
-        return rew_feet_air_time
-
     def _reward_path(self):
 
         return rewards.compute_heading_reward(
             self.root_states.root_pos,
             self.last_root_pos,
             self.root_states.root_rot,
+            # self.body_states.rigid_body_rot[:, self.env.torso_index],
             self.env._tar_dir,
             self.env._tar_speed,
             self.env.dt,
@@ -228,16 +206,6 @@ class RewardManager(BaseComponent):
             gravity_vec,
         )
 
-    def _reward_dof_pos_limits(self):
-        limits = torch.stack(
-            (
-                self.env.simulator._dof_limits_lower_common,  # [num_dof]
-                self.env.simulator._dof_limits_upper_common,  # [num_dof]
-            ),
-            dim=1,  # -> [num_dof, 2]
-        )
-        return rewards.reward_dof_pos_limits(self.dof_state.dof_pos, limits)
-
     def _reward_base_height(self):
         # Adjust current global translations to be relative to the data origin
         measured_heights = self.env.terrain.get_ground_heights(
@@ -275,6 +243,7 @@ class RewardManager(BaseComponent):
 
         default = self.env.simulator._default_dof_pos.to(self.env.device)
         default = default.expand(self.env.num_envs, -1)
+
         return rewards.reward_upperbody_joint_angle_freeze(
             self.dof_state.dof_pos,
             default,
@@ -328,3 +297,166 @@ class RewardManager(BaseComponent):
         term_rew = (self.env.reset_buf.bool() & (~timeout_buf)).float()
 
         return term_rew
+
+    def _reward_tracking_lin_vel(self):
+        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
+        vel_yaw = rotations.quat_rotate(
+            heading_inv, self.root_states.root_vel[:, :3], True
+        )
+
+        tar_speed = self.env._tar_speed  # [B]
+        cmd_xy_yaw = torch.stack(
+            [tar_speed, torch.zeros_like(tar_speed)], dim=1
+        )  # [B,2]
+
+        vxf = torch.clamp(vel_yaw[:, 0], min=0.0)  # forbid backward from “helping”
+        vy = vel_yaw[:, 1]
+
+        STD = 0.3  # tighter than 0.5 so standing still hurts
+        err = (cmd_xy_yaw[:, 0] - vxf) ** 2 + (cmd_xy_yaw[:, 1] - vy) ** 2
+        return torch.exp(-err / (STD**2))
+
+    def _reward_tracking_ang_vel(self):
+        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
+        tar_dir3 = torch.cat(
+            [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
+        )
+        local_tar = rotations.quat_rotate(heading_inv, tar_dir3, True)[:, :2]
+
+        heading_err = torch.atan2(local_tar[:, 1], local_tar[:, 0])  # (-pi, pi]
+        ang_z_cmd = torch.clamp(0.5 * heading_err, -1.0, 1.0)  # smaller gain + cap
+
+        ang_z_meas = self.root_states.root_ang_vel[:, 2]
+        err = (ang_z_cmd - ang_z_meas).pow(2)
+        return torch.exp(-err / (0.5**2))  # downweighted
+
+    def _reward_progress(self):
+        # finite-diff world velocity using buffers you already maintain
+        vel_fd_xy = (
+            self.root_states.root_pos[:, :2] - self.last_root_pos[:, :2]
+        ) / self.env.dt
+
+        # rotate FD velocity into yaw frame
+        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
+        vel_fd3 = torch.cat([vel_fd_xy, torch.zeros_like(vel_fd_xy[:, :1])], dim=1)
+        vel_yaw_fd = rotations.quat_rotate(heading_inv, vel_fd3, True)
+
+        # forward-only (no backward credit)
+        vxf = torch.clamp(vel_yaw_fd[:, 0], min=0.0)
+
+        # Isaac-style exponential shaping → returns (0,1], saturates as speed grows
+        vel_err_scale = 0.25  # tighten/loosen if needed
+        progress_reward = 1.0 - torch.exp(-vel_err_scale * vxf * vxf)
+        return progress_reward
+
+    def _reward_upperbody_joint_angle_freeze_hip(self):
+        default = self.env.simulator._default_dof_pos.to(self.env.device).expand(
+            self.env.num_envs, -1
+        )
+        return rewards.reward_upperbody_joint_angle_freeze(
+            self.dof_state.dof_pos, default, self.env.hip_joint_indices
+        )
+
+    def _reward_upperbody_joint_angle_freeze_arms(self):
+        default = self.env.simulator._default_dof_pos.to(self.env.device).expand(
+            self.env.num_envs, -1
+        )
+        return rewards.reward_upperbody_joint_angle_freeze(
+            self.dof_state.dof_pos, default, self.env.arm_joint_indices
+        )
+
+    def _reward_upperbody_joint_angle_freeze_torso(self):
+        default = self.env.simulator._default_dof_pos.to(self.env.device).expand(
+            self.env.num_envs, -1
+        )
+        return rewards.reward_upperbody_joint_angle_freeze(
+            self.dof_state.dof_pos, default, self.env.torso_joint_indices
+        )
+
+    def _reward_orientation(self):
+        g = torch.tensor([0.0, 0.0, -1.0], device=self.env.device).expand(
+            self.env.num_envs, -1
+        )
+        projected_gravity = rotations.quat_rotate_inverse(
+            self.root_states.root_rot, g, True
+        )
+        return rewards.reward_orientation(projected_gravity)
+
+    def _reward_feet_air_time(self):
+
+        if self.env.config.with_foot_obs:
+            forces = self.simulator.get_foot_contact_buf()  # [B, S, 3]
+            z = forces[..., 2]
+            names = [n.lower() for n in self.simulator.robot_config.foot_contact_links]
+            left_idx = [i for i, n in enumerate(names) if "left" in n]
+            right_idx = [i for i, n in enumerate(names) if "right" in n]
+            thresh = 1.0
+            left_contact = (z[:, left_idx] > thresh).any(dim=1)
+            right_contact = (z[:, right_idx] > thresh).any(dim=1)
+            contact = torch.stack([left_contact, right_contact], dim=1)  # [B, 2]
+        else:
+            contact = self.body_contacts[:, self.env.feet_indices, 2] > 1.0
+
+        contact_filt = torch.logical_or(contact, self.last_contacts)
+        self.last_contacts = contact
+
+        mode = getattr(self.config, "feet_air_time_mode", "positive_biped")
+        thr = float(getattr(self.config, "feet_air_time_threshold", 0.4))
+        dt = self.env.dt
+
+        if mode == "plain":
+            first_contact = contact_filt * (self.feet_air_time > 0.0)
+            rew = torch.sum((self.feet_air_time - thr) * first_contact.float(), dim=1)
+            rew *= self.env._tar_speed > 0.1
+            self.feet_air_time = torch.where(
+                contact_filt,
+                torch.zeros_like(self.feet_air_time),
+                self.feet_air_time + dt,
+            )
+            return rew
+
+        # positive_biped
+        self.feet_contact_time = torch.where(
+            contact_filt,
+            self.feet_contact_time + dt,
+            torch.zeros_like(self.feet_contact_time),
+        )
+        self.feet_air_time = torch.where(
+            ~contact_filt, self.feet_air_time + dt, torch.zeros_like(self.feet_air_time)
+        )
+        single_stance = contact_filt.int().sum(dim=1) == 1
+        in_mode_time = torch.where(
+            contact_filt, self.feet_contact_time, self.feet_air_time
+        )
+        rew = torch.min(
+            torch.where(
+                single_stance.unsqueeze(-1),
+                in_mode_time,
+                torch.zeros_like(in_mode_time),
+            ),
+            dim=1,
+        )[0]
+        rew = torch.clamp(rew, max=thr)
+        rew *= self.env._tar_speed > 0.1
+        return rew
+
+    def _reward_dof_pos_limits(self):
+
+        limits = torch.stack(
+            (
+                self.env.simulator._dof_limits_lower_common,
+                self.env.simulator._dof_limits_upper_common,
+            ),
+            dim=1,
+        )
+        scope = getattr(self.config, "dof_pos_limits_scope", "all")
+        if (
+            scope == "ankles"
+            and hasattr(self.env, "ankle_dof_indices")
+            and self.env.ankle_dof_indices is not None
+        ):
+            return rewards.reward_dof_pos_limits(
+                self.dof_state.dof_pos[:, self.env.ankle_dof_indices],
+                limits[self.env.ankle_dof_indices],
+            )
+        return rewards.reward_dof_pos_limits(self.dof_state.dof_pos, limits)

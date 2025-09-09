@@ -53,7 +53,7 @@ def reward_collision(
 
 
 @torch.jit.script
-def compute_heading_reward_v1(
+def compute_heading_reward_old(
     root_pos: Tensor,
     prev_root_pos: Tensor,
     tar_dir: Tensor,
@@ -97,43 +97,48 @@ def compute_heading_reward(
     tar_speed: Tensor,  # (N,)
     dt: float,
 ) -> Tensor:
+    face_w: float = 1.0
+    face_pow: float = 1.5
+    vel_err_scale: float = 0.25
+    tangent_err_w: float = 0.1
 
-    face_w = 0.30  # additive facing shaping
-    face_pow = 1.5
+    # --- velocity ---
+    dt_t = torch.tensor(dt, dtype=root_pos.dtype, device=root_pos.device)
+    rv_xy = (root_pos - prev_root_pos)[..., :2] / dt_t
 
-    vel_err_scale = 0.25
-    tangent_err_w = 0.1
+    # --- normalize target dir ---
+    td = tar_dir
+    td_norm = torch.sqrt(torch.clamp((td * td).sum(dim=-1, keepdim=True), min=1e-12))
+    td = td / td_norm
 
-    delta_root_pos = root_pos - prev_root_pos
-    root_vel = delta_root_pos / dt
-    tar_dir_speed = torch.sum(tar_dir * root_vel[..., :2], dim=-1)
+    # --- projection along target & clamp backward to 0 ---
+    proj = (td * rv_xy).sum(dim=-1)  # signed speed along target
+    fwd_speed = torch.clamp_min(proj, 0.0)
 
-    tar_dir_vel = tar_dir_speed.unsqueeze(-1) * tar_dir
-    tangent_vel = root_vel[..., :2] - tar_dir_vel
+    # --- decompose using fwd_speed ---
+    along = fwd_speed.unsqueeze(-1) * td
+    tangent = rv_xy - along
+    tangent_speed = torch.sqrt(torch.clamp((tangent * tangent).sum(dim=-1), min=1e-12))
 
-    tangent_speed = torch.sum(tangent_vel, dim=-1)
-
-    tar_vel_err = tar_speed - tar_dir_speed
-    tangent_vel_err = tangent_speed
+    # --- Gaussian tracking reward ---
+    tar_vel_err = tar_speed - fwd_speed
     dir_reward = torch.exp(
         -vel_err_scale
-        * (
-            tar_vel_err * tar_vel_err
-            + tangent_err_w * tangent_vel_err * tangent_vel_err
-        )
+        * (tar_vel_err * tar_vel_err + tangent_err_w * tangent_speed * tangent_speed)
     )
 
-    speed_mask = tar_dir_speed < -0.5
-    dir_reward[speed_mask] = 0
+    # --- hard-zero if actually moving backward ---
+    dir_reward = torch.where(proj < 0.0, torch.zeros_like(dir_reward), dir_reward)
 
-    # soft facing bonus (additive shaping, no gating)
-    tar_dir3d = torch.cat([tar_dir, torch.zeros_like(tar_dir[..., :1])], dim=-1)
+    # --- soft facing bonus (multiplicative shaping) ---
+    td3 = torch.cat([td, torch.zeros_like(td[..., :1])], dim=-1)
     heading_inv = torch_utils.calc_heading_quat_inv(root_rot, True)  # world->heading
-    local_tar_x = rotations.quat_rotate(heading_inv, tar_dir3d, True)[..., 0]
-    face = torch.clamp(0.5 * (local_tar_x + 1.0), 0.0, 1.0)  # [0,1]
-    face = torch.pow(face, torch.tensor(face_pow, device=face.device))
+    local_tar_x = rotations.quat_rotate(heading_inv, td3, True)[..., 0]
+    face = torch.clamp(0.5 * (local_tar_x + 1.0), 0.0, 1.0)
+    face = face.pow(face_pow)
 
-    return dir_reward + face_w * face
+    shaped = dir_reward * (1.0 + face_w * face)
+    return shaped
 
 
 @torch.jit.script

@@ -21,7 +21,7 @@ python protoverse/eval_agent.py +robot=h1_w_foot_sensors +simulator=isaaclab +ch
 
 HYDRA_FULL_ERROR=1 python protoverse/eval_agent.py +robot=g1 +simulator=isaaclab +checkpoint=results/g1_new_obs_terrain_foot_no_obs/last.ckpt +init_viser=true ++env.config.enable_height_termination=true ++simulator.config.with_multi_viewport_camera=true ++robot.use_robot_obs=true 
 
-HYDRA_FULL_ERROR=1 python protoverse/eval_agent.py +robot=g1_w_foot_sensors +simulator=isaaclab +checkpoint=results/g1_slow/last.ckpt +init_viser=true ++env.config.enable_height_termination=true ++simulator.config.with_multi_viewport_camera=true
+HYDRA_FULL_ERROR=1 python protoverse/eval_agent.py +robot=h1 +simulator=isaaclab +checkpoint=results/h1_test/last.ckpt +init_viser=true ++env.config.enable_height_termination=true ++simulator.config.with_multi_viewport_camera=true
 ```
 
 # Important params 
@@ -40,9 +40,12 @@ enable_stabilization
 # defaults:
 #   - /robot/g1_29dof_with_sensors
 
-# Runnnig
+# Running
 
 
-HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=g1_23_t +robot=g1_29dof_anneal_23dof +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++num_envs=512
+HYDRA_FULL_ERROR=1 python protove rse/train_agent.py +experiment_name=g1_23_t +robot=g1_29dof_anneal_23dof +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++num_envs=512
 
-HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=h1_face +robot=h1 +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=h1_isaac_reward12 +robot=h1 +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true 
+
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=h1_isaac_gym6 +robot=h1 +exp=steering_mlp +simulator=isaacgym +opt=wandb ++env.config.enable_height_termination=true ++num_envs=10 ++headless=false
+

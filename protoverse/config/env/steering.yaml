@@ -28,6 +28,11 @@ env:
       positive_constant: 0.0
       scale_with_dt: True
 
+      use_yaw_frame_tracking: True
+      feet_air_time_mode: positive_biped
+      feet_air_time_threshold: 0.4
+      dof_pos_limits_scope: ankles
+
       target_base_height: 0.78 # g1
       target_feet_height: 0.12 # g1
       close_feet_threshold: 0.15 # g1
@@ -35,27 +40,39 @@ env:
       reward_scales:
         # ViNL
         path:             8.0 
-        lin_vel_z:       -2.0
-        ang_vel_xy:      -1.0      # -1.0  -0.05
-        torque:          -0.00001
-        dof_acc:         -3.5e-8    # -3.5e-8 -2.5e-7 
-        feet_air_time:    1.0
-        collision:       -1.0
-        action_rate:     -0.01
-        
+        # lin_vel_z:       -2.0
+        # ang_vel_xy:      -1.0      
+        # torque:          -0.00001
+        # dof_acc:         -3.5e-8    # -3.5e-8 -2.5e-7 
+        # feet_air_time:    1.0
+        # collision:       -1.0
+        # action_rate:     -0.01
+        # slippage: -0.1 # -1.0
+        # dof_pos_limits: -10.0 # -10.0 
+
         # ASAP
-        slippage: -0.1 # -1.0
         # feet_ori: -2.0
-        dof_pos_limits: -10.0 # -10.0 
         # base_height: -10.0 
         # feet_height: -2.5
-        upperbody_joint_angle_freeze: -0.2
-        # feet_heading_alignment: -0.3        
+        # upperbody_joint_angle_freeze: -0.2
+        # feet_heading_alignment: -0.3   # check     
         # penalty_close_feet_xy: -10.
         # penalty_ang_vel_xy_torso: -1.0
         # penalty_hip_pos: -1.0. - < 
-        # termination: -20.0
 
+        # H1RoughEnvCfg
+        # termination: -100.0
+        tracking_lin_vel: 10.0
+        tracking_ang_vel: 5.0
+        feet_air_time: 1.0             
+        slippage: -0.25                  
+        dof_pos_limits: -1.0
+        upperbody_joint_angle_freeze_hip: -0.2
+        upperbody_joint_angle_freeze_arms: -0.2
+        upperbody_joint_angle_freeze_torso: -0.1
+        orientation: -1.0
+        action_rate: -0.005
+        dof_acc: -1.25e-7
+        # progress: 0.2
 
-        
 # Globally accessible parameters

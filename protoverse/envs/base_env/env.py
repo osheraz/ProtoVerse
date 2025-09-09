@@ -92,7 +92,30 @@ class BaseEnv:
         self.upper_dof_indices = self.simulator.build_dof_ids_tensor(
             self.config.robot.upper_dof_names
         )
+        ##
+        self.ankle_dof_indices = self.simulator.build_dof_ids_tensor(
+            self.config.robot.ankle_dof_names
+        )
+        self.hip_joint_indices = self.simulator.build_dof_ids_tensor(
+            self.config.robot.hip_joint_names
+        )
+        self.arm_joint_indices = self.simulator.build_dof_ids_tensor(
+            self.config.robot.arm_joint_names
+        )
+        self.torso_joint_indices = self.simulator.build_dof_ids_tensor(
+            self.config.robot.torso_joint_names
+        )
 
+        # for base "undesired_contacts"
+        self.thigh_body_indices = self.simulator.build_body_ids_tensor(
+            getattr(
+                self.config.robot,
+                "undesired_contact_bodies",
+                self.config.robot.penalize_contacts_on,
+            )
+        )
+
+        ##
         self.build_termination_heights()
 
         self.state_init = self.StateInit[config.state_init]

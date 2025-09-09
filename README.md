@@ -8,12 +8,19 @@ It merges capabilities from two libraries:
 ---
 
 
-# Install Instructions (Isaaclab)
+# Install Instructions 
+
+
 ```
 git clone --recurse-submodules https://github.com/osheraz/ProtoVerse.git
 
 git lfs fetch --all  # to fetch all files stored in git-lfs.
 
+```
+
+## (Isaaclab)
+
+```
 conda create -n proto_sim python==3.10
 conda activate proto_sim
 conda install -c "nvidia/label/cuda-12.4.0" cuda-toolkit
@@ -28,3 +35,14 @@ cd dependencies/IsaacLab
 ./isaaclab.sh --install none
 
 ```
+
+## Isaacgym
+
+mamba env create -n proto_gym python==3.8
+pip install -e isaacgym/python
+pip install -e isaac_utils
+pip install -e poselib
+
+cd ProtoVerse
+pip install -e .
+pip install -r requirements_isaacgym.txt

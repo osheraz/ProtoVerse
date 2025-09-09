@@ -6,24 +6,6 @@ from isaaclab.sim import SimulationContext, PhysxCfg
 from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
-try:
-    import viser
-    import viser.extras
-except (
-    Exception
-) as e:  # This is needed since IsaacLab installs its own older websockets version, which is incompatible with visers.
-    if e.args[0] == "No module named 'websockets.asyncio'":
-        import shutil
-        import websockets
-
-        try:
-            shutil.rmtree(websockets.__path__[0])
-            print(
-                f"Directory '{websockets.__path__[0]}' deleted successfully. Please run the script again."
-            )
-        except OSError as e:
-            print(f"Error deleting directory '{websockets.__path__[0]}': {e}")
-
 from easydict import EasyDict
 from protoverse.envs.base_env.env_utils.terrains.terrain import Terrain
 from protoverse.utils.scene_lib import SceneLib
