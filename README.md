@@ -37,7 +37,7 @@ cd dependencies/IsaacLab
 ```
 
 ## Isaacgym
-
+```
 mamba env create -n proto_gym python==3.8
 pip install -e isaacgym/python
 pip install -e isaac_utils
@@ -46,3 +46,4 @@ pip install -e poselib
 cd ProtoVerse
 pip install -e .
 pip install -r requirements_isaacgym.txt
+```
