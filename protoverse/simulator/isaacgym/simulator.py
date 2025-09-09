@@ -411,7 +411,7 @@ class IsaacGymSimulator(Simulator):
 
         self._create_envs(
             getattr(self.config, "env_spacing", 3.0),  # 0,
-            int(np.ceil(np.sqrt(self.num_envs))), # int(np.sqrt(self.num_envs)),
+            int(np.ceil(np.sqrt(self.num_envs))),  # int(np.sqrt(self.num_envs)),
             visualization_markers,
         )
 
@@ -560,7 +560,6 @@ class IsaacGymSimulator(Simulator):
                 self._envs.append(env_ptr)
                 progress.update(task, advance=1)
 
-                
         dof_prop = self._gym.get_actor_dof_properties(
             self._envs[0], self._humanoid_handles[0]
         )
@@ -658,7 +657,6 @@ class IsaacGymSimulator(Simulator):
         env_ptr,
         humanoid_asset,
         visualization_markers: Optional[Dict[str, VisualizationMarker]] = None,
-
     ) -> None:
         col_group = env_id
         col_filter = 0 if self.robot_config.asset.self_collisions else 1
@@ -682,7 +680,7 @@ class IsaacGymSimulator(Simulator):
         # # 3) env-local pose: x=y=0, z = terrain height + small clearance
         # start_pose.p = gymapi.Vec3(0.0, 0.0, ground_z + 0.02)
         # start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
-        
+
         start_offset = [env_id, env_id, env_id]
         start_pose.p = gymapi.Vec3(*start_offset)
         start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
