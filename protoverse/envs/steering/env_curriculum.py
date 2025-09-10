@@ -156,11 +156,11 @@ class SteeringCurriculum(Steering):
         Same as BaseEnv.reset_default, but:
         - start XY comes from curriculum (_sample_start_xy)
         - Z is computed exactly like BaseEnv.get_envs_respawn_position(...) with rigid_body_pos
-        - all in-place ops are done on cloned tensors to avoid aliasing
+        - Preserve original vertical offset by adding the respawn vector (not overwriting Z)
         """
         default_state = self.default_state
 
-        # --- clone everything we'll mutate ---
+        # clone everything we'll mutate
         root_pos = default_state.root_pos[env_ids].clone()
         root_rot = default_state.root_rot[env_ids].clone()
         dof_pos = default_state.dof_pos[env_ids].clone()
@@ -172,30 +172,32 @@ class SteeringCurriculum(Steering):
         rigid_body_vel = default_state.rigid_body_vel[env_ids].clone()
         rigid_body_ang_vel = default_state.rigid_body_ang_vel[env_ids].clone()
 
-        # ---- curriculum-based XY ----
-        start_xy = self._sample_start_xy(len(env_ids), env_ids)  # [n,2] in meters
+        # curriculum-based XY (ensure device matches)
+        start_xy = self._sample_start_xy(len(env_ids), env_ids).to(
+            root_pos.device
+        )  # [n,2]
 
-        # ---- compute Z like BaseEnv.get_envs_respawn_position(...) ----
-        # Normalize RB positions around the root, then translate to start_xy
+        # compute Z like BaseEnv.get_envs_respawn_position(...) with rigid_body_pos
         normalized = rigid_body_pos.clone()  # [n, B, 3]
         normalized[:, :, :2] -= rigid_body_pos[:, :1, :2].clone()  # remove root XY
         normalized[:, :, :2] += start_xy.unsqueeze(1)  # add new XY
 
-        # Query ground heights under every joint
-        flat_norm = normalized.reshape(-1, 3)  # [n*B, 3] (uses first 2 cols)
+        flat_norm = normalized.reshape(-1, 3)  # [n*B, 3]
         z_all = self.terrain.get_ground_heights(flat_norm)  # [n*B]
         z_all = z_all.view(normalized.shape[0], normalized.shape[1])  # [n, B]
 
-        # Find the joint needing the largest upward shift
         z_diff = z_all - normalized[:, :, 2]  # [n, B]
         z_indices = torch.argmax(z_diff, dim=1, keepdim=True)  # [n, 1]
-        z_offset = z_all.gather(1, z_indices) + self.config.ref_respawn_offset  # [n, 1]
+        z_offset = (
+            z_all.gather(1, z_indices).view(-1, 1) + self.config.ref_respawn_offset
+        )
 
-        # ---- set final root pose ----
-        root_pos[:, 0:2] = start_xy
-        root_pos[:, 2:3] = z_offset
+        # build respawn position and add (not overwrite) to root
+        respawn_pos = torch.cat([start_xy, z_offset], dim=-1)  # [n, 3]
+        root_pos[:, :2] = 0.0  # zero XY first
+        root_pos[:, :3] += respawn_pos  # add full respawn vec
 
-        # ---- rebase whole body to the new root ----
+        # rebase whole body to the new root
         rb = rigid_body_pos.clone()
         rb[:, :, :3] -= rb[:, 0:1, :3].clone()
         rb[:, :, :3] += root_pos.unsqueeze(1)
