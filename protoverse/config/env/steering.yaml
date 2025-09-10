@@ -61,7 +61,7 @@ env:
         # penalty_hip_pos: -1.0. - < 
 
         # H1RoughEnvCfg
-        termination: -100.0
+        # termination: -100.0
         tracking_lin_vel: 10.0
         tracking_ang_vel: 5.0
         feet_air_time: 1.0             
