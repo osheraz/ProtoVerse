@@ -298,38 +298,6 @@ class RewardManager(BaseComponent):
 
         return term_rew
 
-    def _reward_tracking_lin_vel(self):
-        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
-        vel_yaw = rotations.quat_rotate(
-            heading_inv, self.root_states.root_vel[:, :3], True
-        )
-
-        tar_speed = self.env._tar_speed  # [B]
-        cmd_xy_yaw = torch.stack(
-            [tar_speed, torch.zeros_like(tar_speed)], dim=1
-        )  # [B,2]
-
-        vxf = torch.clamp(vel_yaw[:, 0], min=0.0)  # forbid backward from “helping”
-        vy = vel_yaw[:, 1]
-
-        STD = 0.3  # tighter than 0.5 so standing still hurts
-        err = (cmd_xy_yaw[:, 0] - vxf) ** 2 + (cmd_xy_yaw[:, 1] - vy) ** 2
-        return torch.exp(-err / (STD**2))
-
-    def _reward_tracking_ang_vel(self):
-        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
-        tar_dir3 = torch.cat(
-            [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
-        )
-        local_tar = rotations.quat_rotate(heading_inv, tar_dir3, True)[:, :2]
-
-        heading_err = torch.atan2(local_tar[:, 1], local_tar[:, 0])  # (-pi, pi]
-        ang_z_cmd = torch.clamp(0.5 * heading_err, -1.0, 1.0)  # smaller gain + cap
-
-        ang_z_meas = self.root_states.root_ang_vel[:, 2]
-        err = (ang_z_cmd - ang_z_meas).pow(2)
-        return torch.exp(-err / (0.5**2))  # downweighted
-
     def _reward_progress(self):
         # finite-diff world velocity using buffers you already maintain
         vel_fd_xy = (
@@ -460,3 +428,81 @@ class RewardManager(BaseComponent):
                 limits[self.env.ankle_dof_indices],
             )
         return rewards.reward_dof_pos_limits(self.dof_state.dof_pos, limits)
+
+    def _reward_tracking_lin_vel_old(self):
+        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
+        vel_yaw = rotations.quat_rotate(
+            heading_inv, self.root_states.root_vel[:, :3], True
+        )
+
+        tar_speed = self.env._tar_speed  # [B]
+        cmd_xy_yaw = torch.stack(
+            [tar_speed, torch.zeros_like(tar_speed)], dim=1
+        )  # [B,2]
+
+        vxf = torch.clamp(vel_yaw[:, 0], min=0.0)  # forbid backward from “helping”
+        vy = vel_yaw[:, 1]
+
+        STD = 0.3  # tighter than 0.5 so standing still hurts
+        err = (cmd_xy_yaw[:, 0] - vxf) ** 2 + (cmd_xy_yaw[:, 1] - vy) ** 2
+        return torch.exp(-err / (STD**2))
+
+    def _reward_tracking_ang_vel_old(self):
+        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
+        tar_dir3 = torch.cat(
+            [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
+        )
+        local_tar = rotations.quat_rotate(heading_inv, tar_dir3, True)[:, :2]
+
+        heading_err = torch.atan2(local_tar[:, 1], local_tar[:, 0])  # (-pi, pi]
+        ang_z_cmd = torch.clamp(0.5 * heading_err, -1.0, 1.0)  # smaller gain + cap
+
+        ang_z_meas = self.root_states.root_ang_vel[:, 2]
+        err = (ang_z_cmd - ang_z_meas).pow(2)
+        return torch.exp(-err / (0.5**2))  # downweighted
+
+    def _reward_tracking_lin_vel(self):
+        # --- Robot base state (world -> body frame) ---
+        root_rot = self.root_states.root_rot  # [B,4], world->body quat (w-last=True)
+        vel_w = self.root_states.root_vel[:, :3]  # [B,3] world linear vel
+        vel_b = rotations.quat_rotate_inverse(root_rot, vel_w, True)[
+            ..., :2
+        ]  # [B,2] body XY
+
+        # --- Command: build desired world velocity from your steering command ---
+        # v_des_w = speed * dir (world), then rotate it into the body frame like Isaac does.
+        tar_dir3 = torch.cat(
+            [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
+        )  # [B,3]
+        v_des_w = self.env._tar_speed.unsqueeze(-1) * tar_dir3  # [B,3]
+        v_des_b = rotations.quat_rotate_inverse(root_rot, v_des_w, True)[
+            ..., :2
+        ]  # [B,2] body XY
+
+        # --- IsaacLab kernel: exp( - ||cmd - meas||^2 / std^2 ) in BODY frame ---
+        STD = 0.5  # IsaacLab commonly uses 0.5
+        err = torch.sum((v_des_b - vel_b) ** 2, dim=-1)  # [B]
+        return torch.exp(-err / (STD**2))
+
+    def _reward_tracking_ang_vel(self):
+        # --- heading error -> desired yaw rate (command) ---
+        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
+        tar_dir3 = torch.cat(
+            [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
+        )
+        local_tar = rotations.quat_rotate(heading_inv, tar_dir3, True)[
+            ..., :2
+        ]  # yaw frame XY
+        heading_err = torch.atan2(local_tar[:, 1], local_tar[:, 0])  # (-pi, pi]
+        wz_cmd = torch.clamp(0.5 * heading_err, -1.0, 1.0)  # your existing policy
+
+        # --- measured yaw rate in BODY frame (Isaac uses *_b) ---
+        root_rot = self.root_states.root_rot
+        ang_w = self.root_states.root_ang_vel  # world ω
+        ang_b = rotations.quat_rotate_inverse(root_rot, ang_w, True)  # body ω
+        wz_meas = ang_b[:, 2]
+
+        # --- Isaac kernel ---
+        STD = 0.5
+        err = (wz_cmd - wz_meas) ** 2
+        return torch.exp(-err / (STD**2))

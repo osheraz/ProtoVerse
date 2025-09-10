@@ -12,6 +12,18 @@ from protoverse.envs.base_env.env_utils.terrains.subterrain_generator import (
     random_uniform_subterrain,
     stepping_stones_subterrain,
 )
+from protoverse.envs.base_env.env_utils.terrains.subterrain_recipes_extra import (
+    pit_subterrain,
+    half_sloped_subterrain,
+    half_platform_subterrain,
+    gap_subterrain,
+    gap_parkour_subterrain,
+    parkour_subterrain,
+    parkour_gap_subterrain,
+    parkour_hurdle_subterrain,
+    parkour_step_subterrain,
+    demo_subterrain,
+)
 from protoverse.envs.base_env.env_utils.terrains.terrain_utils import (
     convert_heightfield_to_trimesh,
     get_heights_jit,

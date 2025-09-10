@@ -45,7 +45,7 @@ enable_stabilization
 
 HYDRA_FULL_ERROR=1 python protove rse/train_agent.py +experiment_name=g1_23_t +robot=g1_29dof_anneal_23dof +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true ++num_envs=512
 
-HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=h1_isaac_reward12 +robot=h1 +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true 
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=h1_isaac_reward_track_path +robot=h1 +exp=steering_mlp +simulator=isaaclab +opt=wandb ++env.config.enable_height_termination=true 
 
 HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=h1_isaacgym_terrain3 +robot=h1 +exp=steering_mlp +simulator=isaacgym ++env.config.enable_height_termination=true +opt=wandb
 

@@ -38,8 +38,10 @@ env:
       close_feet_threshold: 0.15 # g1
 
       reward_scales:
+
+        path:             1.0 
+
         # ViNL
-        path:             8.0 
         # lin_vel_z:       -2.0
         # ang_vel_xy:      -1.0      
         # torque:          -0.00001
@@ -62,9 +64,9 @@ env:
 
         # H1RoughEnvCfg
         # termination: -100.0
-        tracking_lin_vel: 10.0
-        tracking_ang_vel: 5.0
-        feet_air_time: 1.0             
+        tracking_lin_vel: 1 #10.0
+        tracking_ang_vel: 2 # 5.0
+        feet_air_time: 0.25 # 1.0             
         slippage: -0.25                  
         dof_pos_limits: -1.0
         upperbody_joint_angle_freeze_hip: -0.2
@@ -75,4 +77,5 @@ env:
         dof_acc: -1.25e-7
         # progress: 0.2
 
+        
 # Globally accessible parameters
