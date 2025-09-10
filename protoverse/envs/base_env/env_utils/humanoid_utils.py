@@ -342,6 +342,10 @@ def compute_humanoid_reset(
     max_episode_length: float,
     enable_early_termination: bool,
     termination_heights: Tensor,
+    projected_gravity: torch.Tensor,  # [E,3]
+    terminate_by_gravity: bool = True,
+    term_gx: float = 0.8,
+    term_gy: float = 0.8,
 ) -> Tuple[Tensor, Tensor]:
     terminated = torch.zeros_like(reset_buf)
 
@@ -362,6 +366,14 @@ def compute_humanoid_reset(
         # so only check after first couple of steps
         has_fallen *= progress_buf > 1
         terminated = torch.where(has_fallen, torch.ones_like(reset_buf), terminated)
+
+        if terminate_by_gravity:
+            g = projected_gravity  # [E,3] in heading frame
+            too_tilted = torch.logical_or(
+                torch.abs(g[:, 0]) > term_gx, torch.abs(g[:, 1]) > term_gy
+            )
+            too_tilted = torch.logical_and(too_tilted, progress_buf > 1)
+            terminated = torch.where(too_tilted, torch.ones_like(reset_buf), terminated)
 
     reset = torch.where(
         progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), terminated

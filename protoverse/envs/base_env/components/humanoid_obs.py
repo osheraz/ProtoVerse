@@ -9,7 +9,7 @@ from protoverse.envs.base_env.env_utils.humanoid_utils import (
 from protoverse.envs.base_env.components.base_component import BaseComponent
 from protoverse.envs.base_env.env_utils.general import HistoryBuffer
 
-from isaac_utils import rotations
+from isaac_utils import rotations, torch_utils
 
 
 class HumanoidObs(BaseComponent):
@@ -44,6 +44,10 @@ class HumanoidObs(BaseComponent):
         self.gravity_vec = torch.tensor(
             [0, 0, -1], dtype=torch.float, device=self.env.device
         ).repeat(self.env.num_envs, 1)
+
+        self.projected_gravity = torch.zeros(
+            self.env.num_envs, 3, dtype=torch.float, device=self.env.device
+        )
 
     def post_physics_step(self):
         self.humanoid_obs_hist_buf.rotate()
@@ -131,6 +135,11 @@ class HumanoidObs(BaseComponent):
         ground_heights = self.env.terrain.get_ground_heights(
             current_state.rigid_body_pos[:, 0]
         ).clone()
+
+        root_rot = current_state.rigid_body_rot[:, 0, :]
+        heading_rot = torch_utils.calc_heading_quat_inv(root_rot, True)
+        proj_g = rotations.quat_rotate(heading_rot, self.gravity_vec[env_ids], True)
+        self.projected_gravity[env_ids] = proj_g
 
         if self.use_robot_obs:
             current_state = self.env.simulator.get_bodies_state(env_ids)

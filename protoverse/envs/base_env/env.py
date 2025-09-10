@@ -398,6 +398,7 @@ class BaseEnv:
             self.config.enable_height_termination,
             self.termination_heights
             + self.terrain.get_ground_heights(bodies_positions[:, 0]),
+            self.self_obs_cb.projected_gravity,
         )
 
     def compute_reward(self):
