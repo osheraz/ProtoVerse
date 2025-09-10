@@ -664,26 +664,26 @@ class IsaacGymSimulator(Simulator):
 
         start_pose = gymapi.Transform()
 
-        # # 1) get the env's world origin
-        # env_origin = self._gym.get_env_origin(env_ptr)  # Vec3 with world coords
+        # 1) get the env's world origin
+        env_origin = self._gym.get_env_origin(env_ptr)  # Vec3 with world coords
 
-        # # 2) sample terrain height under THIS env's origin (world XY), but
-        # #    keep the actor pose env-local (x=y=0).
-        # if isinstance(self.terrain, FlatTerrain):
-        #     ground_z = 0.0
-        # else:
-        #     xy_world = torch.tensor(
-        #         [[env_origin.x, env_origin.y]], device=self.device, dtype=torch.float
-        #     )
-        #     ground_z = float(self.terrain.get_ground_heights(xy_world).item())
+        # 2) sample terrain height under THIS env's origin (world XY), but
+        #    keep the actor pose env-local (x=y=0).
+        if isinstance(self.terrain, FlatTerrain):
+            ground_z = 0.0
+        else:
+            xy_world = torch.tensor(
+                [[env_origin.x, env_origin.y]], device=self.device, dtype=torch.float
+            )
+            ground_z = float(self.terrain.get_ground_heights(xy_world).item())
 
-        # # 3) env-local pose: x=y=0, z = terrain height + small clearance
-        # start_pose.p = gymapi.Vec3(0.0, 0.0, ground_z + 0.02)
-        # start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
-
-        start_offset = [env_id, env_id, env_id]
-        start_pose.p = gymapi.Vec3(*start_offset)
+        # 3) env-local pose: x=y=0, z = terrain height + small clearance
+        start_pose.p = gymapi.Vec3(0.0, 0.0, ground_z + 0.02)
         start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+
+        # start_offset = [env_id, env_id, env_id]
+        # start_pose.p = gymapi.Vec3(*start_offset)
+        # start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         humanoid_handle = self._gym.create_actor(
             env_ptr,
@@ -1266,7 +1266,7 @@ class IsaacGymSimulator(Simulator):
                     self._record_cam_io = IsaacGymSingleCameraIO(
                         gym=self._gym,
                         sim=self._sim,
-                        env=self._envs[0],  # env_0 only
+                        env=self._envs[0],
                         width=getattr(self.config, "record_width", 320),
                         height=getattr(self.config, "record_height", 240),
                         horizontal_fov=70.0,
