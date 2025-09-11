@@ -327,7 +327,7 @@ def reward_feet_stumble(contact_forces: Tensor, feet_indices: Tensor) -> Tensor:
 
     contact_xy = torch.norm(contact_forces[:, feet_indices, :2], dim=2)
     contact_z = torch.abs(contact_forces[:, feet_indices, 2])
-    return torch.any(contact_xy > 5.0 * contact_z, dim=1)
+    return torch.any(contact_xy > 4.0 * contact_z, dim=1)
 
 
 @torch.jit.script

@@ -137,7 +137,9 @@ class HumanoidObs(BaseComponent):
         ).clone()
 
         root_rot = current_state.rigid_body_rot[:, 0, :]
-        proj_g = rotations.quat_rotate_inverse(root_rot, self.gravity_vec[env_ids], True)
+        proj_g = rotations.quat_rotate_inverse(
+            root_rot, self.gravity_vec[env_ids], True
+        )
         self.projected_gravity[env_ids] = proj_g
 
         if self.use_robot_obs:

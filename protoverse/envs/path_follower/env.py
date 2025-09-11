@@ -41,7 +41,6 @@ class PathFollowing(BaseEnv):
         self.build_path_generator()
 
     def create_visualization_markers(self):
-        # override
 
         if self.config.headless and not self.config.init_viser:
             return {}
@@ -59,7 +58,6 @@ class PathFollowing(BaseEnv):
         return visualization_markers
 
     def get_markers_state(self):
-        # override
 
         if self.config.headless and not self.config.init_viser:
             return {}
@@ -139,7 +137,6 @@ class PathFollowing(BaseEnv):
         return obs
 
     def compute_reward(self):
-        # override
 
         bodies_positions = self.simulator.get_bodies_state().rigid_body_pos
         head_position = bodies_positions[:, self.head_body_id, :]
@@ -156,9 +153,7 @@ class PathFollowing(BaseEnv):
         )
         self.rew_buf[:] = path_rew
 
-
     def compute_reset(self):
-        # override
 
         time = self.progress_buf * self.dt
         env_ids = torch.arange(self.num_envs, device=self.device, dtype=torch.long)
@@ -303,7 +298,7 @@ def compute_path_reward(head_pos, tar_pos, height_conditioned):
     return reward
 
 
-@torch.jit.script
+# @torch.jit.script
 def compute_humanoid_reset(
     reset_buf,
     progress_buf,

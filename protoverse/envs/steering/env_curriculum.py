@@ -71,20 +71,18 @@ class SteeringCurriculum(Steering):
         if isinstance(env_ids, list):
             env_ids = torch.tensor(env_ids, device=self.device, dtype=torch.long)
 
-        # Outcome of the episode that just ended
+        # outcome of the episode that just ended
         just_timed_out = self.progress_buf[env_ids] >= (self.max_episode_length - 1)
         no_termination = self.terminate_buf[env_ids] == 0
 
-        # progress requirement scales with difficulty
         d = self._diff[env_ids]
         need_prog = (
             self._min_prog_at_d0 + (self._min_prog_at_d1 - self._min_prog_at_d0) * d
         )
         moved_enough = self._ep_proj_prog[env_ids] >= need_prog
+        ep_success = no_termination & moved_enough  # keep as you had
 
-        ep_success = no_termination & moved_enough  # & just_timed_out
-
-        # Update streaks
+        # streaks
         self._succ_streak[env_ids] = torch.where(
             ep_success,
             self._succ_streak[env_ids] + 1,
@@ -96,7 +94,6 @@ class SteeringCurriculum(Steering):
             torch.zeros_like(self._fail_streak[env_ids]),
         )
 
-        # Step difficulty up/down by streaks
         inc_mask = ep_success & (self._succ_streak[env_ids] >= self._succ_needed)
         if inc_mask.any():
             self._diff[env_ids[inc_mask]] = torch.clamp(
@@ -111,7 +108,6 @@ class SteeringCurriculum(Steering):
             )
             self._fail_streak[env_ids[dec_mask]] = 0
 
-        # Optional stagnation backoff (if not making progress repeatedly)
         if self._stagnant_eps_need > 0:
             is_stagnant = ~ep_success
             self._stagnant_eps[env_ids] = torch.where(
@@ -126,15 +122,18 @@ class SteeringCurriculum(Steering):
                 )
                 self._stagnant_eps[env_ids[stagnant_mask]] = 0
 
-        # Log difficulty
         self.log_dict["curriculum/diff_mean"] = self._diff.mean()
         self.log_dict["curriculum/diff_std"] = self._diff.std()
 
+        # do the actual respawn first (calls reset_default + reset_heading_task)
+        obs = super().reset(env_ids)
+
+        # now start progress tracking from the new pose (avoid counting teleport)
         rs = self.simulator.get_root_state(env_ids)
         self._last_root_xy[env_ids] = rs.root_pos[:, :2]
         self._ep_proj_prog[env_ids] = 0.0
 
-        return super().reset(env_ids)
+        return obs
 
     def post_physics_step(self):
         super().post_physics_step()
@@ -153,14 +152,12 @@ class SteeringCurriculum(Steering):
 
     def reset_default(self, env_ids):
         """
-        Same as BaseEnv.reset_default, but:
-        - start XY comes from curriculum (_sample_start_xy)
-        - Z is computed exactly like BaseEnv.get_envs_respawn_position(...) with rigid_body_pos
-        - Preserve original vertical offset by adding the respawn vector (not overwriting Z)
+        Start XY from curriculum sampler that uses Terrain's paired samplers.
+        Height (Z) computed like BaseEnv.get_envs_respawn_position with rigid_body_pos.
+        Preserve original vertical offset by ADDING the respawn vector.
         """
         default_state = self.default_state
 
-        # clone everything we'll mutate
         root_pos = default_state.root_pos[env_ids].clone()
         root_rot = default_state.root_rot[env_ids].clone()
         dof_pos = default_state.dof_pos[env_ids].clone()
@@ -172,32 +169,30 @@ class SteeringCurriculum(Steering):
         rigid_body_vel = default_state.rigid_body_vel[env_ids].clone()
         rigid_body_ang_vel = default_state.rigid_body_ang_vel[env_ids].clone()
 
-        # curriculum-based XY (ensure device matches)
+        # curriculum XY using Terrain's paired samplers (validated inside Terrain)
         start_xy = self._sample_start_xy(len(env_ids), env_ids).to(
-            root_pos.device
+            device=root_pos.device, dtype=root_pos.dtype
         )  # [n,2]
 
-        # compute Z like BaseEnv.get_envs_respawn_position(...) with rigid_body_pos
-        normalized = rigid_body_pos.clone()  # [n, B, 3]
-        normalized[:, :, :2] -= rigid_body_pos[:, :1, :2].clone()  # remove root XY
-        normalized[:, :, :2] += start_xy.unsqueeze(1)  # add new XY
+        # compute Z via terrain under all joints (preserves motion-relative heights)
+        normalized = rigid_body_pos.clone()
+        normalized[:, :, :2] -= rigid_body_pos[:, :1, :2].clone()
+        normalized[:, :, :2] += start_xy.unsqueeze(1)
 
-        flat_norm = normalized.reshape(-1, 3)  # [n*B, 3]
-        z_all = self.terrain.get_ground_heights(flat_norm)  # [n*B]
-        z_all = z_all.view(normalized.shape[0], normalized.shape[1])  # [n, B]
+        flat_norm = normalized.reshape(-1, 3)
+        z_all = self.terrain.get_ground_heights(flat_norm)
+        z_all = z_all.view(normalized.shape[0], normalized.shape[1])
 
-        z_diff = z_all - normalized[:, :, 2]  # [n, B]
-        z_indices = torch.argmax(z_diff, dim=1, keepdim=True)  # [n, 1]
+        z_diff = z_all - normalized[:, :, 2]
+        z_indices = torch.argmax(z_diff, dim=1, keepdim=True)
         z_offset = (
             z_all.gather(1, z_indices).view(-1, 1) + self.config.ref_respawn_offset
         )
 
-        # build respawn position and add (not overwrite) to root
-        respawn_pos = torch.cat([start_xy, z_offset], dim=-1)  # [n, 3]
-        root_pos[:, :2] = 0.0  # zero XY first
-        root_pos[:, :3] += respawn_pos  # add full respawn vec
+        respawn_pos = torch.cat([start_xy, z_offset], dim=-1)  # [n,3]
+        root_pos[:, :2] = 0.0
+        root_pos[:, :3] += respawn_pos
 
-        # rebase whole body to the new root
         rb = rigid_body_pos.clone()
         rb[:, :, :3] -= rb[:, 0:1, :3].clone()
         rb[:, :, :3] += root_pos.unsqueeze(1)
@@ -218,24 +213,74 @@ class SteeringCurriculum(Steering):
     @torch.no_grad()
     def _sample_start_xy(self, n: int, env_ids: torch.Tensor) -> torch.Tensor:
         """
-        Flat→rough mixture by difficulty d:
-          p_flat = clamp(1 - k*d, flat_min_prob, 1)
+        Per-env start XY:
+        - Map difficulty d in [0,1] -> level row index in [0, terrain.env_rows-1].
+        - Sample inside that row band only.
+        - Mix flat vs rough per-env via p_flat = clamp(1 - k*d, flat_min_prob, 1).
+        - Use terrain masks to get valid PAIRS of (row,col) within the band.
+        - Fallbacks ensure we always return a coordinate.
         """
-        d = self._diff[env_ids]
-        p_flat = torch.clamp(1.0 - self._flat_mix_k * d, self._flat_min_prob, 1.0)
+        device = self.device
+        if getattr(self, "terrain", None) is None:
+            return torch.zeros((n, 2), device=device, dtype=torch.float32)
 
-        flat_x, flat_y = self.terrain.flat_x_coords, self.terrain.flat_y_coords
-        walk_x, walk_y = self.terrain.walkable_x_coords, self.terrain.walkable_y_coords
+        T = self.terrain
+        d = self._diff[env_ids].clamp(0.0, 1.0)  # [n]
+        p_flat = torch.clamp(
+            1.0 - self._flat_mix_k * d, self._flat_min_prob, 1.0
+        )  # [n]
 
-        def sample_pool(px: torch.Tensor, py: torch.Tensor, count: int) -> torch.Tensor:
-            ix = torch.randint(0, px.shape[0], (count,), device=self.device)
-            iy = torch.randint(0, py.shape[0], (count,), device=self.device)
-            return torch.stack([px[ix], py[iy]], dim=-1)
+        # map difficulty -> level row index
+        # d=0 -> level 0, d=1 -> last level
+        level_idx = torch.clamp((d * (T.env_rows - 1)).long(), 0, T.env_rows - 1)  # [n]
 
-        choose_flat = torch.rand(n, device=self.device) < p_flat
-        flat_xy = sample_pool(flat_x, flat_y, n)
-        rough_xy = sample_pool(walk_x, walk_y, n)
-        return torch.where(choose_flat.unsqueeze(-1), flat_xy, rough_xy)
+        # convenience
+        hs = T.horizontal_scale
+        rows_per_level = T.length_per_env_pixels
+        start_rows = (T.border + level_idx * rows_per_level).tolist()  # python ints
+        end_rows = (T.border + (level_idx + 1) * rows_per_level).tolist()
+
+        # masks (on device)
+        walkable = T.walkable_field == 0  # True where walkable
+        flatmask = T.flat_field_raw == 0  # True where flat
+
+        out = torch.zeros((n, 2), device=device, dtype=torch.float32)
+
+        # per-env banded sampling
+        for i in range(n):
+            r0, r1 = int(start_rows[i]), int(end_rows[i])
+            # band-restricted masks
+            band_mask = torch.zeros_like(walkable)
+            band_mask[r0:r1, :] = True
+
+            # candidates inside band
+            flat_band = band_mask & flatmask
+            rough_band = band_mask & walkable & (~flatmask)
+
+            # choose flat vs rough for this env
+            choose_flat = torch.rand((), device=device) < p_flat[i]
+
+            # pick candidate set (fallbacks if empty)
+            cand = flat_band if choose_flat else rough_band
+            if not cand.any():
+                # if chosen set empty, try the other
+                cand = rough_band if choose_flat else flat_band
+            if not cand.any():
+                # if both empty in this band, fallback: any walkable in band
+                cand = band_mask & walkable
+            if not cand.any():
+                # if still empty (pathological), fallback: any global walkable
+                cand = walkable
+
+            rows, cols = torch.where(cand)
+            j = torch.randint(0, rows.shape[0], (1,), device=device).item()
+
+            # convert grid indices -> world XY (meters)
+            x_m = rows[j].float() * hs
+            y_m = cols[j].float() * hs
+            out[i] = torch.stack([x_m, y_m])
+
+        return out
 
     # ----------------------- difficulty-aware heading -----------------------
 

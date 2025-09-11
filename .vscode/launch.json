@@ -38,7 +38,7 @@
                 "WANDB_SILENT": "true",
                 "WANDB_DISABLE_CODE": "true"
             }
-        }
+        },
         {
             "name": "Debug train_agent.py (isaacgym)",
             "type": "python",
@@ -58,6 +58,36 @@
                 "WANDB_DISABLE_SENTRY": "true",
                 "WANDB_SILENT": "true",
                 "WANDB_DISABLE_CODE": "true"
+            }
+        },
+        {
+            "name": "Debug train_agent.py (isaacgym, AMP, 512 envs)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/protoverse/train_agent.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${command:python.interpreterPath}",
+            "subProcess": true,
+            "justMyCode": false,
+            "args": [
+                "+exp=path_follower_amp_mlp",
+                "+robot=h1",
+                "motion_file=protoverse/data/motions/h1_walk.npy",
+                "+simulator=isaacgym",
+                "+opt=wandb",
+                "+experiment_name=h1_gym_am3",
+                "++num_envs=512"
+            ],
+            "env": {
+                "HYDRA_FULL_ERROR": "1",
+                "WANDB_DISABLE_SENTRY": "true",
+                "WANDB_SILENT": "true",
+                "WANDB_DISABLE_CODE": "true",
+                /* If using the Isaac Gym SDK, also add:
+    ,"PYTHONPATH": "/path/to/IsaacGym/python:${env:PYTHONPATH}",
+    "LD_LIBRARY_PATH": "/path/to/IsaacGym/lib:/home/<user>/miniconda3/envs/proto_gym/lib:${env:LD_LIBRARY_PATH}"
+    */
             }
         }
     ]

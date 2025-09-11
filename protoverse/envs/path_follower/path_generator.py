@@ -48,7 +48,6 @@ class PathGenerator:
             sharp_mask = torch.bernoulli(sharp_probs) == 1.0
             dtheta[sharp_mask] = dtheta_sharp[sharp_mask]
 
-            # if self.config.get("use_forward_path_only", False):
             if self.config.use_forward_path_only:
 
                 dtheta[:, 0] = np.pi * torch.ones(

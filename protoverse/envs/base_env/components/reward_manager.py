@@ -53,7 +53,10 @@ class RewardManager(BaseComponent):
         self.last_root_pos = torch.zeros_like(
             self.env.simulator.get_root_state().root_pos
         )
-
+        self.last_torques = torch.zeros_like(df_state.dof_pos)  # [B, ndof]
+        self._fwd_vec = torch.tensor([1.0, 0.0, 0.0], device=self.env.device).expand(
+            self.env.num_envs, -1
+        )
         self._prepare_reward_function()
 
     def _prepare_reward_function(self):
@@ -106,6 +109,7 @@ class RewardManager(BaseComponent):
         self.last_dof_vel[env_ids] = 0
         self.feet_air_time[env_ids] = 0
         self.feet_contact_time[env_ids] = 0
+        self.last_torques[env_ids] = 0
 
     def _pre_compute(self):
         self.dof_state = self.env.simulator.get_dof_state()
@@ -119,6 +123,7 @@ class RewardManager(BaseComponent):
         self.last_dof_vel[:] = self.dof_state.dof_vel[:]
         self.last_root_vel[:] = self.root_states.root_vel[:]
         self.last_root_pos[:] = self.root_states.root_pos[:]
+        self.last_torques[:] = self.env.simulator.get_torques()
 
     def compute_rewards(self):
 
@@ -145,7 +150,7 @@ class RewardManager(BaseComponent):
     def _reward_ang_vel_xy(self):
         return rewards.reward_ang_vel_xy(self.root_states.root_ang_vel)
 
-    def _reward_torque(self):
+    def _reward_torques(self):
         return rewards.reward_torques(self.env.simulator.get_torques())
 
     def _reward_dof_acc(self):
@@ -153,11 +158,20 @@ class RewardManager(BaseComponent):
             self.dof_state.dof_vel, self.last_dof_vel, self.env.dt
         )
 
+    def _reward_dof_vel(self):
+        return rewards.reward_dof_vel(self.dof_state.dof_vel)
+
     def _reward_collision(self):
         return rewards.reward_collision(self.body_contacts, self.env.penelized_body_ids)
 
     def _reward_action_rate(self):
         return rewards.reward_action_rate(self.env.actions, self.last_actions)
+
+    def _reward_delta_torques(self):
+
+        tau = self.env.simulator.get_torques()
+        dtau = tau - self.last_torques
+        return torch.sum(dtau * dtau, dim=1)
 
     def _reward_path(self):
 
@@ -298,25 +312,6 @@ class RewardManager(BaseComponent):
 
         return term_rew
 
-    def _reward_progress(self):
-        # finite-diff world velocity using buffers you already maintain
-        vel_fd_xy = (
-            self.root_states.root_pos[:, :2] - self.last_root_pos[:, :2]
-        ) / self.env.dt
-
-        # rotate FD velocity into yaw frame
-        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
-        vel_fd3 = torch.cat([vel_fd_xy, torch.zeros_like(vel_fd_xy[:, :1])], dim=1)
-        vel_yaw_fd = rotations.quat_rotate(heading_inv, vel_fd3, True)
-
-        # forward-only (no backward credit)
-        vxf = torch.clamp(vel_yaw_fd[:, 0], min=0.0)
-
-        # Isaac-style exponential shaping → returns (0,1], saturates as speed grows
-        vel_err_scale = 0.25  # tighten/loosen if needed
-        progress_reward = 1.0 - torch.exp(-vel_err_scale * vxf * vxf)
-        return progress_reward
-
     def _reward_upperbody_joint_angle_freeze_hip(self):
         default = self.env.simulator._default_dof_pos.to(self.env.device).expand(
             self.env.num_envs, -1
@@ -429,38 +424,6 @@ class RewardManager(BaseComponent):
             )
         return rewards.reward_dof_pos_limits(self.dof_state.dof_pos, limits)
 
-    def _reward_tracking_lin_vel_old(self):
-        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
-        vel_yaw = rotations.quat_rotate(
-            heading_inv, self.root_states.root_vel[:, :3], True
-        )
-
-        tar_speed = self.env._tar_speed  # [B]
-        cmd_xy_yaw = torch.stack(
-            [tar_speed, torch.zeros_like(tar_speed)], dim=1
-        )  # [B,2]
-
-        vxf = torch.clamp(vel_yaw[:, 0], min=0.0)  # forbid backward from “helping”
-        vy = vel_yaw[:, 1]
-
-        STD = 0.3  # tighter than 0.5 so standing still hurts
-        err = (cmd_xy_yaw[:, 0] - vxf) ** 2 + (cmd_xy_yaw[:, 1] - vy) ** 2
-        return torch.exp(-err / (STD**2))
-
-    def _reward_tracking_ang_vel_old(self):
-        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
-        tar_dir3 = torch.cat(
-            [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
-        )
-        local_tar = rotations.quat_rotate(heading_inv, tar_dir3, True)[:, :2]
-
-        heading_err = torch.atan2(local_tar[:, 1], local_tar[:, 0])  # (-pi, pi]
-        ang_z_cmd = torch.clamp(0.5 * heading_err, -1.0, 1.0)  # smaller gain + cap
-
-        ang_z_meas = self.root_states.root_ang_vel[:, 2]
-        err = (ang_z_cmd - ang_z_meas).pow(2)
-        return torch.exp(-err / (0.5**2))  # downweighted
-
     def _reward_tracking_lin_vel(self):
         # --- Robot base state (world -> body frame) ---
         root_rot = self.root_states.root_rot  # [B,4], world->body quat (w-last=True)
@@ -506,3 +469,138 @@ class RewardManager(BaseComponent):
         STD = 0.5
         err = (wz_cmd - wz_meas) ** 2
         return torch.exp(-err / (STD**2))
+
+    def _reward_dof_error(self):
+        """
+        sum( (q - q_default)^2 )
+        """
+        q = self.dof_state.dof_pos
+        q0 = self.env.simulator._default_dof_pos.to(self.env.device).expand_as(q)
+        err = q - q0
+        return torch.sum(err * err, dim=1)
+
+    def _reward_feet_stumble(self):
+        """
+        any( ||F_xy|| > 4 * |F_z| ) over feet → 1.0 else 0.0
+        """
+        F = self.body_contacts[:, self.env.feet_indices, :]  # [B,F,3]
+        horiz = torch.norm(F[..., :2], dim=-1)
+        vert = torch.abs(F[..., 2]) + 1e-8
+        stumble = (horiz > 4.0 * vert).any(dim=1)
+        return stumble.float()
+
+    def _reward_tracking_goal_vel(self):
+        """
+        min( v_target · v_meas , cmd_speed ) / (cmd_speed + eps)
+
+        If a relative goal is available (env.final_target_pos_rel or target_pos_rel),
+        use it to form the unit target direction; otherwise fall back to steering
+        command direction self.env._tar_dir.
+        """
+        eps = 1e-5
+        # measured world XY velocity
+        v_meas_xy = self.root_states.root_vel[:, :2]  # [B,2]
+
+        # command speed (Steering uses _tar_speed)
+        if hasattr(self.env, "_tar_speed"):
+            cmd_speed = self.env._tar_speed
+        elif hasattr(self.env, "commands"):
+            cmd_speed = self.env.commands[:, 0]
+        else:
+            cmd_speed = torch.norm(v_meas_xy, dim=-1)  # harmless fallback
+
+        # target direction: goal vector if present, else steering dir
+        if hasattr(self.env, "final_target_pos_rel"):
+            tgt = self.env.final_target_pos_rel[:, :2]
+        elif hasattr(self.env, "target_pos_rel"):
+            tgt = self.env.target_pos_rel[:, :2]
+        elif hasattr(self.env, "_tar_dir"):
+            tgt = self.env._tar_dir
+        else:
+            tgt = torch.zeros_like(v_meas_xy)
+
+        tgt_unit = tgt / (torch.norm(tgt, dim=-1, keepdim=True) + eps)
+        proj = torch.sum(tgt_unit * v_meas_xy, dim=-1)  # [B]
+        num = torch.minimum(proj, cmd_speed)
+        return num / (cmd_speed + eps)
+
+    def _reward_tracking_yaw(self):
+        """
+        exp( - | yaw_target - yaw_meas | )
+
+        yaw_target from steering dir if available; otherwise from goal vector.
+        yaw_meas from base quaternion.
+        """
+        # forward axis in local frame, rotated to world
+        fwd = self._fwd_vec  # [B,3] (already on device)
+        fwd_world = rotations.quat_apply(self.root_states.root_rot, fwd, True)
+        yaw_meas = torch.atan2(fwd_world[:, 1], fwd_world[:, 0])
+
+        if hasattr(self.env, "_tar_dir"):
+            yaw_tgt = torch.atan2(self.env._tar_dir[:, 1], self.env._tar_dir[:, 0])
+        elif hasattr(self.env, "final_target_pos_rel"):
+            v = self.env.final_target_pos_rel[:, :2]
+            yaw_tgt = torch.atan2(v[:, 1], v[:, 0])
+        elif hasattr(self.env, "target_pos_rel"):
+            v = self.env.target_pos_rel[:, :2]
+            yaw_tgt = torch.atan2(v[:, 1], v[:, 0])
+        else:
+            yaw_tgt = torch.zeros_like(yaw_meas)
+
+        d = torch.abs(torch_utils.wrap_to_pi(yaw_tgt - yaw_meas))
+        return torch.exp(-d)
+
+    def _reward_pn_distance(self):
+        """
+        PN distance:
+        1.0 if ||p_rel|| < reach
+        else -0.75 * ||p_rel||   (optionally add mid-waypoint term if provided)
+        If no goal available, returns zeros.
+        """
+        if not hasattr(self.env, "final_target_pos_rel") and not hasattr(
+            self.env, "target_pos_rel"
+        ):
+            return torch.zeros(self.env.num_envs, device=self.env.device)
+
+        p_rel = (
+            self.env.final_target_pos_rel
+            if hasattr(self.env, "final_target_pos_rel")
+            else self.env.target_pos_rel
+        )
+        reach = float(getattr(self.config.rewards, "pn_reach_threshold", 1.0))
+        norm = torch.norm(p_rel, dim=-1)
+
+        pn_clip = bool(getattr(self.config.rewards, "pn_distance_clip", False))
+        far_term = -0.75 * norm
+        if pn_clip:
+            far_term = torch.clamp(far_term, min=-5.0, max=0.0)
+
+        rew = torch.where(norm < reach, torch.ones_like(norm), far_term)
+
+        # optional mid-waypoint shaping
+        if hasattr(self.env, "mid_waypoint_pos_rel") and hasattr(
+            self.env, "cur_goal_idx"
+        ):
+            mid_norm = torch.norm(self.env.mid_waypoint_pos_rel, dim=-1)
+            idx = self.env.cur_goal_idx  # [B] ints
+            # add small shaping only while not at final goal
+            w = (idx < 4).float() if torch.is_tensor(idx) else 0.0
+            rew = rew + (-0.25) * w * mid_norm
+        return rew
+
+    def _reward_hip_pos(self):
+        """
+        sum( (q_hip - q_hip_default)^2 )
+        """
+        # pick indices from env if available
+        hip_idx = getattr(self.env, "hip_joint_indices", None)
+        if hip_idx is None:
+            return torch.zeros(self.env.num_envs, device=self.env.device)
+
+        if not torch.is_tensor(hip_idx):
+            hip_idx = torch.tensor(hip_idx, device=self.env.device, dtype=torch.long)
+
+        q = self.dof_state.dof_pos
+        q0 = self.env.simulator._default_dof_pos.to(self.env.device).expand_as(q)
+        err = q[:, hip_idx] - q0[:, hip_idx]
+        return torch.sum(err * err, dim=1)

@@ -415,7 +415,6 @@ class IsaacGymSimulator(Simulator):
             visualization_markers,
         )
 
-
     def _create_envs(
         self,
         spacing: float,
@@ -469,44 +468,76 @@ class IsaacGymSimulator(Simulator):
             self._humanoid_asset
         )
 
+        # --- optional foot-sensor names from config (or infer) ---
         self._foot_sensor_body_names: list[str] = []
-
         if self.robot_config.with_foot_sensors:
-            # Prefer the explicit list from config if present:
             if getattr(self.robot_config, "foot_contact_links", None):
                 missing = [
                     n
                     for n in self.robot_config.foot_contact_links
                     if n not in self._all_body_names
                 ]
-                if len(missing) > 0:
+                if missing:
                     raise ValueError(
-                        f"Foot contact links not found in asset: {missing}.\nAsset bodies: {self._all_body_names}"
+                        f"Foot contact links not in asset: {missing}\nAsset bodies: {self._all_body_names}"
                     )
                 self._foot_sensor_body_names = list(
                     self.robot_config.foot_contact_links
                 )
             else:
-                # Fallback: infer from naming convention
                 self._foot_sensor_body_names = [
                     n for n in self._all_body_names if "_sensor_" in n
                 ]
 
-        feet_set = set(self._foot_sensor_body_names)
-        self._body_names_wo_feet: list[str] = [
-            n for n in self._all_body_names if n not in feet_set
-        ]
+        # --- COMMON/EXPOSED subset — mirror IsaacLab behavior ---
+        if getattr(self.robot_config, "body_names", None):
+            # explicit subset (and ordering) from config
+            missing = [
+                n for n in self.robot_config.body_names if n not in self._all_body_names
+            ]
+            if missing:
+                raise ValueError(
+                    f"Config body_names not in asset: {missing}\nAsset bodies: {self._all_body_names}"
+                )
+            self._body_names_common = list(self.robot_config.body_names)
+        else:
+            # fallback: drop only foot-sensor bodies
+            feet_set = set(self._foot_sensor_body_names)
+            self._body_names_common = [
+                n for n in self._all_body_names if n not in feet_set
+            ]
 
+        # indices in ASSET order for your common set (keep-index)
         self._keep_body_idx = torch.tensor(
-            [i for i, n in enumerate(self._all_body_names) if n not in feet_set],
+            [
+                self._gym.find_asset_rigid_body_index(self._humanoid_asset, n)
+                for n in self._body_names_common
+            ],
             dtype=torch.long,
             device=self.device,
         )
-        self._feet_body_idx = torch.tensor(
-            [i for i, n in enumerate(self._all_body_names) if n in feet_set],
-            dtype=torch.long,
-            device=self.device,
+
+        # indices for foot sensors (if any)
+        self._feet_body_idx = (
+            torch.tensor(
+                [
+                    self._gym.find_asset_rigid_body_index(self._humanoid_asset, n)
+                    for n in self._foot_sensor_body_names
+                ],
+                dtype=torch.long,
+                device=self.device,
+            )
+            if self._foot_sensor_body_names
+            else torch.empty(0, dtype=torch.long, device=self.device)
         )
+
+        robot_num_bodies = self._gym.get_asset_rigid_body_count(humanoid_asset)
+        self._num_bodies = robot_num_bodies  # tensors sized to ALL asset bodies
+        self._num_bodies_asset = robot_num_bodies  # (optional clarity)
+
+        # If your framework stored num_bodies in config for obs sizing, make sure it matches the subset
+        if hasattr(self.robot_config, "num_bodies"):
+            self.robot_config.num_bodies = len(self._body_names_common)
 
         if self.robot_config.with_foot_sensors:
             foot_sensors_handles = [
@@ -523,10 +554,11 @@ class IsaacGymSimulator(Simulator):
                     self._humanoid_asset, ft_handle, sensor_pose, sensor_options
                 )
 
-        robot_num_bodies = self._gym.get_asset_rigid_body_count(humanoid_asset)
-        assert (
-            robot_num_bodies == self.robot_config.num_bodies
-        ), f"Number of bodies in the config {self.robot_config.num_bodies} doesn't match provided robot {robot_num_bodies}"
+        # robot_num_bodies = self._gym.get_asset_rigid_body_count(humanoid_asset)
+        # assert (
+        #     robot_num_bodies == self.robot_config.num_bodies
+        # ), f"Number of bodies in the config {self.robot_config.num_bodies} doesn't match provided robot {robot_num_bodies}"
+
         self._dof_names = self._gym.get_asset_dof_names(humanoid_asset)
         robot_num_dof = self._gym.get_asset_dof_count(humanoid_asset)
         assert robot_num_dof == len(
@@ -964,34 +996,65 @@ class IsaacGymSimulator(Simulator):
         )
         self._refresh_sim_tensors()
 
-    def _set_simulator_env_state(
-        self, new_states: RobotState, env_ids: Optional[torch.Tensor]
-    ) -> None:
-        self._humanoid_root_states[env_ids, 0:3] = new_states.root_pos
-        self._humanoid_root_states[env_ids, 3:7] = new_states.root_rot
-        self._humanoid_root_states[env_ids, 7:10] = new_states.root_vel
-        self._humanoid_root_states[env_ids, 10:13] = new_states.root_ang_vel
+    # def _set_simulator_env_state(
+    #     self, new_states: RobotState, env_ids: Optional[torch.Tensor]
+    # ) -> None:
+    #     self._humanoid_root_states[env_ids, 0:3] = new_states.root_pos
+    #     self._humanoid_root_states[env_ids, 3:7] = new_states.root_rot
+    #     self._humanoid_root_states[env_ids, 7:10] = new_states.root_vel
+    #     self._humanoid_root_states[env_ids, 10:13] = new_states.root_ang_vel
 
+    #     self._dof_pos[env_ids] = new_states.dof_pos
+    #     self._dof_vel[env_ids] = new_states.dof_vel
+
+    #     self._rigid_body_pos[env_ids] = new_states.rigid_body_pos
+    #     self._rigid_body_rot[env_ids] = new_states.rigid_body_rot
+    #     self._rigid_body_vel[env_ids] = new_states.rigid_body_vel
+    #     self._rigid_body_ang_vel[env_ids] = new_states.rigid_body_ang_vel
+
+    #     self._reset_states.root_pos[env_ids] = new_states.root_pos.clone()
+    #     self._reset_states.root_rot[env_ids] = new_states.root_rot.clone()
+    #     self._reset_states.root_vel[env_ids] = new_states.root_vel.clone()
+    #     self._reset_states.root_ang_vel[env_ids] = new_states.root_ang_vel.clone()
+    #     self._reset_states.dof_pos[env_ids] = new_states.dof_pos.clone()
+    #     self._reset_states.dof_vel[env_ids] = new_states.dof_vel.clone()
+    #     self._reset_states.rigid_body_pos[env_ids] = new_states.rigid_body_pos.clone()
+    #     self._reset_states.rigid_body_rot[env_ids] = new_states.rigid_body_rot.clone()
+    #     self._reset_states.rigid_body_vel[env_ids] = new_states.rigid_body_vel.clone()
+    #     self._reset_states.rigid_body_ang_vel[env_ids] = (
+    #         new_states.rigid_body_ang_vel.clone()
+    #     )
+    #     self.reset_env_ids = env_ids
+
+    def _set_simulator_env_state(self, new_states, env_ids):
+        # root & dofs
+        self._humanoid_root_states[env_ids, 0:3]   = new_states.root_pos
+        self._humanoid_root_states[env_ids, 3:7]   = new_states.root_rot
+        self._humanoid_root_states[env_ids, 7:10]  = new_states.root_vel
+        self._humanoid_root_states[env_ids, 10:13] = new_states.root_ang_vel
         self._dof_pos[env_ids] = new_states.dof_pos
         self._dof_vel[env_ids] = new_states.dof_vel
 
-        self._rigid_body_pos[env_ids] = new_states.rigid_body_pos
-        self._rigid_body_rot[env_ids] = new_states.rigid_body_rot
-        self._rigid_body_vel[env_ids] = new_states.rigid_body_vel
-        self._rigid_body_ang_vel[env_ids] = new_states.rigid_body_ang_vel
+        # bodies (scatter subset into full buffers)
+        E = env_ids.view(-1, 1)                    # [B,1]
+        S = self._keep_body_idx.view(1, -1)        # [1,Ns]
+        self._rigid_body_pos[E, S, :]     = new_states.rigid_body_pos
+        self._rigid_body_rot[E, S, :]     = new_states.rigid_body_rot
+        self._rigid_body_vel[E, S, :]     = new_states.rigid_body_vel
+        self._rigid_body_ang_vel[E, S, :] = new_states.rigid_body_ang_vel
 
-        self._reset_states.root_pos[env_ids] = new_states.root_pos.clone()
-        self._reset_states.root_rot[env_ids] = new_states.root_rot.clone()
-        self._reset_states.root_vel[env_ids] = new_states.root_vel.clone()
-        self._reset_states.root_ang_vel[env_ids] = new_states.root_ang_vel.clone()
-        self._reset_states.dof_pos[env_ids] = new_states.dof_pos.clone()
-        self._reset_states.dof_vel[env_ids] = new_states.dof_vel.clone()
-        self._reset_states.rigid_body_pos[env_ids] = new_states.rigid_body_pos.clone()
-        self._reset_states.rigid_body_rot[env_ids] = new_states.rigid_body_rot.clone()
-        self._reset_states.rigid_body_vel[env_ids] = new_states.rigid_body_vel.clone()
-        self._reset_states.rigid_body_ang_vel[env_ids] = (
-            new_states.rigid_body_ang_vel.clone()
-        )
+        # keep reset states in sync
+        self._reset_states.root_pos[env_ids]      = new_states.root_pos
+        self._reset_states.root_rot[env_ids]      = new_states.root_rot
+        self._reset_states.root_vel[env_ids]      = new_states.root_vel
+        self._reset_states.root_ang_vel[env_ids]  = new_states.root_ang_vel
+        self._reset_states.dof_pos[env_ids]       = new_states.dof_pos
+        self._reset_states.dof_vel[env_ids]       = new_states.dof_vel
+        self._reset_states.rigid_body_pos[E, S, :]     = new_states.rigid_body_pos
+        self._reset_states.rigid_body_rot[E, S, :]     = new_states.rigid_body_rot
+        self._reset_states.rigid_body_vel[E, S, :]     = new_states.rigid_body_vel
+        self._reset_states.rigid_body_ang_vel[E, S, :] = new_states.rigid_body_ang_vel
+
         self.reset_env_ids = env_ids
 
     def _simulate(self) -> None:
@@ -1018,11 +1081,10 @@ class IsaacGymSimulator(Simulator):
     #     )
 
     def _get_sim_body_ordering(self) -> SimBodyOrdering:
-
         return SimBodyOrdering(
-            body_names=list(self._body_names_wo_feet),  # feet removed
+            body_names=list(self._body_names_common),
             dof_names=self._gym.get_asset_dof_names(self._humanoid_asset),
-            contact_sensor_body_names=list(self._body_names_wo_feet),
+            contact_sensor_body_names=list(self._body_names_common),
             foot_contact_sensor_body_names=list(self._foot_sensor_body_names),
         )
 
@@ -1125,19 +1187,17 @@ class IsaacGymSimulator(Simulator):
     #     )
 
     def _get_simulator_bodies_state(self, env_ids=None) -> RobotState:
-        body_pos = self._rigid_body_pos.index_select(dim=1, index=self._keep_body_idx)
-        body_rot = self._rigid_body_rot.index_select(dim=1, index=self._keep_body_idx)
-        body_vel = self._rigid_body_vel.index_select(dim=1, index=self._keep_body_idx)
-        body_ang = self._rigid_body_ang_vel.index_select(
-            dim=1, index=self._keep_body_idx
-        )
+        keep = self._keep_body_idx  
+        body_pos = self._rigid_body_pos[:, keep, :]
+        body_rot = self._rigid_body_rot[:, keep, :]
+        body_vel = self._rigid_body_vel[:, keep, :]
+        body_ang = self._rigid_body_ang_vel[:, keep, :]
+
         if env_ids is not None:
-            body_pos, body_rot, body_vel, body_ang = (
-                body_pos[env_ids],
-                body_rot[env_ids],
-                body_vel[env_ids],
-                body_ang[env_ids],
-            )
+            body_pos = body_pos[env_ids]
+            body_rot = body_rot[env_ids]
+            body_vel = body_vel[env_ids]
+            body_ang = body_ang[env_ids]
         return RobotState(
             rigid_body_pos=body_pos,
             rigid_body_rot=body_rot,
