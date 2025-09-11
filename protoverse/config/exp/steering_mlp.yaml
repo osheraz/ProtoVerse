@@ -2,8 +2,8 @@
 
 defaults:
   - ppo_mlp
-  # - /env/steering
-  - /env/steering_w_curriculum
+  - /env/steering
+  # - /env/steering_w_curriculum
   # - foot_mlp
   - /agent/ppo/models/mlp_actor_terrain
   - /agent/ppo/models/mlp_critic_terrain

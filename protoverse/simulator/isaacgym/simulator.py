@@ -415,11 +415,6 @@ class IsaacGymSimulator(Simulator):
             visualization_markers,
         )
 
-        for i, env in enumerate(self._envs):
-            o = self._gym.get_env_origin(env)
-            xy = torch.tensor([[o.x, o.y]], device=self.device, dtype=torch.float)
-            hz = float(self.terrain.get_ground_heights(xy).item())
-            print(f"[DBG] env{i} origin=({o.x:.2f},{o.y:.2f}) terrain_z={hz:.3f}")
 
     def _create_envs(
         self,

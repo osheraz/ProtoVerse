@@ -39,7 +39,7 @@ env:
 
       reward_scales:
 
-        path:             1.0 
+        path:             8.0 
 
         # ViNL
         # lin_vel_z:       -2.0
@@ -64,9 +64,9 @@ env:
 
         # H1RoughEnvCfg
         # termination: -100.0
-        tracking_lin_vel: 1 #10.0
-        tracking_ang_vel: 2 # 5.0
-        feet_air_time: 0.25 # 1.0             
+        tracking_lin_vel: 1.0 #10.0
+        tracking_ang_vel: 1.0 # 5.0
+        feet_air_time: 1.0             
         slippage: -0.25                  
         dof_pos_limits: -1.0
         upperbody_joint_angle_freeze_hip: -0.2
