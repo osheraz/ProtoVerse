@@ -15,8 +15,8 @@ env:
       heading_change_steps_max: 150
       random_heading_probability: 0.2
       standard_heading_change: 1.57
-      tar_speed_min: 1.2
-      tar_speed_max: 3
+      tar_speed_min: 1.0
+      tar_speed_max: 2
       standard_speed_change: 0.3
       stop_probability: 0.05
       obs_size: 3
@@ -63,17 +63,17 @@ env:
         # H1RoughEnvCfg+Path
         # termination: -100.0
         path:             8.0 
-        # tracking_lin_vel: 10.0 
-        # tracking_ang_vel: 5.0 
-        # feet_air_time: 1.0             
-        # slippage: -0.25                  
-        # dof_pos_limits: -1.0
-        # upperbody_joint_angle_freeze_hip: -0.2
-        # upperbody_joint_angle_freeze_arms: -0.2
-        # upperbody_joint_angle_freeze_torso: -0.1
-        # orientation: -1.0
-        # action_rate: -0.005
-        # dof_acc: -1.25e-7
+        tracking_lin_vel: 10.0 
+        tracking_ang_vel: 5.0 
+        feet_air_time: 1.0             
+        slippage: -0.25                  
+        dof_pos_limits: -1.0
+        upperbody_joint_angle_freeze_hip: -0.2
+        upperbody_joint_angle_freeze_arms: -0.2
+        upperbody_joint_angle_freeze_torso: -0.1
+        orientation: -1.0
+        action_rate: -0.005
+        dof_acc: -1.25e-7
 
         # Parkour
         # collision: -10.0
