@@ -25,7 +25,7 @@ env:
       obs_size: 42
       
     reward_config:
-      positive_constant: 1.0
+      positive_constant: 1.0 # TODO
       scale_with_dt: True
 
       use_yaw_frame_tracking: True
@@ -36,6 +36,7 @@ env:
       target_base_height: 0.78 # g1
       target_feet_height: 0.12 # g1
       close_feet_threshold: 0.15 # g1
+
       pn_reach_threshold: 1.0
       pn_distance_clip: False
 
@@ -88,13 +89,13 @@ env:
         # dof_error: -0.3
         hip_pos: -0.1
         slippage: -0.25
-        feet_swing_height: -20.0
         # LEGO-H
         # tracking_goal_vel: 1.0
         # tracking_yaw: 0.5
-        # lin_vel_z: -2.0
         # ang_vel_xy: -1.0
         orientation: -1.0
+
+        # dof_acc: -3.5e-8
         # collision: -10.0
         # action_rate: -0.01
         # delta_torques: -1.0e-7
@@ -106,5 +107,6 @@ env:
         # base_height: -35.0     
         # pn_distance: 1.0      
         contact:  0.18
+        feet_swing_height: -20.0
 
 # Globally accessible parameters

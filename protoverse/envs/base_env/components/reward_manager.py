@@ -117,6 +117,13 @@ class RewardManager(BaseComponent):
         self.body_states = self.env.simulator.get_bodies_state()
         self.body_contacts = self.env.simulator.get_bodies_contact_buf()
 
+        self.phase = (self.env.progress_buf * self.env.dt) % 0.8 / 0.8
+        self.phase_left = self.phase
+        self.phase_right = (self.phase + 0.5) % 1
+        self.leg_phase = torch.cat(
+            [self.phase_left.unsqueeze(1), self.phase_right.unsqueeze(1)], dim=-1
+        )
+
     def _post_compute(self):
         self.last_actions[:] = self.env.actions[:]
         self.last_dof_pos[:] = self.dof_state.dof_pos[:]
@@ -231,28 +238,6 @@ class RewardManager(BaseComponent):
             float(self.config.target_base_height),
         )
 
-    def _reward_feet_height(self):
-        feet_pos = self.body_states.rigid_body_pos[
-            :, self.env.feet_indices, :
-        ]  # [B, F, 3]
-        F = feet_pos.shape[1]
-
-        # ground_z: [B, F]
-        ground_z = torch.stack(
-            [
-                self.env.terrain.get_ground_heights(feet_pos[:, j, :]).squeeze(1)
-                for j in range(F)
-            ],
-            dim=1,
-        )
-        return rewards.reward_feet_height(
-            self.body_states.rigid_body_pos,
-            self.env.feet_indices,
-            ground_z,
-            float(self.config.target_feet_height),  # clearance target (m)
-            0.02,
-        )
-
     def _reward_upperbody_joint_angle_freeze(self):
 
         default = self.env.simulator._default_dof_pos.to(self.env.device)
@@ -285,7 +270,6 @@ class RewardManager(BaseComponent):
             self.body_states.rigid_body_ang_vel,
             self.env.torso_index,
         )
-
 
     def _reward_termination(self):
         # timeout if we hit the last step this frame
@@ -590,114 +574,61 @@ class RewardManager(BaseComponent):
         return torch.sum(err * err, dim=1)
 
     def _reward_feet_swing_height(self):
-        """
-        Penalize swing feet for not matching a target height.
-
-        Defaults (matches the simple version):
-        - world-Z height (no terrain subtraction)
-        - contact if ||F_xyz|| > 1.0
-        - squared error, only when NOT in contact, sum over feet
-
-        Optional overrides (only if you want them):
-        - config.target_feet_height: float
-        - config.rewards.swing_height_mode: "exact" | "min"      (default "exact")
-        - config.rewards.swing_height_ground_relative: bool      (default False)
-        - config.rewards.swing_height_contact_mode: "norm" | "fz" (default "norm")
-        - config.rewards.contact_threshold: float                (default 1.0)
-        """
-        # ---- params & defaults ----
         target = float(getattr(self.config, "target_feet_height", 0.08))
-        mode = getattr(self.config, "swing_height_mode", "exact")
-        ground_rel = bool(getattr(self.config, "swing_height_ground_relative", True))  
-        contact_mode = getattr(self.config, "swing_height_contact_mode", "norm")     
-        thresh = float(getattr(self.config, "contact_threshold", 1.0))
 
-        # ---- feet positions ----
-        feet_pos = self.body_states.rigid_body_pos[:, self.env.feet_indices, :]  # [B,F,3]
-        feet_z = feet_pos[..., 2]  # [B,F]
+        # contact: ||F|| > 1.0 at the feet bodies
+        Fxyz = self.body_contacts[:, self.env.feet_indices, :]  # [B,F,3]
+        contact = torch.norm(Fxyz, dim=-1) > 1.0  # [B,F] bool
 
-        # ---- world-Z by default; optionally ground-relative clearance ----
-        if ground_rel:
-            F = feet_pos.shape[1]
-            ground_z = torch.stack(
-                [self.env.terrain.get_ground_heights(feet_pos[:, j, :]).squeeze(1) for j in range(F)],
-                dim=1,
-            )  # [B,F]
-            height = feet_z - ground_z
-        else:
-            height = feet_z
+        # feet positions & ground-relative clearance
+        feet_pos = self.body_states.rigid_body_pos[
+            :, self.env.feet_indices, :
+        ]  # [B,F,3]
+        B, F, _ = feet_pos.shape
+        ground_z = self.env.terrain.get_ground_heights(
+            feet_pos.reshape(B * F, 3)
+        ).reshape(
+            B, F
+        )  # [B,F]
+        clearance = feet_pos[..., 2] - ground_z  # [B,F]
 
-        # ---- contact mask per foot (using body_contacts by default) ----
-        if contact_mode == "fz":
-            contact = (self.body_contacts[:, self.env.feet_indices, 2] > thresh)
-        else:  # "norm"
-            contact = (torch.norm(self.body_contacts[:, self.env.feet_indices, :], dim=-1) > thresh)
-
-        swing = (~contact).float()  # 1 when swinging
-
-        # ---- penalty ----
-        if mode == "exact":  # (height - target)^2
-            err = (height - target) ** 2
-        else:                # "min": only penalize being too low
-            err = torch.clamp_min(target - height, 0.0) ** 2
-
-        return (err * swing).sum(dim=1)  # [B]
-
+        # squared error to target, only when NOT in contact
+        err = (clearance - target) ** 2
+        return (err * (~contact).float()).sum(dim=1)  # [B]
 
     def _reward_contact(self):
-        """
-        Match foot contact to a phase schedule (biped).
-        - stance when phase < duty, swing otherwise
-        - contact when Fz > threshold
-        Returns per-env score in [0, 2] (two feet).
-
-        Config (optional, under self.config.rewards):
-        contact_period:        float, default 0.8
-        contact_offset:        float, default 0.5     # right leg phase offset
-        contact_duty_cycle:    float, default 0.55    # stance window
-        contact_threshold:     float, default 1.0     # N, contact if Fz > thr
-        """
-        period = float(getattr(self.config, "contact_period", 0.8))
-        offset = float(getattr(self.config, "contact_offset", 0.5))
-        duty   = float(getattr(self.config, "contact_duty_cycle", 0.55))
-        thr    = float(getattr(self.config, "contact_threshold", 1.0))
-
-        # --- phase per env (like G1Robot) ---
-        t = self.env.progress_buf.float() * self.env.dt                # [B]
-        phase = torch.remainder(t, period) / period                    # [B] in [0,1)
-        leg_phase = torch.stack([phase, torch.remainder(phase + offset, 1.0)], dim=1)  # [B,2]
-        expect_contact = (leg_phase < duty)                            # [B,2] bool
-
-        # --- contact per foot (Left/Right) ---
-        B = self.env.num_envs
-        device = self.env.device
+        # keep the same initialization (this fixed your leak)
+        res = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.env.device)
 
         if getattr(self.env.config, "with_foot_obs", False):
-            # Use dedicated foot sensors and group by name (robust on multi-sensors/links)
-            forces = self.simulator.get_foot_contact_buf()  # [B,S,3]
+            # Build left/right forces from tactile sensors (like your slippage path)
+            forces = self.simulator.get_foot_contact_buf()  # [B, S, 3]
             names = [n.lower() for n in self.simulator.robot_config.foot_contact_links]
-            left_idx  = [i for i, n in enumerate(names) if "left"  in n]
+            left_idx = [i for i, n in enumerate(names) if "left" in n]
             right_idx = [i for i, n in enumerate(names) if "right" in n]
-            if len(left_idx) and len(right_idx):
-                z = forces[..., 2]
-                left_contact  = (z[:, left_idx]  > thr).any(dim=1)     # [B]
-                right_contact = (z[:, right_idx] > thr).any(dim=1)     # [B]
-                contact = torch.stack([left_contact, right_contact], dim=1)  # [B,2] bool
-            else:
-                # Fallback to body contacts if naming not available
-                bc = (self.body_contacts[:, self.env.feet_indices, 2] > thr)  # [B,F]
-                if bc.shape[1] >= 2:
-                    contact = bc[:, :2]
-                else:
-                    return torch.zeros(B, device=device)
-        else:
-            # From body contact buffer (assume feet_indices are [L, R] for bipeds)
-            bc = (self.body_contacts[:, self.env.feet_indices, 2] > thr)      # [B,F]
-            if bc.shape[1] >= 2:
-                contact = bc[:, :2]                                           # [B,2]
-            else:
-                return torch.zeros(B, device=device)
 
-        # --- match score (1 if expected == actual) ---
-        match = (contact == expect_contact).float()  # [B,2]
-        return match.sum(dim=1)                      # [B], in [0,2]
+            if len(left_idx) and len(right_idx):
+                left = forces[:, left_idx, :].mean(dim=1)  # [B,3]
+                right = forces[:, right_idx, :].mean(dim=1)  # [B,3]
+                foot_contact_forces = torch.stack([left, right], dim=1)  # [B,2,3]
+
+                for i in range(len(self.env.feet_indices)):
+                    is_stance = self.leg_phase[:, i] < 0.55
+                    if i < 2:  # assume biped ordering: 0=left, 1=right
+                        contact = foot_contact_forces[:, i, 2] > 1.0  # Fz > 1.0
+                    else:
+                        # extra feet fall back to body contact buffer
+                        contact = (
+                            self.body_contacts[:, self.env.feet_indices[i], 2] > 1.0
+                        )
+                    res += ~(contact ^ is_stance)
+                return res
+            # if naming didn’t separate L/R, fall through to body contact below
+
+        # default: use body contact buffer (exactly like your working version)
+        for i in range(len(self.env.feet_indices)):
+            is_stance = self.leg_phase[:, i] < 0.55
+            contact = self.body_contacts[:, self.env.feet_indices[i], 2] > 1.0
+            res += ~(contact ^ is_stance)
+
+        return res
