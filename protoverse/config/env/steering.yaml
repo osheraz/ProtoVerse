@@ -15,8 +15,8 @@ env:
       heading_change_steps_max: 150
       random_heading_probability: 0.2
       standard_heading_change: 1.57
-      tar_speed_min: 1.0
-      tar_speed_max: 2
+      tar_speed_min: 0.0 # 1.0
+      tar_speed_max: 1.414 # 2
       standard_speed_change: 0.3
       stop_probability: 0.05
       obs_size: 3
