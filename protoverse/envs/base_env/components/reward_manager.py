@@ -100,6 +100,8 @@ class RewardManager(BaseComponent):
 
         # Optional constant reward
         self.positive_constant = float(getattr(self.config, "positive_constant", 0.0))
+        if scale_with_dt:
+            self.positive_constant *= self.env.dt
 
     def on_reset(self, env_ids):
 
@@ -597,7 +599,7 @@ class RewardManager(BaseComponent):
         return (err * (~contact).float()).sum(dim=1)  # [B]
 
     def _reward_contact(self):
-        # keep the same initialization (this fixed your leak)
+        # keep the same initialization
         res = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.env.device)
 
         if getattr(self.env.config, "with_foot_obs", False):
