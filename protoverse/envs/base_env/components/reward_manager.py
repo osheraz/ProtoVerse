@@ -418,24 +418,22 @@ class RewardManager(BaseComponent):
         return torch.exp(-err / (STD**2))
 
     def _reward_tracking_ang_vel(self):
-        # --- heading error -> desired yaw rate (command) ---
-        heading_inv = torch_utils.calc_heading_quat_inv(self.root_states.root_rot, True)
-        tar_dir3 = torch.cat(
-            [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
-        )
-        local_tar = rotations.quat_rotate(heading_inv, tar_dir3, True)[
-            ..., :2
-        ]  # yaw frame XY
-        heading_err = torch.atan2(local_tar[:, 1], local_tar[:, 0])  # (-pi, pi]
-        wz_cmd = torch.clamp(0.5 * heading_err, -1.0, 1.0)  # your existing policy
-
-        # --- measured yaw rate in BODY frame (Isaac uses *_b) ---
         root_rot = self.root_states.root_rot
-        ang_w = self.root_states.root_ang_vel  # world ω
-        ang_b = rotations.quat_rotate_inverse(root_rot, ang_w, True)  # body ω
+        ang_w = self.root_states.root_ang_vel
+        ang_b = rotations.quat_rotate_inverse(root_rot, ang_w, True)
         wz_meas = ang_b[:, 2]
 
-        # --- Isaac kernel ---
+        if getattr(self.env, "_wz_cmd_override", None) is not None:
+            wz_cmd = self.env._wz_cmd_override
+        else:
+            heading_inv = torch_utils.calc_heading_quat_inv(root_rot, True)
+            tar_dir3 = torch.cat(
+                [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
+            )
+            local_tar = rotations.quat_rotate(heading_inv, tar_dir3, True)[..., :2]
+            heading_err = torch.atan2(local_tar[:, 1], local_tar[:, 0])
+            wz_cmd = torch.clamp(0.5 * heading_err, -1.0, 1.0)
+
         STD = 0.5
         err = (wz_cmd - wz_meas) ** 2
         return torch.exp(-err / (STD**2))

@@ -7,8 +7,24 @@ defaults:
 env:
   _target_: protoverse.envs.steering.env.Steering
   config:
+    command_style: isaac        # "isaac" or "steering"
+    obs_mode: isaac             # "isaac" or "steering"
     enable_height_termination: True
     with_foot_obs: False
+
+    # Isaac-style commands (mirrors legged-gym)
+    commands:
+      curriculum: false
+      max_curriculum: 1.0
+      num_commands: 4
+      resampling_time: 10.0     # [s]
+      heading_command: true
+      ranges:
+        lin_vel_x: [-1.0, 1.0]
+        lin_vel_y: [-1.0, 1.0]
+        ang_vel_yaw: [-1.0, 1.0]
+        heading: [-3.14, 3.14]
+
 
     steering_params:
       heading_change_steps_min: 40

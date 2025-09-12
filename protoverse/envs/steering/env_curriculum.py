@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from protoverse.envs.steering.env import Steering
+from protoverse.envs.steering.env_proto import Steering
 from protoverse.simulator.base_simulator.robot_state import RobotState
 
 
