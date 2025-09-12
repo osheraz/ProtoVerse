@@ -5,9 +5,9 @@ defaults:
   - /env/steering
   # - /env/steering_w_curriculum
   # - foot_mlp
-  # - /agent/ppo/models/mlp_actor_terrain
-  # - /agent/ppo/models/mlp_critic_terrain
-  # - /terrain/complex
+  - /agent/ppo/models/mlp_actor_terrain
+  - /agent/ppo/models/mlp_critic_terrain
+  - /terrain/complex
 
 agent:
   config:
