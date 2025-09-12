@@ -690,12 +690,7 @@ class IsaacGymSimulator(Simulator):
         segmentation_id = 0
 
         start_pose = gymapi.Transform()
-
-        # 1) get the env's world origin
-        env_origin = self._gym.get_env_origin(env_ptr)  # Vec3 with world coords
-
-        # 2) sample terrain height under THIS env's origin (world XY), but
-        #    keep the actor pose env-local (x=y=0).
+        env_origin = self._gym.get_env_origin(env_ptr)  
         if isinstance(self.terrain, FlatTerrain):
             ground_z = 0.0
         else:
@@ -704,8 +699,8 @@ class IsaacGymSimulator(Simulator):
             )
             ground_z = float(self.terrain.get_ground_heights(xy_world).item())
 
-        # 3) env-local pose: x=y=0, z = terrain height + small clearance
-        start_pose.p = gymapi.Vec3(0.0, 0.0, ground_z + 0.02)
+        root_h = self.robot_config.init_state.pos[2]
+        start_pose.p = gymapi.Vec3(0.0, 0.0, ground_z + root_h)
         start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         # start_offset = [env_id, env_id, env_id]
