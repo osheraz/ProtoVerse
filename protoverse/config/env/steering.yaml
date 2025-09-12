@@ -65,7 +65,7 @@ env:
         # H1RoughEnvCfg+Path
         # termination: -100.0
         # path:             8.0 
-        tracking_lin_vel: 1.0 # 10.0 
+        tracking_lin_vel: 10.0 # 10.0 
         tracking_ang_vel: 0.5 # 5.0 
         # feet_air_time: 1.0             
         # slippage: -0.25                  
