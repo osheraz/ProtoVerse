@@ -106,13 +106,8 @@ class BaseEnv:
             self.config.robot.torso_joint_names
         )
 
-        # for base "undesired_contacts"
-        self.thigh_body_indices = self.simulator.build_body_ids_tensor(
-            getattr(
-                self.config.robot,
-                "undesired_contact_bodies",
-                self.config.robot.penalize_contacts_on,
-            )
+        self.knee_joint_indices = self.simulator.build_dof_ids_tensor(
+            self.config.robot.knee_joint_names
         )
 
         ##

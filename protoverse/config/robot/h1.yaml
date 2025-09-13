@@ -43,6 +43,7 @@ robot:
   arm_joint_names: ['left_shoulder_pitch_joint', 'left_shoulder_roll_joint', 'left_shoulder_yaw_joint', 'left_elbow_joint', 'right_shoulder_pitch_joint', 'right_shoulder_roll_joint', 'right_shoulder_yaw_joint', 'right_elbow_joint']
   torso_joint_names: ['torso_joint']
   undesired_contact_bodies: ['left_hip_pitch_link', 'left_hip_roll_link', 'left_hip_yaw_link', 'right_hip_pitch_link', 'right_hip_roll_link', 'right_hip_yaw_link']
+  knee_joint_names: ['left_knee_joint', 'right_knee_joint']
 
   init_state:
     pos: [ 0.0, 0.0, 1.05 ] # x,y,z [m]

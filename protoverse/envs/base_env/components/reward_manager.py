@@ -57,6 +57,24 @@ class RewardManager(BaseComponent):
         self._fwd_vec = torch.tensor([1.0, 0.0, 0.0], device=self.env.device).expand(
             self.env.num_envs, -1
         )
+
+        self.leg_idxs = torch.cat(
+            [
+                self.env.hip_joint_indices,
+                self.env.knee_joint_indices,
+                self.env.ankle_dof_indices,
+            ]
+        )
+        self.hip_knee_idxs = torch.cat(
+            [self.env.hip_joint_indices, self.env.knee_joint_indices]
+        )
+        self._gravity_w = torch.tensor(
+            [0.0, 0.0, -1.0], device=self.env.device, dtype=torch.float32
+        ).expand(self.env.num_envs, -1)
+
+        self._feet_L_idx = None
+        self._feet_R_idx = None
+
         self._prepare_reward_function()
 
     def _prepare_reward_function(self):
@@ -119,13 +137,6 @@ class RewardManager(BaseComponent):
         self.body_states = self.env.simulator.get_bodies_state()
         self.body_contacts = self.env.simulator.get_bodies_contact_buf()
 
-        self.phase = (self.env.progress_buf * self.env.dt) % 0.8 / 0.8
-        self.phase_left = self.phase
-        self.phase_right = (self.phase + 0.5) % 1
-        self.leg_phase = torch.cat(
-            [self.phase_left.unsqueeze(1), self.phase_right.unsqueeze(1)], dim=-1
-        )
-
     def _post_compute(self):
         self.last_actions[:] = self.env.actions[:]
         self.last_dof_pos[:] = self.dof_state.dof_pos[:]
@@ -153,6 +164,22 @@ class RewardManager(BaseComponent):
 
         return rew_dict
 
+    def _ensure_foot_sensor_indices(self):
+        if self._feet_L_idx is None or self._feet_R_idx is None:
+            names = [
+                n.lower() for n in self.env.simulator.robot_config.foot_contact_links
+            ]
+            self._feet_L_idx = torch.tensor(
+                [i for i, n in enumerate(names) if "left" in n],
+                device=self.env.device,
+                dtype=torch.long,
+            )
+            self._feet_R_idx = torch.tensor(
+                [i for i, n in enumerate(names) if "right" in n],
+                device=self.env.device,
+                dtype=torch.long,
+            )
+
     def _reward_lin_vel_z(self):
         return rewards.reward_lin_vel_z(self.root_states.root_vel)
 
@@ -160,9 +187,19 @@ class RewardManager(BaseComponent):
         return rewards.reward_ang_vel_xy(self.root_states.root_ang_vel)
 
     def _reward_torques(self):
-        return rewards.reward_torques(self.env.simulator.get_torques())
+        tau = self.env.simulator.get_torques()
+        if getattr(self.config, "torques_scope", "all") == "legs":
+            return torch.sum(tau[:, self.leg_idxs] ** 2, dim=1)
+        return torch.sum(tau**2, dim=1)
 
     def _reward_dof_acc(self):
+        if getattr(self.config, "dof_acc_only_hip_knee", False):
+            return rewards.reward_dof_acc(
+                self.dof_state.dof_vel[:, self.hip_knee_idxs],
+                self.last_dof_vel[:, self.hip_knee_idxs],
+                self.env.dt,
+            )
+        # fallback: all joints
         return rewards.reward_dof_acc(
             self.dof_state.dof_vel, self.last_dof_vel, self.env.dt
         )
@@ -195,38 +232,24 @@ class RewardManager(BaseComponent):
         )
 
     def _reward_slippage(self):
-
         if self.env.config.with_foot_obs:
-            forces = self.simulator.get_foot_contact_buf()  # [B, S, 3]
-            names = [n.lower() for n in self.simulator.robot_config.foot_contact_links]
-
-            left_idx = [i for i, n in enumerate(names) if "left" in n]
-            right_idx = [i for i, n in enumerate(names) if "right" in n]
-
-            left = forces[:, left_idx, :].mean(dim=1)
-            right = forces[:, right_idx, :].mean(dim=1)
-
-            foot_contact_forces = torch.stack([left, right], dim=1)  # [B, 2, 3]
+            self._ensure_foot_sensor_indices()
+            forces = self.env.simulator.get_foot_contact_buf()  # [B,S,3]
+            left = forces.index_select(1, self._feet_L_idx).mean(dim=1)
+            right = forces.index_select(1, self._feet_R_idx).mean(dim=1)
+            foot_contact_forces = torch.stack([left, right], dim=1)
         else:
             foot_contact_forces = self.body_contacts[:, self.env.feet_indices, :]
-
         return rewards.reward_slippage(
-            self.body_states.rigid_body_vel,
-            self.env.feet_indices,
-            foot_contact_forces,
+            self.body_states.rigid_body_vel, self.env.feet_indices, foot_contact_forces
         )
 
     def _reward_feet_ori(self):
-        gravity_vec = getattr(
-            self.env,
-            "gravity_vec",
-            torch.tensor([0.0, 0.0, -1.0], device=self.env.device),
-        ).repeat((self.env.num_envs, 1))
 
         return rewards.reward_feet_ori(
             self.body_states.rigid_body_rot,
             self.env.feet_indices,
-            gravity_vec,
+            self._gravity_w,
         )
 
     def _reward_base_height(self):
@@ -307,20 +330,19 @@ class RewardManager(BaseComponent):
         )
 
     def _reward_orientation(self):
-        g = torch.tensor([0.0, 0.0, -1.0], device=self.env.device).expand(
-            self.env.num_envs, -1
-        )
         projected_gravity = rotations.quat_rotate_inverse(
-            self.root_states.root_rot, g, True
+            self.root_states.root_rot, self._gravity_w, True
         )
         return rewards.reward_orientation(projected_gravity)
 
     def _reward_feet_air_time(self):
 
         if self.env.config.with_foot_obs:
-            forces = self.simulator.get_foot_contact_buf()  # [B, S, 3]
+            forces = self.env.simulator.get_foot_contact_buf()  # [B, S, 3]
             z = forces[..., 2]
-            names = [n.lower() for n in self.simulator.robot_config.foot_contact_links]
+            names = [
+                n.lower() for n in self.env.simulator.robot_config.foot_contact_links
+            ]
             left_idx = [i for i, n in enumerate(names) if "left" in n]
             right_idx = [i for i, n in enumerate(names) if "right" in n]
             thresh = 1.0
@@ -395,38 +417,45 @@ class RewardManager(BaseComponent):
         return rewards.reward_dof_pos_limits(self.dof_state.dof_pos, limits)
 
     def _reward_tracking_lin_vel(self):
-        # --- Robot base state (world -> body frame) ---
-        root_rot = self.root_states.root_rot  # [B,4], world->body quat (w-last=True)
-        vel_w = self.root_states.root_vel[:, :3]  # [B,3] world linear vel
-        vel_b = rotations.quat_rotate_inverse(root_rot, vel_w, True)[
-            ..., :2
-        ]  # [B,2] body XY
-
-        # --- Command: build desired world velocity from your steering command ---
-        # v_des_w = speed * dir (world), then rotate it into the body frame like Isaac does.
+        root_rot = self.root_states.root_rot
         tar_dir3 = torch.cat(
             [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
-        )  # [B,3]
-        v_des_w = self.env._tar_speed.unsqueeze(-1) * tar_dir3  # [B,3]
-        v_des_b = rotations.quat_rotate_inverse(root_rot, v_des_w, True)[
-            ..., :2
-        ]  # [B,2] body XY
+        )
+        use_yaw = bool(getattr(self.config, "use_yaw_frame_tracking", True))
 
-        # --- IsaacLab kernel: exp( - ||cmd - meas||^2 / std^2 ) in BODY frame ---
-        STD = 0.5  # IsaacLab commonly uses 0.5
-        err = torch.sum((v_des_b - vel_b) ** 2, dim=-1)  # [B]
+        if use_yaw:
+            # heading frame (matches IsaacLab mdp.track_lin_vel_xy_yaw_frame_exp)
+            heading_inv = torch_utils.calc_heading_quat_inv(root_rot, True)
+            vel_f = rotations.quat_rotate(
+                heading_inv, self.root_states.root_vel[:, :3], True
+            )[..., :2]
+            v_des_f = rotations.quat_rotate(
+                heading_inv, self.env._tar_speed.unsqueeze(-1) * tar_dir3, True
+            )[..., :2]
+        else:
+            # full body frame
+            vel_f = rotations.quat_rotate_inverse(
+                root_rot, self.root_states.root_vel[:, :3], True
+            )[..., :2]
+            v_des_f = rotations.quat_rotate_inverse(
+                root_rot, self.env._tar_speed.unsqueeze(-1) * tar_dir3, True
+            )[..., :2]
+
+        STD = 0.5
+        err = torch.sum((v_des_f - vel_f) ** 2, dim=-1)
         return torch.exp(-err / (STD**2))
 
     def _reward_tracking_ang_vel(self):
-        root_rot = self.root_states.root_rot
-        ang_w = self.root_states.root_ang_vel
-        ang_b = rotations.quat_rotate_inverse(root_rot, ang_w, True)
-        wz_meas = ang_b[:, 2]
+        ang_w = self.root_states.root_ang_vel  # world frame
+        wz_meas = ang_w[:, 2]  # <-- world z, matches *_world_exp
 
         if getattr(self.env, "_wz_cmd_override", None) is not None:
             wz_cmd = self.env._wz_cmd_override
         else:
-            heading_inv = torch_utils.calc_heading_quat_inv(root_rot, True)
+            # P-control on heading error (same as IsaacLab’s UniformVelocityCommand)
+            heading_inv = torch_utils.calc_heading_quat_inv(
+                self.root_states.root_rot, True
+            )
             tar_dir3 = torch.cat(
                 [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
             )
@@ -582,11 +611,15 @@ class RewardManager(BaseComponent):
     def _reward_contact(self):
         # keep the same initialization
         res = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.env.device)
+        self.phase = (self.env.progress_buf * self.env.dt) % 0.8 / 0.8
+        self.leg_phase = torch.stack((self.phase, (self.phase + 0.5) % 1), dim=-1)
 
         if getattr(self.env.config, "with_foot_obs", False):
             # Build left/right forces from tactile sensors (like your slippage path)
-            forces = self.simulator.get_foot_contact_buf()  # [B, S, 3]
-            names = [n.lower() for n in self.simulator.robot_config.foot_contact_links]
+            forces = self.env.simulator.get_foot_contact_buf()  # [B, S, 3]
+            names = [
+                n.lower() for n in self.env.simulator.robot_config.foot_contact_links
+            ]
             left_idx = [i for i, n in enumerate(names) if "left" in n]
             right_idx = [i for i, n in enumerate(names) if "right" in n]
 

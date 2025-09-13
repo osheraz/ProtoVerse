@@ -322,15 +322,6 @@ def reward_tracking_ang_vel(
 
 
 @torch.jit.script
-def reward_feet_stumble(contact_forces: Tensor, feet_indices: Tensor) -> Tensor:
-    # Penalize feet hitting vertical surfaces
-
-    contact_xy = torch.norm(contact_forces[:, feet_indices, :2], dim=2)
-    contact_z = torch.abs(contact_forces[:, feet_indices, 2])
-    return torch.any(contact_xy > 4.0 * contact_z, dim=1)
-
-
-@torch.jit.script
 def reward_stand_still(
     dof_pos: Tensor,
     default_dof_pos: Tensor,

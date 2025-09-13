@@ -368,7 +368,7 @@ H1_CFG = ArticulationCfg(
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=False,
-            solver_position_iteration_count=4,
+            solver_position_iteration_count=8,
             solver_velocity_iteration_count=4,
         ),
     ),
@@ -390,7 +390,7 @@ H1_W_FOOT_SENSOR_CFG = ArticulationCfg(
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=False,
-            solver_position_iteration_count=4,
+            solver_position_iteration_count=8,
             solver_velocity_iteration_count=4,
         ),
     ),
@@ -412,7 +412,7 @@ G1_CFG = ArticulationCfg(
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=False,
-            solver_position_iteration_count=4,
+            solver_position_iteration_count=8,
             solver_velocity_iteration_count=4,
         ),
     ),
@@ -434,7 +434,7 @@ G1_W_FOOT_SENSOR_CFG = ArticulationCfg(
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=False,
-            solver_position_iteration_count=4,
+            solver_position_iteration_count=8,
             solver_velocity_iteration_count=4,
         ),
     ),
@@ -457,7 +457,7 @@ G1_23_CFG = ArticulationCfg(
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=False,
-            solver_position_iteration_count=4,
+            solver_position_iteration_count=8,
             solver_velocity_iteration_count=4,
         ),
     ),
@@ -480,7 +480,7 @@ G1_23_CFG_W_FOOT_SENSOR_CFG = ArticulationCfg(
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=False,
-            solver_position_iteration_count=4,
+            solver_position_iteration_count=8,
             solver_velocity_iteration_count=4,
         ),
     ),

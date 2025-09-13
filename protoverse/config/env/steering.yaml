@@ -15,8 +15,8 @@ env:
       heading_change_steps_max: 150
       random_heading_probability: 0.2
       standard_heading_change: 1.57
-      tar_speed_min: 0.0 # 1.0
-      tar_speed_max: 1.414 # 2
+      tar_speed_min: 0.0 
+      tar_speed_max: 1.0 
       standard_speed_change: 0.3
       stop_probability: 0.05
       obs_size: 3
@@ -40,22 +40,25 @@ env:
       pn_reach_threshold: 1.0
       pn_distance_clip: False
 
+      dof_acc_only_hip_knee: True
+      torques_scope: legs
+
       reward_scales:
 
         # ViNL
-        lin_vel_z:       -2.0
-        ang_vel_xy:      -0.05     
+        # lin_vel_z:       -2.0
+        # ang_vel_xy:      -0.05     
         # torque:          -0.00001
         # dof_acc:         -3.5e-8    # -3.5e-8 -2.5e-7 
         # feet_air_time:    1.0
         # collision:       -1.0
         # action_rate:     -0.01
         # slippage: -0.1 # -1.0
-        dof_pos_limits: -5.0 # -10.0 
+        # dof_pos_limits: -5.0 # -10.0 
 
         # ASAP
         # feet_ori: -2.0
-        base_height: -10.0 
+        # base_height: -10.0 
         # feet_height: -2.5
         # upperbody_joint_angle_freeze: -0.2
         # feet_heading_alignment: -0.3   # check     
@@ -65,8 +68,8 @@ env:
         # H1RoughEnvCfg+Path
         # termination: -100.0
         # path:             8.0 
-        tracking_lin_vel: 10.0 # 10.0 
-        tracking_ang_vel: 0.5 # 5.0 
+        # tracking_lin_vel: 10.0 # 10.0 
+        # tracking_ang_vel: 0.5 # 5.0 
         # feet_air_time: 1.0             
         # slippage: -0.25                  
         # dof_pos_limits: -1.0
@@ -82,19 +85,20 @@ env:
         # tracking_lin_vel: 1.0 
         # tracking_ang_vel: 1.5
         # orientation: -2.0
-        dof_vel: -1e-3 
-        action_rate: -0.01
+        # dof_vel: -1e-3 
+        # action_rate: -0.01
         # torques: -1.0e-5
-        dof_acc: -2.5e-7
+        # dof_acc: -2.5e-7
         # dof_error: -0.3
-        hip_pos: -0.1
-        slippage: -0.25
+        # hip_pos: -0.1
+        # slippage: -0.25
         # LEGO-H
         # tracking_goal_vel: 1.0
         # tracking_yaw: 0.5
         # ang_vel_xy: -1.0
-        orientation: -1.0
+        # orientation: -1.0
 
+        #G1_Official
         # dof_acc: -3.5e-8
         # collision: -10.0
         # action_rate: -0.01
@@ -106,7 +110,22 @@ env:
         # feet_air_time: 1.0    
         # base_height: -35.0     
         # pn_distance: 1.0      
-        contact:  0.18
-        feet_swing_height: -20.0
+        # contact:  0.18
+        # feet_swing_height: -20.0
+
+        # Isaac
+        termination: -200.0
+        tracking_lin_vel: 1.0           # exp kernel, XY (body frame)
+        tracking_ang_vel: 2.0           # exp kernel, wz (world→yaw rule)
+        feet_air_time: 0.25             # positive-biped variant
+        slippage: -0.1                  # = Isaac feet_slide
+        dof_pos_limits: -1.0            # ankles only (scope above)
+        upperbody_joint_angle_freeze_hip:   -0.1
+        upperbody_joint_angle_freeze_arms:  -0.1
+        upperbody_joint_angle_freeze_torso: -0.1
+        orientation: -1.0               # flat_orientation_l2
+        action_rate: -0.005
+        dof_acc: -1.25e-7               # (hip+knee only when flag is True)
+        torques: -1.5e-7                # hip+knee+ankle
 
 # Globally accessible parameters
