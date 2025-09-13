@@ -96,10 +96,8 @@ class Simulator(ABC):
             requires_grad=False,
         )
 
-        # auto-record config (examples)
-        self.auto_record_every = getattr(
-            config, "auto_record_every", 10000  # epoch is 32 steps ~ 150 epochs.
-        )  # e.g. 2000 steps; 0 disables - TODO: should be w.r.t max_episode_length
+        # auto-record config
+        self.auto_record_every = getattr(config, "auto_record_every", 10000)
         self.auto_record_len = getattr(config, "auto_record_len", 300)
         self.auto_record_stride = getattr(config, "auto_record_stride", 1)
         self._record_step_counter = 0

@@ -9,6 +9,7 @@ env:
   config:
     enable_height_termination: True
     with_foot_obs: False
+    max_episode_length: 1000
 
     steering_params:
       heading_change_steps_min: 40
@@ -113,10 +114,10 @@ env:
         # contact:  0.18
         # feet_swing_height: -20.0
 
-        # Isaac
+        # Isaac-Velocity-Rough-G1-v0
         termination: -200.0
-        tracking_lin_vel: 1.0           # exp kernel, XY (body frame)
-        tracking_ang_vel: 2.0           # exp kernel, wz (world→yaw rule)
+        tracking_lin_vel: 10.0           # exp kernel, XY (body frame)
+        tracking_ang_vel: 20.0           # exp kernel, wz (world→yaw rule)
         feet_air_time: 0.25             # positive-biped variant
         slippage: -0.1                  # = Isaac feet_slide
         dof_pos_limits: -1.0            # ankles only (scope above)
@@ -127,5 +128,6 @@ env:
         action_rate: -0.005
         dof_acc: -1.25e-7               # (hip+knee only when flag is True)
         torques: -1.5e-7                # hip+knee+ankle
-
+        ang_vel_xy:      -0.05 
+        
 # Globally accessible parameters
