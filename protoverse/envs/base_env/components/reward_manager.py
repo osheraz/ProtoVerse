@@ -458,13 +458,6 @@ class RewardManager(BaseComponent):
         return stumble.float()
 
     def _reward_tracking_goal_vel(self):
-        """
-        min( v_target · v_meas , cmd_speed ) / (cmd_speed + eps)
-
-        If a relative goal is available (env.final_target_pos_rel or target_pos_rel),
-        use it to form the unit target direction; otherwise fall back to steering
-        command direction self.env._tar_dir.
-        """
         eps = 1e-5
         # measured world XY velocity
         v_meas_xy = self.root_states.root_vel[:, :2]  # [B,2]
@@ -493,12 +486,7 @@ class RewardManager(BaseComponent):
         return num / (cmd_speed + eps)
 
     def _reward_tracking_yaw(self):
-        """
-        exp( - | yaw_target - yaw_meas | )
 
-        yaw_target from steering dir if available; otherwise from goal vector.
-        yaw_meas from base quaternion.
-        """
         # forward axis in local frame, rotated to world
         fwd = self._fwd_vec  # [B,3] (already on device)
         fwd_world = rotations.quat_apply(self.root_states.root_rot, fwd, True)
@@ -519,12 +507,7 @@ class RewardManager(BaseComponent):
         return torch.exp(-d)
 
     def _reward_pn_distance(self):
-        """
-        PN distance:
-        1.0 if ||p_rel|| < reach
-        else -0.75 * ||p_rel||   (optionally add mid-waypoint term if provided)
-        If no goal available, returns zeros.
-        """
+
         if not hasattr(self.env, "final_target_pos_rel") and not hasattr(
             self.env, "target_pos_rel"
         ):
