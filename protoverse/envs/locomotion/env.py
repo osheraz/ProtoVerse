@@ -87,18 +87,13 @@ class Locomotion(BaseEnv):
         pos = base.root_pos.clone()
         pos[..., 2] += 0.45
         vxy = self.commands[:, :2]
-        speed = torch.linalg.norm(vxy, dim=-1).clamp(min=1e-6)
-        # scale arrow length by |v|
-        scale = torch.tensor(
-            self.visualization_markers[self._vis_key].markers[0].scale,
-            device=self.device,
-        ).repeat(self.num_envs, 1)
-        scale[:, 0] *= 3.0 * speed
+
         # arrow facing along vxy (in base), then to world
         ang = torch.atan2(vxy[:, 1], vxy[:, 0])
         z = torch.zeros_like(ang)
         q_base = rotations.quat_from_euler_xyz(z, z, ang, True)
         q_world = rotations.quat_mul(base.root_rot, q_base, True)
+
         state["steering_markers"] = MarkerState(
             translation=pos.view(self.num_envs, -1, 3),
             orientation=q_world.view(self.num_envs, -1, 4),
