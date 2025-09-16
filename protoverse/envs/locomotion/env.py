@@ -47,7 +47,6 @@ class Locomotion(BaseEnv):
         self._rel_standing_envs = float(
             getattr(self.config, "locomotion_rel_standing_envs", 0.02)
         )
-        self._debug_vis = bool(getattr(self.config, "locomotion_debug_vis", False))
 
         B = self.num_envs
         # ---- command buffers ----
@@ -62,47 +61,47 @@ class Locomotion(BaseEnv):
         # obs buffer like Isaac's "velocity_commands"
         self.velocity_commands_obs = torch.zeros(B, 3, device=self.device)
 
-        # optional arrow markers
-        self._vis_key = "locomotion_cmd_markers"
-
     # ---------- visualization (optional) ----------
     def create_visualization_markers(self):
-        if self.config.headless and not self.config.init_viser:
+        if self.config.headless:
             return {}
-        markers = super().create_visualization_markers()
-        if self._debug_vis:
-            markers[self._vis_key] = VisualizationMarker(
-                type="arrow",
-                color=(0.8, 0.2, 0.6),
-                markers=[MarkerConfig(size="regular")],
-            )
-        return markers
+        visualization_markers = super().create_visualization_markers()
+        steering_markers = []
+        steering_markers["steering_markers"] = VisualizationMarker(
+            type="arrow",
+            color=(0.8, 0.2, 0.6),
+            markers=[MarkerConfig(size="regular")],
+        )
+        visualization_markers["steering_markers"] = steering_markers
+
+        return visualization_markers
 
     def get_markers_state(self):
-        if self.config.headless and not self.config.init_viser:
+        if self.config.headless:
             return {}
+
         state = super().get_markers_state()
-        if self._debug_vis and self._vis_key in self.visualization_markers:
-            base = self.simulator.get_root_state()
-            pos = base.root_pos.clone()
-            pos[..., 2] += 0.45
-            vxy = self.commands[:, :2]
-            speed = torch.linalg.norm(vxy, dim=-1).clamp(min=1e-6)
-            # scale arrow length by |v|
-            scale = torch.tensor(
-                self.visualization_markers[self._vis_key].markers[0].scale,
-                device=self.device,
-            ).repeat(self.num_envs, 1)
-            scale[:, 0] *= 3.0 * speed
-            # arrow facing along vxy (in base), then to world
-            ang = torch.atan2(vxy[:, 1], vxy[:, 0])
-            z = torch.zeros_like(ang)
-            q_base = rotations.quat_from_euler_xyz(z, z, ang, True)
-            q_world = rotations.quat_mul(base.root_rot, q_base, True)
-            state[self._vis_key] = MarkerState(
-                translation=pos.view(self.num_envs, -1, 3),
-                orientation=q_world.view(self.num_envs, -1, 4),
-            )
+
+        base = self.simulator.get_root_state()
+        pos = base.root_pos.clone()
+        pos[..., 2] += 0.45
+        vxy = self.commands[:, :2]
+        speed = torch.linalg.norm(vxy, dim=-1).clamp(min=1e-6)
+        # scale arrow length by |v|
+        scale = torch.tensor(
+            self.visualization_markers[self._vis_key].markers[0].scale,
+            device=self.device,
+        ).repeat(self.num_envs, 1)
+        scale[:, 0] *= 3.0 * speed
+        # arrow facing along vxy (in base), then to world
+        ang = torch.atan2(vxy[:, 1], vxy[:, 0])
+        z = torch.zeros_like(ang)
+        q_base = rotations.quat_from_euler_xyz(z, z, ang, True)
+        q_world = rotations.quat_mul(base.root_rot, q_base, True)
+        state["steering_markers"] = MarkerState(
+            translation=pos.view(self.num_envs, -1, 3),
+            orientation=q_world.view(self.num_envs, -1, 4),
+        )
         return state
 
     # ---------- RL hooks ----------
