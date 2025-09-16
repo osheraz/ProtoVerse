@@ -188,6 +188,7 @@ class RewardManager(BaseComponent):
         tau = self.env.simulator.get_torques()
         if getattr(self.config, "torques_scope", "all") == "legs":
             return torch.sum(tau[:, self.hip_knee_idxs] ** 2, dim=1)
+            # return torch.sum(tau[:, self.leg_idxs] ** 2, dim=1)
         return torch.sum(tau**2, dim=1)
 
     def _reward_dof_acc(self):

@@ -32,7 +32,7 @@ env:
       # misc settings
       feet_air_time_mode: positive_biped
       feet_air_time_threshold: 0.4
-      dof_pos_limits_scope: all
+      dof_pos_limits_scope: ankles
       dof_acc_only_hip_knee: True
       torques_scope: legs
 
@@ -48,11 +48,11 @@ env:
         tracking_ang_vel: 2.0     # exp kernel, world wz vs command wz
         feet_air_time: 0.25
         slippage: -0.1           
-        dof_pos_limits: -10.0
+        dof_pos_limits: -1.0
         orientation: -1.0         
         action_rate: -0.005
-        dof_acc: -1.0e-7         # (hip+knee only via flag)
-        torques: -2.0e-6 # -1.5e-7          # (legs via flag)
+        dof_acc: -1.25e-7         # (hip+knee only via flag)
+        torques: -1.5e-7          # (legs via flag)
         ang_vel_xy: -0.05         # damp roll/pitch rates
         upperbody_joint_angle_freeze_hip:   -0.1
         upperbody_joint_angle_freeze_arms:  -0.1
