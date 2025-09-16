@@ -65,14 +65,15 @@ class Locomotion(BaseEnv):
     def create_visualization_markers(self):
         if self.config.headless:
             return {}
+
         visualization_markers = super().create_visualization_markers()
+
         steering_markers = []
-        steering_markers["steering_markers"] = VisualizationMarker(
-            type="arrow",
-            color=(0.8, 0.2, 0.6),
-            markers=[MarkerConfig(size="regular")],
+        steering_markers.append(MarkerConfig(size="regular"))
+        steering_markers_cfg = VisualizationMarker(
+            type="arrow", color=(0.0, 1.0, 1.0), markers=steering_markers
         )
-        visualization_markers["steering_markers"] = steering_markers
+        visualization_markers["steering_markers"] = steering_markers_cfg
 
         return visualization_markers
 
