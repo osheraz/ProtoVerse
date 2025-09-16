@@ -57,4 +57,4 @@ env:
         upperbody_joint_angle_freeze_hip:   -0.1
         upperbody_joint_angle_freeze_arms:  -0.1
         upperbody_joint_angle_freeze_torso: -0.1
-        lin_vel_z:       -0.2
+        # lin_vel_z:       -0.2

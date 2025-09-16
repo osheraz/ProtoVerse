@@ -71,8 +71,8 @@ robot:
 
   control:
     control_type: proportional
-    use_biased_controller: False  # See default_joint_angles
-    map_actions_to_pd_range: True
+    use_biased_controller: True  
+    map_actions_to_pd_range: False
     # PD Drive parameters:
     stiffness: # [N*m/rad]
       hip_yaw: 200

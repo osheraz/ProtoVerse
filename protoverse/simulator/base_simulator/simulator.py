@@ -255,14 +255,18 @@ class Simulator(ABC):
         self._dof_limits_upper_common = self._dof_limits_upper_sim[
             self.data_conversion.dof_convert_to_common
         ]
-        self._common_pd_action_offset, self._common_pd_action_scale = (
-            build_pd_action_offset_scale(
-                self.robot_config.dof_offsets,
-                self._dof_limits_lower_common,
-                self._dof_limits_upper_common,
-                self.device,
+        if self.robot_config.control.map_actions_to_pd_range:
+
+            self._common_pd_action_offset, self._common_pd_action_scale = (
+                build_pd_action_offset_scale(
+                    self.robot_config.dof_offsets,
+                    self._dof_limits_lower_common,
+                    self._dof_limits_upper_common,
+                    self.device,
+                )
             )
-        )
+        else:
+            self._common_pd_action_scale = 0.25
 
     # -------------------------
     #  Group 3: Simulation Steps & State Management
@@ -291,6 +295,13 @@ class Simulator(ABC):
             markers_state (Dict[str, MarkerState]): Dictionary of marker states.
         """
         self.user_requested_reset = False
+
+        if not self.robot_config.control.map_actions_to_pd_range:
+            assert (
+                self._common_pd_action_scale != 0.25
+                and self.robot_config.control.action_scale == 1.0
+            ), "Invalid action scaling combo "
+
         common_actions = torch.clamp(
             common_actions * self.robot_config.control.action_scale,
             -self.robot_config.control.clamp_actions,
@@ -684,7 +695,7 @@ class Simulator(ABC):
                 self._common_pd_action_offset + self._common_pd_action_scale * action
             )
         else:
-            pd_tar = action
+            pd_tar = action * self._common_pd_action_scale
         return pd_tar
 
     def _create_legged_robot_tensors(self) -> None:
