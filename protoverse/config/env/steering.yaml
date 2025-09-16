@@ -116,18 +116,18 @@ env:
 
         # Isaac-Velocity-Rough-G1-v0
         termination: -200.0
-        tracking_lin_vel: 10.0           # exp kernel, XY (body frame)
-        tracking_ang_vel: 20.0           # exp kernel, wz (world→yaw rule)
-        feet_air_time: 0.25             # positive-biped variant
-        slippage: -0.1                  # = Isaac feet_slide
-        dof_pos_limits: -1.0            # ankles only (scope above)
-        upperbody_joint_angle_freeze_hip:   -0.1
-        upperbody_joint_angle_freeze_arms:  -0.1
-        upperbody_joint_angle_freeze_torso: -0.1
-        orientation: -1.0               # flat_orientation_l2
-        action_rate: -0.005
-        dof_acc: -1.25e-7               # (hip+knee only when flag is True)
-        torques: -1.5e-7                # hip+knee+ankle
-        ang_vel_xy:      -0.05 
+        tracking_lin_vel: 1.0           # exp kernel, XY (body frame)
+        tracking_ang_vel: 1.0           # exp kernel, wz (world→yaw rule)
+        # feet_air_time: 0.25              # 
+        # slippage: -0.1                  # = Isaac feet_slide
+        # dof_pos_limits: -1.0            # 
+        # upperbody_joint_angle_freeze_hip:   -0.1
+        # upperbody_joint_angle_freeze_arms:  -0.1
+        # upperbody_joint_angle_freeze_torso: -0.1
+        # orientation: -1.0               # flat_orientation_l2
+        # action_rate: -0.005
+        # dof_acc: -1.25e-7               # (hip+knee only when flag is True)
+        # torques: -1.5e-7                # hip+knee+ankle
+        # ang_vel_xy: -0.05 
         
 # Globally accessible parameters

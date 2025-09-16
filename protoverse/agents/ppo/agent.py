@@ -614,6 +614,7 @@ class PPO:
             "rewards/task_rewards": self.experience_buffer.rewards.mean().item(),
             "rewards/extra_rewards": self.experience_buffer.extra_rewards.mean().item(),
             "rewards/total_rewards": self.experience_buffer.total_rewards.mean().item(),
+            "actor/mean_action_std": torch.exp(self.model._actor.logstd).mean().item(),
         }
         env_log_dict = self.episode_env_tensors.mean_and_clear()
         env_log_dict = {f"env/{k}": v for k, v in env_log_dict.items()}

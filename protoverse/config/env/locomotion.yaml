@@ -1,0 +1,60 @@
+# @package _global_
+
+defaults:
+  - base_env
+
+# Env structure
+env:
+  _target_: protoverse.envs.locomotion.env.Locomotion   
+  config:
+    enable_height_termination: True
+    with_foot_obs: False
+    max_episode_length: 1000
+
+    # Isaac-style command generator (base-frame [vx, vy, wz])
+    locomotion_command_ranges:
+      lin_vel_x: [0.0, 1.0]       # G1 rough: forward only 
+      lin_vel_y: [-0.0, 0.0]      # G1 rough: no lateral 
+      ang_vel_yaw: [-1.0, 1.0]
+      heading: [-3.14159, 3.14159]
+    locomotion_command_resampling_time: 10.0   # seconds
+    locomotion_heading_command: true           # compute wz from heading error
+    locomotion_heading_control_stiffness: 0.5
+    locomotion_rel_heading_envs: 1.0
+    locomotion_rel_standing_envs: 0.02
+    locomotion_debug_vis: false                # arrows for debug
+
+    reward_config:
+      # global knobs
+      positive_constant: 0.0
+      scale_with_dt: True
+
+      # misc settings
+      feet_air_time_mode: positive_biped
+      feet_air_time_threshold: 0.4
+      dof_pos_limits_scope: all
+      dof_acc_only_hip_knee: True
+      torques_scope: legs
+
+      # robot/terrain targets (G1-ish)
+      target_base_height: 0.78
+      target_feet_height: 0.12
+      close_feet_threshold: 0.15
+
+      # === Isaac G1 Rough–style reward mix ===
+      reward_scales:
+        termination: -200.0
+        tracking_lin_vel: 1.0          # exp kernel, yaw-frame vs command XY
+        tracking_ang_vel: 2.0     # exp kernel, world wz vs command wz
+        feet_air_time: 0.25
+        slippage: -0.1           
+        dof_pos_limits: -10.0
+        orientation: -1.0         
+        action_rate: -0.005
+        dof_acc: -1.0e-7         # (hip+knee only via flag)
+        torques: -2.0e-6 # -1.5e-7          # (legs via flag)
+        ang_vel_xy: -0.05         # damp roll/pitch rates
+        upperbody_joint_angle_freeze_hip:   -0.1
+        upperbody_joint_angle_freeze_arms:  -0.1
+        upperbody_joint_angle_freeze_torso: -0.1
+        lin_vel_z:       -0.2

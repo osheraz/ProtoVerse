@@ -25,13 +25,11 @@
             "program": "${workspaceFolder}/protoverse/train_agent.py",
             "console": "integratedTerminal",
             "args": [
-                "+exp=path_follower_mlp",
+                "+exp=steering_mlp",
                 "+robot=h1",
                 "+simulator=isaaclab",
-                "+experiment_name=h1_test",
-                "+opt=wandb",
+                "+experiment_name=h1_test_debug",
                 "++num_envs=2",
-                "++init_viser=true"
             ],
             "env": {
                 "WANDB_DISABLE_SENTRY": "true",

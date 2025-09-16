@@ -16,7 +16,7 @@ agent:
     gamma: 0.99
     e_clip: 0.2
     clip_critic_loss: True
-    gradient_clip_val: 0
+    gradient_clip_val: 10.0 # TODO: 0.0
     fail_on_bad_grads: False
     check_grad_mag: True
     bounds_loss_coef: 10

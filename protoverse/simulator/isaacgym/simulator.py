@@ -690,7 +690,7 @@ class IsaacGymSimulator(Simulator):
         segmentation_id = 0
 
         start_pose = gymapi.Transform()
-        env_origin = self._gym.get_env_origin(env_ptr)  
+        env_origin = self._gym.get_env_origin(env_ptr)
         if isinstance(self.terrain, FlatTerrain):
             ground_z = 0.0
         else:
@@ -1023,31 +1023,31 @@ class IsaacGymSimulator(Simulator):
 
     def _set_simulator_env_state(self, new_states, env_ids):
         # root & dofs
-        self._humanoid_root_states[env_ids, 0:3]   = new_states.root_pos
-        self._humanoid_root_states[env_ids, 3:7]   = new_states.root_rot
-        self._humanoid_root_states[env_ids, 7:10]  = new_states.root_vel
+        self._humanoid_root_states[env_ids, 0:3] = new_states.root_pos
+        self._humanoid_root_states[env_ids, 3:7] = new_states.root_rot
+        self._humanoid_root_states[env_ids, 7:10] = new_states.root_vel
         self._humanoid_root_states[env_ids, 10:13] = new_states.root_ang_vel
         self._dof_pos[env_ids] = new_states.dof_pos
         self._dof_vel[env_ids] = new_states.dof_vel
 
         # bodies (scatter subset into full buffers)
-        E = env_ids.view(-1, 1)                    # [B,1]
-        S = self._keep_body_idx.view(1, -1)        # [1,Ns]
-        self._rigid_body_pos[E, S, :]     = new_states.rigid_body_pos
-        self._rigid_body_rot[E, S, :]     = new_states.rigid_body_rot
-        self._rigid_body_vel[E, S, :]     = new_states.rigid_body_vel
+        E = env_ids.view(-1, 1)  # [B,1]
+        S = self._keep_body_idx.view(1, -1)  # [1,Ns]
+        self._rigid_body_pos[E, S, :] = new_states.rigid_body_pos
+        self._rigid_body_rot[E, S, :] = new_states.rigid_body_rot
+        self._rigid_body_vel[E, S, :] = new_states.rigid_body_vel
         self._rigid_body_ang_vel[E, S, :] = new_states.rigid_body_ang_vel
 
         # keep reset states in sync
-        self._reset_states.root_pos[env_ids]      = new_states.root_pos
-        self._reset_states.root_rot[env_ids]      = new_states.root_rot
-        self._reset_states.root_vel[env_ids]      = new_states.root_vel
-        self._reset_states.root_ang_vel[env_ids]  = new_states.root_ang_vel
-        self._reset_states.dof_pos[env_ids]       = new_states.dof_pos
-        self._reset_states.dof_vel[env_ids]       = new_states.dof_vel
-        self._reset_states.rigid_body_pos[E, S, :]     = new_states.rigid_body_pos
-        self._reset_states.rigid_body_rot[E, S, :]     = new_states.rigid_body_rot
-        self._reset_states.rigid_body_vel[E, S, :]     = new_states.rigid_body_vel
+        self._reset_states.root_pos[env_ids] = new_states.root_pos
+        self._reset_states.root_rot[env_ids] = new_states.root_rot
+        self._reset_states.root_vel[env_ids] = new_states.root_vel
+        self._reset_states.root_ang_vel[env_ids] = new_states.root_ang_vel
+        self._reset_states.dof_pos[env_ids] = new_states.dof_pos
+        self._reset_states.dof_vel[env_ids] = new_states.dof_vel
+        self._reset_states.rigid_body_pos[E, S, :] = new_states.rigid_body_pos
+        self._reset_states.rigid_body_rot[E, S, :] = new_states.rigid_body_rot
+        self._reset_states.rigid_body_vel[E, S, :] = new_states.rigid_body_vel
         self._reset_states.rigid_body_ang_vel[E, S, :] = new_states.rigid_body_ang_vel
 
         self.reset_env_ids = env_ids
@@ -1182,7 +1182,7 @@ class IsaacGymSimulator(Simulator):
     #     )
 
     def _get_simulator_bodies_state(self, env_ids=None) -> RobotState:
-        keep = self._keep_body_idx  
+        keep = self._keep_body_idx
         body_pos = self._rigid_body_pos[:, keep, :]
         body_rot = self._rigid_body_rot[:, keep, :]
         body_vel = self._rigid_body_vel[:, keep, :]

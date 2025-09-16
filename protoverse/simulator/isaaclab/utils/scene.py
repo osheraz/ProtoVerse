@@ -85,7 +85,7 @@ class SceneCfg(InteractiveSceneCfg):
                 prim_path="/World/envs/env_.*/Robot/bodies/.*",
                 filter_prim_paths_expr=[f"/World/objects/object_{i}" for i in range(0)],
             )
-        elif robot_type in ["h1", "g1", "g1_29dof_anneal_23dof"]:
+        elif robot_type in ["h1", "g1", "g1_29dof_anneal_23dof", "g1_23dof"]:
             init_state = ArticulationCfg.InitialStateCfg(
                 pos=tuple(robot_config.init_state.pos),
                 joint_pos={
@@ -140,7 +140,7 @@ class SceneCfg(InteractiveSceneCfg):
                     actuators=actuators,
                 )
 
-            elif robot_type == "g1_29dof_anneal_23dof":
+            elif robot_type == "g1_23dof":
                 G1_ROBOT_CONFIG = (
                     G1_23_CFG_W_FOOT_SENSOR_CFG
                     if robot_config.with_foot_sensors
@@ -245,8 +245,8 @@ class SceneCfg(InteractiveSceneCfg):
 
         # Terrain properties
         terrain_physics_material = sim_utils.RigidBodyMaterialCfg(
-            friction_combine_mode="average",
-            restitution_combine_mode="average",
+            friction_combine_mode="multiply",  # "average",
+            restitution_combine_mode="multiply",
             static_friction=config.plane.static_friction,
             dynamic_friction=config.plane.dynamic_friction,
             restitution=config.plane.restitution,

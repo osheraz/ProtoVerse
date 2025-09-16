@@ -47,7 +47,7 @@ robot:
   control:
     # Can be "built_in_pd" or "proportional"/"velocity"/"torque" for Proportional, Velocity, Torque control
     control_type: built_in_pd
-    use_biased_controller: False  # See H1 config for an example of what this does
+    use_biased_controller: False 
     map_actions_to_pd_range: True  # Actions assumed to be in [-1, 1] range, are mapped to [dof_min, dof_max] (+ some extra slack to avoid power drops at the limit)
     # PD Drive parameters:
     stiffness: null

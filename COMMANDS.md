@@ -47,9 +47,8 @@ HYDRA_FULL_ERROR=1 python protove rse/train_agent.py +experiment_name=g1_23_t +r
 
 HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=h1_isaac_reward_a +robot=h1 +exp=steering_mlp +simulator=isaaclab +opt=wandb 
 
-HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +robot=g1_29dof_anneal_23dof +exp=steering_mlp +simulator=isaaclab +experiment_name=gh_sim_test
-
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +robot=g1_23 +exp=locomotion_mlp +simulator=isaaclab +opt=wandb +experiment_name=test_loco_2
 
 HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=vsiew +robot=h1 +exp=steering_mlp +simulator=isaacgym ++headless=false ++num_envs=100
 
-HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=vsi323ew +robot=g1_29dof_anneal_23dof +exp=steering_mlp +simulator=isaaclab ++headless=false ++num_envs=100get_env_origin
+HYDRA_FULL_ERROR=1 python protoverse/train_agent.py +experiment_name=vsi323ew +robot=g1_29dof_anneal_23dof +exp=steering_mlp +simulator=isaaclab ++headless=false ++num_envs=100

@@ -60,7 +60,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(dir_path, "../data")
 
 # ---- choose one of: "g1_29", "g1_29_with_sensors", "g1_23"
-VARIANT = "h1"
+VARIANT = "g1_23"
 
 ROBOTS = {
     "g1_29": {
@@ -74,12 +74,12 @@ ROBOTS = {
         "feet": ("left_ankle_roll_link", "right_ankle_roll_link"),
     },
     "g1_23": {
-        "urdf_rel": "assets/urdf/g1_29dof_anneal_23dof.urdf",
+        "urdf_rel": "assets/urdf/g1_23dof.urdf",
         "hands": ("left_elbow_link", "right_elbow_link"),
         "feet": ("left_ankle_roll_link", "right_ankle_roll_link"),
     },
     "g1_23_with_sensors": {
-        "urdf_rel": "assets/urdf/g1_29dof_anneal_23dof_29dof_with_sensors.urdf",
+        "urdf_rel": "assets/urdf/g1_23_29dof_with_sensors.urdf",
         "hands": ("left_elbow_link", "right_elbow_link"),  #  23-DoF has no hand links
         "feet": ("left_ankle_roll_link", "right_ankle_roll_link"),
     },

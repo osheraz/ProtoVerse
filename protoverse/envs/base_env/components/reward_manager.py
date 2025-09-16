@@ -45,7 +45,7 @@ class RewardManager(BaseComponent):
         )
 
         df_state = self.env.default_state
-
+        self.df_pos = df_state.dof_pos
         # TODO: Check if this params are common or sim-specific
         self.last_dof_pos = torch.zeros_like(df_state.dof_pos)
         self.last_dof_vel = torch.zeros_like(df_state.dof_vel)
@@ -54,9 +54,7 @@ class RewardManager(BaseComponent):
             self.env.simulator.get_root_state().root_pos
         )
         self.last_torques = torch.zeros_like(df_state.dof_pos)  # [B, ndof]
-        self._fwd_vec = torch.tensor([1.0, 0.0, 0.0], device=self.env.device).expand(
-            self.env.num_envs, -1
-        )
+        self._fwd_vec = self.env.forward_vec
 
         self.leg_idxs = torch.cat(
             [
@@ -189,7 +187,7 @@ class RewardManager(BaseComponent):
     def _reward_torques(self):
         tau = self.env.simulator.get_torques()
         if getattr(self.config, "torques_scope", "all") == "legs":
-            return torch.sum(tau[:, self.leg_idxs] ** 2, dim=1)
+            return torch.sum(tau[:, self.hip_knee_idxs] ** 2, dim=1)
         return torch.sum(tau**2, dim=1)
 
     def _reward_dof_acc(self):
@@ -265,12 +263,12 @@ class RewardManager(BaseComponent):
 
     def _reward_upperbody_joint_angle_freeze(self):
 
-        default = self.env.simulator._default_dof_pos.to(self.env.device)
-        default = default.expand(self.env.num_envs, -1)
+        # default = self.env.simulator._default_dof_pos.to(self.env.device)
+        # default = default.expand(self.env.num_envs, -1)
 
         return rewards.reward_upperbody_joint_angle_freeze(
             self.dof_state.dof_pos,
-            default,
+            self.df_pos,
             self.env.upper_dof_indices,
         )
 
@@ -306,27 +304,27 @@ class RewardManager(BaseComponent):
         return term_rew
 
     def _reward_upperbody_joint_angle_freeze_hip(self):
-        default = self.env.simulator._default_dof_pos.to(self.env.device).expand(
-            self.env.num_envs, -1
-        )
+        # default = self.env.simulator._default_dof_pos.to(self.env.device).expand(
+        #     self.env.num_envs, -1
+        # )
         return rewards.reward_upperbody_joint_angle_freeze(
-            self.dof_state.dof_pos, default, self.env.hip_joint_indices
+            self.dof_state.dof_pos, self.df_pos, self.env.hip_joint_indices
         )
 
     def _reward_upperbody_joint_angle_freeze_arms(self):
-        default = self.env.simulator._default_dof_pos.to(self.env.device).expand(
-            self.env.num_envs, -1
-        )
+        # default = self.env.simulator._default_dof_pos.to(self.env.device).expand(
+        #     self.env.num_envs, -1
+        # )
         return rewards.reward_upperbody_joint_angle_freeze(
-            self.dof_state.dof_pos, default, self.env.arm_joint_indices
+            self.dof_state.dof_pos, self.df_pos, self.env.arm_joint_indices
         )
 
     def _reward_upperbody_joint_angle_freeze_torso(self):
-        default = self.env.simulator._default_dof_pos.to(self.env.device).expand(
-            self.env.num_envs, -1
-        )
+        # default = self.env.simulator._default_dof_pos.to(self.env.device).expand(
+        #     self.env.num_envs, -1
+        # )
         return rewards.reward_upperbody_joint_angle_freeze(
-            self.dof_state.dof_pos, default, self.env.torso_joint_indices
+            self.dof_state.dof_pos, self.df_pos, self.env.torso_joint_indices
         )
 
     def _reward_orientation(self):
@@ -335,65 +333,64 @@ class RewardManager(BaseComponent):
         )
         return rewards.reward_orientation(projected_gravity)
 
-    def _reward_feet_air_time(self):
+    # def _reward_feet_air_time(self):
 
-        if self.env.config.with_foot_obs:
-            forces = self.env.simulator.get_foot_contact_buf()  # [B, S, 3]
-            z = forces[..., 2]
-            names = [
-                n.lower() for n in self.env.simulator.robot_config.foot_contact_links
-            ]
-            left_idx = [i for i, n in enumerate(names) if "left" in n]
-            right_idx = [i for i, n in enumerate(names) if "right" in n]
-            thresh = 1.0
-            left_contact = (z[:, left_idx] > thresh).any(dim=1)
-            right_contact = (z[:, right_idx] > thresh).any(dim=1)
-            contact = torch.stack([left_contact, right_contact], dim=1)  # [B, 2]
-        else:
-            contact = self.body_contacts[:, self.env.feet_indices, 2] > 1.0
+    #     if self.env.config.with_foot_obs:
+    #         forces = self.env.simulator.get_foot_contact_buf()  # [B, S, 3]
+    #         z = forces[..., 2]
+    #         names = [
+    #             n.lower() for n in self.env.simulator.robot_config.foot_contact_links
+    #         ]
+    #         left_idx = [i for i, n in enumerate(names) if "left" in n]
+    #         right_idx = [i for i, n in enumerate(names) if "right" in n]
+    #         thresh = 1.0
+    #         left_contact = (z[:, left_idx] > thresh).any(dim=1)
+    #         right_contact = (z[:, right_idx] > thresh).any(dim=1)
+    #         contact = torch.stack([left_contact, right_contact], dim=1)  # [B, 2]
+    #     else:
+    #         contact = self.body_contacts[:, self.env.feet_indices, 2] > 1.0
 
-        contact_filt = torch.logical_or(contact, self.last_contacts)
-        self.last_contacts = contact
+    #     contact_filt = torch.logical_or(contact, self.last_contacts)
+    #     self.last_contacts = contact
 
-        mode = getattr(self.config, "feet_air_time_mode", "positive_biped")
-        thr = float(getattr(self.config, "feet_air_time_threshold", 0.4))
-        dt = self.env.dt
+    #     mode = getattr(self.config, "feet_air_time_mode", "positive_biped")
+    #     thr = float(getattr(self.config, "feet_air_time_threshold", 0.4))
+    #     dt = self.env.dt
 
-        if mode == "plain":
-            first_contact = contact_filt * (self.feet_air_time > 0.0)
-            rew = torch.sum((self.feet_air_time - thr) * first_contact.float(), dim=1)
-            rew *= self.env._tar_speed > 0.1
-            self.feet_air_time = torch.where(
-                contact_filt,
-                torch.zeros_like(self.feet_air_time),
-                self.feet_air_time + dt,
-            )
-            return rew
+    #     if mode == "plain":
+    #         first_contact = contact_filt * (self.feet_air_time > 0.0)
+    #         rew = torch.sum((self.feet_air_time - thr) * first_contact.float(), dim=1)
+    #         rew *= self.env._tar_speed > 0.1
+    #         self.feet_air_time = torch.where(
+    #             contact_filt,
+    #             torch.zeros_like(self.feet_air_time),
+    #             self.feet_air_time + dt,
+    #         )
+    #         return rew
 
-        # positive_biped
-        self.feet_contact_time = torch.where(
-            contact_filt,
-            self.feet_contact_time + dt,
-            torch.zeros_like(self.feet_contact_time),
-        )
-        self.feet_air_time = torch.where(
-            ~contact_filt, self.feet_air_time + dt, torch.zeros_like(self.feet_air_time)
-        )
-        single_stance = contact_filt.int().sum(dim=1) == 1
-        in_mode_time = torch.where(
-            contact_filt, self.feet_contact_time, self.feet_air_time
-        )
-        rew = torch.min(
-            torch.where(
-                single_stance.unsqueeze(-1),
-                in_mode_time,
-                torch.zeros_like(in_mode_time),
-            ),
-            dim=1,
-        )[0]
-        rew = torch.clamp(rew, max=thr)
-        rew *= self.env._tar_speed > 0.1
-        return rew
+    #     # positive_biped
+    #     self.feet_contact_time = torch.where(
+    #         contact_filt,
+    #         self.feet_contact_time + dt,
+    #         torch.zeros_like(self.feet_contact_time),
+    #     )
+    #     self.feet_air_time = torch.where(
+    #         ~contact_filt, self.feet_air_time + dt, torch.zeros_like(self.feet_air_time)
+    #     )
+    #     in_contact = self.feet_contact_time > 0.0
+    #     in_mode_time = torch.where(
+    #         in_contact, self.feet_contact_time, self.feet_air_time
+    #     )
+    #     single_stance = in_contact.int().sum(dim=1) == 1
+
+    #     masked = torch.where(
+    #         single_stance.unsqueeze(-1), in_mode_time, torch.zeros_like(in_mode_time)
+    #     )
+    #     reward = masked.min(dim=1)[0]
+    #     reward = torch.clamp(reward, max=thr)
+
+    #     reward *= self.env._tar_speed > 0.1
+    #     return reward
 
     def _reward_dof_pos_limits(self):
 
@@ -416,64 +413,65 @@ class RewardManager(BaseComponent):
             )
         return rewards.reward_dof_pos_limits(self.dof_state.dof_pos, limits)
 
-    def _reward_tracking_lin_vel(self):
-        root_rot = self.root_states.root_rot
-        tar_dir3 = torch.cat(
-            [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
-        )
-        use_yaw = bool(getattr(self.config, "use_yaw_frame_tracking", True))
+    # def _reward_tracking_lin_vel(self):
 
-        if use_yaw:
-            # heading frame (matches IsaacLab mdp.track_lin_vel_xy_yaw_frame_exp)
-            heading_inv = torch_utils.calc_heading_quat_inv(root_rot, True)
-            vel_f = rotations.quat_rotate(
-                heading_inv, self.root_states.root_vel[:, :3], True
-            )[..., :2]
-            v_des_f = rotations.quat_rotate(
-                heading_inv, self.env._tar_speed.unsqueeze(-1) * tar_dir3, True
-            )[..., :2]
-        else:
-            # full body frame
-            vel_f = rotations.quat_rotate_inverse(
-                root_rot, self.root_states.root_vel[:, :3], True
-            )[..., :2]
-            v_des_f = rotations.quat_rotate_inverse(
-                root_rot, self.env._tar_speed.unsqueeze(-1) * tar_dir3, True
-            )[..., :2]
+    #     root_rot = self.root_states.root_rot
+    #     tar_dir3 = torch.cat(
+    #         [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
+    #     )
+    #     use_yaw = bool(getattr(self.config, "use_yaw_frame_tracking", True))
 
-        STD = 0.5
-        err = torch.sum((v_des_f - vel_f) ** 2, dim=-1)
-        return torch.exp(-err / (STD**2))
+    #     if use_yaw:
+    #         # heading frame (matches IsaacLab mdp.track_lin_vel_xy_yaw_frame_exp)
+    #         heading_inv = torch_utils.calc_heading_quat_inv(root_rot, True)
+    #         vel_f = rotations.quat_rotate(
+    #             heading_inv, self.root_states.root_vel[:, :3], True
+    #         )[..., :2]
+    #         v_des_f = rotations.quat_rotate(
+    #             heading_inv, self.env._tar_speed.unsqueeze(-1) * tar_dir3, True
+    #         )[..., :2]
+    #     else:
+    #         # full body frame
+    #         vel_f = rotations.quat_rotate_inverse(
+    #             root_rot, self.root_states.root_vel[:, :3], True
+    #         )[..., :2]
+    #         v_des_f = rotations.quat_rotate_inverse(
+    #             root_rot, self.env._tar_speed.unsqueeze(-1) * tar_dir3, True
+    #         )[..., :2]
 
-    def _reward_tracking_ang_vel(self):
-        ang_w = self.root_states.root_ang_vel  # world frame
-        wz_meas = ang_w[:, 2]  # <-- world z, matches *_world_exp
+    #     STD = 0.5
+    #     err = torch.sum((v_des_f - vel_f) ** 2, dim=-1)
+    #     return torch.exp(-err / (STD**2))
 
-        if getattr(self.env, "_wz_cmd_override", None) is not None:
-            wz_cmd = self.env._wz_cmd_override
-        else:
-            # P-control on heading error (same as IsaacLab’s UniformVelocityCommand)
-            heading_inv = torch_utils.calc_heading_quat_inv(
-                self.root_states.root_rot, True
-            )
-            tar_dir3 = torch.cat(
-                [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
-            )
-            local_tar = rotations.quat_rotate(heading_inv, tar_dir3, True)[..., :2]
-            heading_err = torch.atan2(local_tar[:, 1], local_tar[:, 0])
-            wz_cmd = torch.clamp(0.5 * heading_err, -1.0, 1.0)
+    # def _reward_tracking_ang_vel(self):
+    #     ang_w = self.root_states.root_ang_vel  # world frame
+    #     wz_meas = ang_w[:, 2]  # <-- world z, matches *_world_exp
 
-        STD = 0.5
-        err = (wz_cmd - wz_meas) ** 2
-        return torch.exp(-err / (STD**2))
+    #     if getattr(self.env, "_wz_cmd_override", None) is not None:
+    #         wz_cmd = self.env._wz_cmd_override
+    #     else:
+    #         # P-control on heading error (same as IsaacLab’s UniformVelocityCommand)
+    #         heading_inv = torch_utils.calc_heading_quat_inv(
+    #             self.root_states.root_rot, True
+    #         )
+    #         tar_dir3 = torch.cat(
+    #             [self.env._tar_dir, torch.zeros_like(self.env._tar_dir[:, :1])], dim=1
+    #         )
+    #         local_tar = rotations.quat_rotate(heading_inv, tar_dir3, True)[..., :2]
+    #         heading_err = torch.atan2(local_tar[:, 1], local_tar[:, 0])
+    #         wz_cmd = torch.clamp(0.5 * heading_err, -1.0, 1.0)
+
+    #     STD = 0.5
+    #     err = (wz_cmd - wz_meas) ** 2
+    #     return torch.exp(-err / (STD**2))
 
     def _reward_dof_error(self):
         """
         sum( (q - q_default)^2 )
         """
         q = self.dof_state.dof_pos
-        q0 = self.env.simulator._default_dof_pos.to(self.env.device).expand_as(q)
-        err = q - q0
+        # q0 = self.env.simulator._default_dof_pos.to(self.env.device).expand_as(q)
+        err = q - self.df_pos
         return torch.sum(err * err, dim=1)
 
     def _reward_feet_stumble(self):
@@ -487,51 +485,30 @@ class RewardManager(BaseComponent):
         return stumble.float()
 
     def _reward_tracking_goal_vel(self):
-        eps = 1e-5
-        # measured world XY velocity
-        v_meas_xy = self.root_states.root_vel[:, :2]  # [B,2]
+        """
+        Progress along the commanded XY direction & speed (Isaac-style scalar shaping).
+        """
+        eps = 1e-6
+        v_cmd = self.env.commands[:, :2]
+        cmd_speed = torch.linalg.norm(v_cmd, dim=-1)
+        tgt_unit = v_cmd / (cmd_speed.unsqueeze(-1) + eps)
 
-        # command speed (Steering uses _tar_speed)
-        if hasattr(self.env, "_tar_speed"):
-            cmd_speed = self.env._tar_speed
-        elif hasattr(self.env, "commands"):
-            cmd_speed = self.env.commands[:, 0]
-        else:
-            cmd_speed = torch.norm(v_meas_xy, dim=-1)  # harmless fallback
-
-        # target direction: goal vector if present, else steering dir
-        if hasattr(self.env, "final_target_pos_rel"):
-            tgt = self.env.final_target_pos_rel[:, :2]
-        elif hasattr(self.env, "target_pos_rel"):
-            tgt = self.env.target_pos_rel[:, :2]
-        elif hasattr(self.env, "_tar_dir"):
-            tgt = self.env._tar_dir
-        else:
-            tgt = torch.zeros_like(v_meas_xy)
-
-        tgt_unit = tgt / (torch.norm(tgt, dim=-1, keepdim=True) + eps)
-        proj = torch.sum(tgt_unit * v_meas_xy, dim=-1)  # [B]
+        v_meas_xy = self.root_states.root_vel[:, :2]
+        proj = torch.sum(tgt_unit * v_meas_xy, dim=-1)  # signed progress
         num = torch.minimum(proj, cmd_speed)
         return num / (cmd_speed + eps)
 
     def _reward_tracking_yaw(self):
-
-        # forward axis in local frame, rotated to world
-        fwd = self._fwd_vec  # [B,3] (already on device)
-        fwd_world = rotations.quat_apply(self.root_states.root_rot, fwd, True)
+        """
+        Optional: align base heading to direction of commanded XY velocity.
+        """
+        fwd_world = rotations.quat_apply(
+            self.root_states.root_rot,
+            torch.tensor([1.0, 0.0, 0.0], device=self.env.device),
+            True,
+        )
         yaw_meas = torch.atan2(fwd_world[:, 1], fwd_world[:, 0])
-
-        if hasattr(self.env, "_tar_dir"):
-            yaw_tgt = torch.atan2(self.env._tar_dir[:, 1], self.env._tar_dir[:, 0])
-        elif hasattr(self.env, "final_target_pos_rel"):
-            v = self.env.final_target_pos_rel[:, :2]
-            yaw_tgt = torch.atan2(v[:, 1], v[:, 0])
-        elif hasattr(self.env, "target_pos_rel"):
-            v = self.env.target_pos_rel[:, :2]
-            yaw_tgt = torch.atan2(v[:, 1], v[:, 0])
-        else:
-            yaw_tgt = torch.zeros_like(yaw_meas)
-
+        yaw_tgt = torch.atan2(self.env.commands[:, 1], self.env.commands[:, 0])
         d = torch.abs(torch_utils.wrap_to_pi(yaw_tgt - yaw_meas))
         return torch.exp(-d)
 
@@ -581,7 +558,9 @@ class RewardManager(BaseComponent):
             hip_idx = torch.tensor(hip_idx, device=self.env.device, dtype=torch.long)
 
         q = self.dof_state.dof_pos
-        q0 = self.env.simulator._default_dof_pos.to(self.env.device).expand_as(q)
+        q0 = (
+            self.df_pos
+        )  # self.env.simulator._default_dof_pos.to(self.env.device).expand_as(q)
         err = q[:, hip_idx] - q0[:, hip_idx]
         return torch.sum(err * err, dim=1)
 
@@ -648,3 +627,88 @@ class RewardManager(BaseComponent):
             res += ~(contact ^ is_stance)
 
         return res
+
+    def _reward_tracking_lin_vel(self):
+        """
+        Isaac: track_lin_vel_xy_yaw_frame_exp
+        Compare command (base-frame XY) vs measured yaw-frame XY velocity.
+        """
+        STD = 0.5
+        root_rot = self.root_states.root_rot
+        # gravity-aligned yaw frame
+        heading_inv = torch_utils.calc_heading_quat_inv(root_rot, True)
+        vel_yaw_xy = rotations.quat_rotate(
+            heading_inv, self.root_states.root_vel[:, :3], True
+        )[..., :2]
+        v_des_xy = self.env.commands[:, :2]  # base-frame command (matches Isaac usage)
+        err = torch.sum((v_des_xy - vel_yaw_xy) ** 2, dim=-1)
+        return torch.exp(-err / (STD**2))
+
+    def _reward_tracking_ang_vel(self):
+        """
+        Isaac: track_ang_vel_z_world_exp
+        Compare commanded wz vs measured world wz.
+        """
+        STD = 0.5
+        wz_cmd = self.env.commands[:, 2]
+        wz_meas = self.root_states.root_ang_vel[:, 2]  # world z
+        err = (wz_cmd - wz_meas) ** 2
+        return torch.exp(-err / (STD**2))
+
+    def _reward_feet_air_time(self):
+        """
+        IsaacRoughEnv-Style
+        """
+        if self.env.config.with_foot_obs:
+            forces = self.env.simulator.get_foot_contact_buf()  # [B, S, 3]
+            z = forces[..., 2]
+            names = [
+                n.lower() for n in self.env.simulator.robot_config.foot_contact_links
+            ]
+            left_idx = [i for i, n in enumerate(names) if "left" in n]
+            right_idx = [i for i, n in enumerate(names) if "right" in n]
+            thresh = 1.0
+            left_contact = (z[:, left_idx] > thresh).any(dim=1)
+            right_contact = (z[:, right_idx] > thresh).any(dim=1)
+            contact = torch.stack([left_contact, right_contact], dim=1)
+        else:
+            contact = self.body_contacts[:, self.env.feet_indices, 2] > 1.0
+
+        contact_filt = torch.logical_or(contact, self.last_contacts)
+        self.last_contacts = contact
+
+        mode = getattr(self.config, "feet_air_time_mode", "positive_biped")
+        thr = float(getattr(self.config, "feet_air_time_threshold", 0.4))
+        dt = self.env.dt
+        speed_gate = torch.norm(self.env.commands[:, :2], dim=1) > 0.1
+
+        if mode == "plain":
+            first_contact = contact_filt * (self.feet_air_time > 0.0)
+            rew = torch.sum((self.feet_air_time - thr) * first_contact.float(), dim=1)
+            rew *= speed_gate
+            self.feet_air_time = torch.where(
+                contact_filt,
+                torch.zeros_like(self.feet_air_time),
+                self.feet_air_time + dt,
+            )
+            return rew
+
+        # positive_biped
+        self.feet_contact_time = torch.where(
+            contact_filt,
+            self.feet_contact_time + dt,
+            torch.zeros_like(self.feet_contact_time),
+        )
+        self.feet_air_time = torch.where(
+            ~contact_filt, self.feet_air_time + dt, torch.zeros_like(self.feet_air_time)
+        )
+        in_contact = self.feet_contact_time > 0.0
+        in_mode_t = torch.where(in_contact, self.feet_contact_time, self.feet_air_time)
+        single_stance = in_contact.int().sum(dim=1) == 1
+        masked = torch.where(
+            single_stance.unsqueeze(-1), in_mode_t, torch.zeros_like(in_mode_t)
+        )
+        reward = masked.min(dim=1)[0]
+        reward = torch.clamp(reward, max=thr)
+        reward *= speed_gate
+        return reward

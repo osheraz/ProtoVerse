@@ -1,0 +1,38 @@
+# @package _global_
+
+defaults:
+  - ppo_mlp
+  - /env/locomotion   
+  # - /agent/ppo/models/mlp_actor_terrain
+  # - /agent/ppo/models/mlp_critic_terrain
+  # - /terrain/complex
+
+agent:
+  config:
+    task_reward_w: 1.0
+
+    modules:
+      velocity_commands:
+        _target_: protoverse.agents.common.common.Flatten
+        num_in: 3                 # [vx, vy, wz]
+        num_out: ${.num_in}
+        config:
+          obs_key: velocity_commands
+          normalize_obs: true
+          norm_clamp_value: 5
+
+    model:
+      config:
+        actor:
+          config:
+            mu_model:
+              config:
+                input_models:
+                  velocity_commands: ${agent.config.modules.velocity_commands}
+        critic:
+          config:
+            input_models:
+              velocity_commands: ${agent.config.modules.velocity_commands}
+
+    extra_inputs:
+      velocity_commands: true

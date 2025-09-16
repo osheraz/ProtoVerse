@@ -10,7 +10,7 @@ agent:
           _recursive_: False
           num_out: ${robot.number_of_actions}
           config:
-            actor_logstd: -2.9
+            actor_logstd: -0.2231 # -2.9
             mu_model:
               _target_: protoverse.agents.common.mlp.MultiHeadedMLP
               _recursive_: False
@@ -41,4 +41,4 @@ agent:
 
         actor_optimizer:
           _target_: torch.optim.Adam
-          lr: 2e-5
+          lr: 1e-3 #2e-5 TODO: Osher

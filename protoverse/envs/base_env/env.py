@@ -182,7 +182,9 @@ class BaseEnv:
             device=self.device,
             requires_grad=False,
         )
-
+        self.forward_vec = torch.tensor([1.0, 0.0, 0.0], device=self.device).expand(
+            self.num_envs, -1
+        )
         self.rew_manager = RewardManager(config.reward_config, self)
         self.max_episode_length = self.config.max_episode_length
 

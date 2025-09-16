@@ -105,9 +105,7 @@ class Simulator(ABC):
         # runtime state
         self._global_step = 0  # count *agent* steps (not physics substeps)
         self._auto_record_frames_left = 0
-        self._auto_record_active = (
-            False  # True only for sessions started by the scheduler
-        )
+        self._auto_record_active = False
 
     # -------------------------
     # Group 2: Environment Setup & Configuration
@@ -785,12 +783,17 @@ class Simulator(ABC):
             pd_tar = self._action_to_pd_targets(action)
 
             if self.robot_config.control.use_biased_controller:
+                assert not self.robot_config.control.map_actions_to_pd_range, (
+                    "Invalid config: use_biased_controller=True requires "
+                    "map_actions_to_pd_range=False (otherwise targets are double-biased)."
+                )
                 pd_tar += self._default_dof_pos
 
             torques: torch.Tensor = (
                 self._common_p_gains * (pd_tar - common_dof_state.dof_pos)
                 - self._common_d_gains * common_dof_state.dof_vel
             )
+
         elif self.control_type == ControlType.VELOCITY:
             raise NotImplementedError(
                 "Velocity control is not properly implemented yet."

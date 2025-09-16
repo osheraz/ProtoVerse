@@ -58,19 +58,19 @@ parser.add_argument(
 parser.add_argument(
     "--joint-stiffness",
     type=float,
-    default=100.0,
+    default=0.0,  # 100
     help="The stiffness of the joint drive.",
 )
 parser.add_argument(
     "--joint-damping",
     type=float,
-    default=1.0,
+    default=0.0,
     help="The damping of the joint drive.",
 )
 parser.add_argument(
     "--joint-target-type",
     type=str,
-    default="position",
+    default="none",  # position
     choices=["position", "velocity", "none"],
     help="The type of control to use for the joint drive.",
 )
@@ -104,13 +104,13 @@ def main():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     data_dir = os.path.join(dir_path, "../data")
     # check valid file path
-    urdf_path = Path(f"{data_dir}/assets/urdf/g1_29dof_with_sensors.urdf")
+    urdf_path = Path(f"{data_dir}/assets/urdf/g1_23dof.urdf")
     if not os.path.isabs(urdf_path):
         urdf_path = os.path.abspath(urdf_path)
     if not check_file_path(urdf_path):
         raise ValueError(f"Invalid file path: {urdf_path}")
     # create destination path
-    dest_path = Path(f"{data_dir}/assets/usd/g1_29dof_with_sensors.usd")
+    dest_path = Path(f"{data_dir}/assets/usd/g1_23dof.usd")
     if not os.path.isabs(dest_path):
         dest_path = os.path.abspath(dest_path)
 
