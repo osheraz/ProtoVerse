@@ -107,8 +107,8 @@ robot:
 
   control:
     control_type: proportional
-    use_biased_controller: False
-    map_actions_to_pd_range: True
+    use_biased_controller: True
+    map_actions_to_pd_range: False
     stiffness:
       hip_yaw: 100
       hip_roll: 100

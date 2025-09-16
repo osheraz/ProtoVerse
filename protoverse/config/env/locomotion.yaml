@@ -44,7 +44,7 @@ env:
       # === Isaac G1 Rough–style reward mix ===
       reward_scales:
         termination: -200.0
-        tracking_lin_vel: 1.0          # exp kernel, yaw-frame vs command XY
+        tracking_lin_vel: 3.0          # exp kernel, yaw-frame vs command XY
         tracking_ang_vel: 2.0     # exp kernel, world wz vs command wz
         feet_air_time: 0.25
         slippage: -0.1           
@@ -54,7 +54,8 @@ env:
         dof_acc: -1.25e-7         # (hip+knee only via flag)
         torques: -1.5e-7          # (legs via flag)
         ang_vel_xy: -0.05         # damp roll/pitch rates
-        upperbody_joint_angle_freeze_hip:   -0.1
-        upperbody_joint_angle_freeze_arms:  -0.1
-        upperbody_joint_angle_freeze_torso: -0.1
+        # upperbody_joint_angle_freeze_hip:   -0.1
+        # upperbody_joint_angle_freeze_arms:  -0.1
+        # upperbody_joint_angle_freeze_torso: -0.1
+        upperbody_joint_angle_freeze: -0.2
         # lin_vel_z:       -0.2

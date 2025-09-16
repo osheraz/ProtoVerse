@@ -34,3 +34,13 @@ agent:
     manual_save_every: 100
     max_epochs: ${eval:${training_max_steps}//${ngpu}//${num_envs}//${.num_steps}}
     extra_inputs: null
+
+    # exploration 
+    enable_entropy_bonus: true    # set true to activate
+    entropy_coef: 0.008
+
+    # KL-aware LR 
+    enable_adaptive_kl: true
+    desired_kl: 0.01               # target approx KL (per batch)
+    adaptive_lr_min: 1e-5
+    adaptive_lr_max: 1e-2

@@ -298,7 +298,7 @@ class Simulator(ABC):
 
         if not self.robot_config.control.map_actions_to_pd_range:
             assert (
-                self._common_pd_action_scale != 0.25
+                self._common_pd_action_scale == 0.25
                 and self.robot_config.control.action_scale == 1.0
             ), "Invalid action scaling combo "
 
@@ -723,6 +723,7 @@ class Simulator(ABC):
         default_dof_pos: torch.Tensor = torch.zeros(
             self._num_dof, dtype=torch.float, device=self.device, requires_grad=False
         )
+
         for i in range(self._num_dof):
             name: str = self.robot_config.dof_names[i]
             angle: float = self.robot_config.init_state.default_joint_angles[name]
@@ -790,7 +791,7 @@ class Simulator(ABC):
         )
 
         if self.control_type == ControlType.PROPORTIONAL:
-            # Map action to dof ranges.
+
             pd_tar = self._action_to_pd_targets(action)
 
             if self.robot_config.control.use_biased_controller:

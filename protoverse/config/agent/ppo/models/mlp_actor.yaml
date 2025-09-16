@@ -41,4 +41,4 @@ agent:
 
         actor_optimizer:
           _target_: torch.optim.Adam
-          lr: 1e-4
+          lr: 1e-3 # 4 
