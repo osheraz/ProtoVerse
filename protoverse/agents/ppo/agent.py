@@ -14,7 +14,7 @@ from lightning.fabric import Fabric
 from hydra.utils import instantiate
 from isaac_utils import torch_utils
 
-from protoverse.utils.time_report import TimeReport
+from protoverse.utils.time_report import TimeReport, print_training_panel
 from protoverse.utils.average_meter import AverageMeter, TensorAverageMeterDict
 from protoverse.agents.utils.data_utils import DictDataset, ExperienceBuffer
 from protoverse.agents.ppo.model import PPOModel
@@ -678,6 +678,16 @@ class PPO:
         log_dict.update(training_log_dict)
         self.fabric.log_dict(log_dict)
         self._log_last_mp4_if_updated()
+
+        print_training_panel(
+            log_dict=log_dict,
+            it=int(log_dict.get("epoch", self.current_epoch)),
+            total_epochs=self.config.max_epochs,
+            step_count=self.step_count,
+            fit_start_time=self.fit_start_time,
+            epoch_start_time=self.epoch_start_time,
+            log_dir=getattr(self.fabric.loggers[0], "log_dir", ""),
+        )
 
     def _log_last_mp4_if_updated(self):
 

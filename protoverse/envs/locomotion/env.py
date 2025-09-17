@@ -208,4 +208,4 @@ class Locomotion(BaseEnv):
 
         for rew_name, rew in rew_dict.items():
             self.log_dict[f"raw/{rew_name}_mean"] = rew.mean()
-            self.log_dict[f"raw/{rew_name}_std"] = rew.std()
+            # self.log_dict[f"raw/{rew_name}_std"] = rew.std()
