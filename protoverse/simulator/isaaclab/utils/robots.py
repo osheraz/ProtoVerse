@@ -397,27 +397,6 @@ H1_W_FOOT_SENSOR_CFG = ArticulationCfg(
     soft_joint_pos_limit_factor=0.9,
 )
 
-G1_CFG = ArticulationCfg(
-    spawn=sim_utils.UsdFileCfg(
-        usd_path="protoverse/data/assets/usd/g1.usd",
-        activate_contact_sensors=True,
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
-            disable_gravity=False,
-            retain_accelerations=False,
-            linear_damping=0.0,
-            angular_damping=0.0,
-            max_linear_velocity=1000.0,
-            max_angular_velocity=1000.0,
-            max_depenetration_velocity=1.0,
-        ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=False,
-            solver_position_iteration_count=8,
-            solver_velocity_iteration_count=4,
-        ),
-    ),
-    soft_joint_pos_limit_factor=0.9,
-)
 
 G1_W_FOOT_SENSOR_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
@@ -441,10 +420,57 @@ G1_W_FOOT_SENSOR_CFG = ArticulationCfg(
     soft_joint_pos_limit_factor=0.9,
 )
 
+G1_CFG = ArticulationCfg(
+    spawn=sim_utils.UsdFileCfg(
+        usd_path="protoverse/data/assets/usd/g1.usd",
+        activate_contact_sensors=True,
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            disable_gravity=False,
+            retain_accelerations=False,
+            linear_damping=0.0,
+            angular_damping=0.0,
+            max_linear_velocity=1000.0,
+            max_angular_velocity=1000.0,
+            max_depenetration_velocity=1.0,
+        ),
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=False,
+            solver_position_iteration_count=8,
+            solver_velocity_iteration_count=4,
+        ),
+    ),
+    soft_joint_pos_limit_factor=0.9,
+)
+
+G1_23_CFG = ArticulationCfg(
+    spawn=sim_utils.UsdFileCfg(
+        # usd_path="protoverse/data/assets/usd/g1_23dof.usd",
+        usd_path="/home/osher/ProtoMotions/protoverse/data/assets/usd/g1_23dof_rev_1_0.usd",
+        activate_contact_sensors=True,
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            disable_gravity=False,
+            retain_accelerations=False,
+            linear_damping=0.0,
+            angular_damping=0.0,
+            max_linear_velocity=1000.0,
+            max_angular_velocity=1000.0,
+            max_depenetration_velocity=1.0,
+        ),
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=False,
+            solver_position_iteration_count=8,
+            solver_velocity_iteration_count=4,
+        ),
+    ),
+    soft_joint_pos_limit_factor=0.9,
+)
 
 # G1_23_CFG = ArticulationCfg(
-#     spawn=sim_utils.UsdFileCfg(
-#         usd_path="protoverse/data/assets/usd/g1_23dof.usda",
+#     spawn=sim_utils.UrdfFileCfg(
+#         asset_path="protoverse/data/assets/urdf/g1_23dof.urdf",
+#         fix_base=False,
+#         merge_fixed_joints=True,
+#         replace_cylinders_with_capsules=True,
 #         # usd_path="protoverse/data/assets/usd/g1_29dof_anneal_23dof.usd",
 #         activate_contact_sensors=True,
 #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -457,44 +483,18 @@ G1_W_FOOT_SENSOR_CFG = ArticulationCfg(
 #             max_depenetration_velocity=1.0,
 #         ),
 #         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-#             enabled_self_collisions=False,
+#             enabled_self_collisions=False,  # TODO: False
 #             solver_position_iteration_count=8,
 #             solver_velocity_iteration_count=4,
+#         ),
+#         joint_drive=sim_utils.UrdfConverterCfg.JointDriveCfg(
+#             gains=sim_utils.UrdfConverterCfg.JointDriveCfg.PDGainsCfg(
+#                 stiffness=0, damping=0
+#             )
 #         ),
 #     ),
 #     soft_joint_pos_limit_factor=0.9,
 # )
-
-G1_23_CFG = ArticulationCfg(
-    spawn=sim_utils.UrdfFileCfg(
-        asset_path="protoverse/data/assets/urdf/g1_23dof.urdf",
-        fix_base=False,
-        merge_fixed_joints=True,
-        replace_cylinders_with_capsules=True,
-        # usd_path="protoverse/data/assets/usd/g1_29dof_anneal_23dof.usd",
-        activate_contact_sensors=True,
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
-            disable_gravity=False,
-            retain_accelerations=False,
-            linear_damping=0.0,
-            angular_damping=0.0,
-            max_linear_velocity=1000.0,
-            max_angular_velocity=1000.0,
-            max_depenetration_velocity=1.0,
-        ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=False,  # TODO: False
-            solver_position_iteration_count=8,
-            solver_velocity_iteration_count=4,
-        ),
-        joint_drive=sim_utils.UrdfConverterCfg.JointDriveCfg(
-            gains=sim_utils.UrdfConverterCfg.JointDriveCfg.PDGainsCfg(
-                stiffness=0, damping=0
-            )
-        ),
-    ),
-    soft_joint_pos_limit_factor=0.9,
-)
 
 G1_23_CFG_W_FOOT_SENSOR_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(

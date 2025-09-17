@@ -21,7 +21,14 @@ from protoverse.agents.ppo.model import PPOModel
 from protoverse.agents.common.common import weight_init, get_params
 from protoverse.envs.base_env.env import BaseEnv
 from protoverse.utils.running_mean_std import RunningMeanStd
-from rich.progress import track, Progress
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    MofNCompleteColumn,
+    TimeElapsedColumn,
+)
 from protoverse.agents.ppo.utils import discount_values, bounds_loss
 import os, time, wandb
 from lightning.pytorch.loggers import WandbLogger
@@ -259,65 +266,82 @@ class PPO:
         while self.current_epoch < self.config.max_epochs:
             self.epoch_start_time = time.time()
 
-            # Set networks in eval mode so that normalizers are not updated
             self.eval()
             with torch.no_grad():
                 self.fabric.call("before_play_steps", self)
 
-                for step in track(
-                    range(self.num_steps),
-                    description=f"Epoch {self.current_epoch}, collecting data...",
-                ):
-
-                    obs = self.handle_reset(done_indices)
-                    self.experience_buffer.update_data(
-                        "self_obs", step, obs["self_obs"]
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    MofNCompleteColumn(),
+                    TimeElapsedColumn(),
+                    transient=True,
+                    refresh_per_second=4,
+                ) as collect_pbar:
+                    collect_task = collect_pbar.add_task(
+                        f"Epoch {self.current_epoch} — collecting",
+                        total=self.num_steps,
                     )
 
-                    if self.config.get("extra_inputs", None) is not None:
-                        for key in self.config.extra_inputs:
-                            self.experience_buffer.update_data(key, step, obs[key])
-
-                    action, neglogp, value, act_mean, act_std = (
-                        self.model.get_action_and_value(obs)
-                    )
-                    self.experience_buffer.update_data("actions", step, action)
-                    self.experience_buffer.update_data("neglogp", step, neglogp)
-                    self.experience_buffer.update_data("action_mean", step, act_mean)
-                    self.experience_buffer.update_data("action_std", step, act_std)
-                    if self.config.normalize_values:
-                        value = self.running_val_norm.normalize(value, un_norm=True)
-                    self.experience_buffer.update_data("values", step, value)
-
-                    # Check for NaNs in observations and actions
-                    for key in obs.keys():
-                        if torch.isnan(obs[key]).any():
-                            print(f"NaN in {key}: {obs[key]}")
-                            raise ValueError("NaN in obs")
-                    if torch.isnan(action).any():
-                        raise ValueError(f"NaN in action: {action}")
-
-                    # Step the environment
-                    next_obs, rewards, dones, terminated, extras = self.env_step(action)
-
-                    all_done_indices = dones.nonzero(as_tuple=False)
-                    done_indices = all_done_indices.squeeze(-1)
-
-                    # Update logging metrics with the environment feedback
-                    self.post_train_env_step(rewards, dones, done_indices, extras, step)
-
-                    self.experience_buffer.update_data("rewards", step, rewards)
-                    self.experience_buffer.update_data("dones", step, dones)
-
-                    next_value = self.model._critic(next_obs).flatten()
-                    if self.config.normalize_values:
-                        next_value = self.running_val_norm.normalize(
-                            next_value, un_norm=True
+                    for step in range(self.num_steps):
+                        obs = self.handle_reset(done_indices)
+                        self.experience_buffer.update_data(
+                            "self_obs", step, obs["self_obs"]
                         )
-                    next_value = next_value * (1 - terminated.float())
-                    self.experience_buffer.update_data("next_values", step, next_value)
 
-                    self.step_count += self.get_step_count_increment()
+                        if self.config.get("extra_inputs", None) is not None:
+                            for key in self.config.extra_inputs:
+                                self.experience_buffer.update_data(key, step, obs[key])
+
+                        action, neglogp, value, act_mean, act_std = (
+                            self.model.get_action_and_value(obs)
+                        )
+                        self.experience_buffer.update_data("actions", step, action)
+                        self.experience_buffer.update_data("neglogp", step, neglogp)
+                        self.experience_buffer.update_data(
+                            "action_mean", step, act_mean
+                        )
+                        self.experience_buffer.update_data("action_std", step, act_std)
+                        if self.config.normalize_values:
+                            value = self.running_val_norm.normalize(value, un_norm=True)
+                        self.experience_buffer.update_data("values", step, value)
+
+                        # NaN checks
+                        for key in obs.keys():
+                            if torch.isnan(obs[key]).any():
+                                raise ValueError(f"NaN in obs[{key}]")
+                        if torch.isnan(action).any():
+                            raise ValueError("NaN in action")
+
+                        # Step env
+                        next_obs, rewards, dones, terminated, extras = self.env_step(
+                            action
+                        )
+
+                        all_done_indices = dones.nonzero(as_tuple=False)
+                        done_indices = all_done_indices.squeeze(-1)
+
+                        # Log env feedback
+                        self.post_train_env_step(
+                            rewards, dones, done_indices, extras, step
+                        )
+
+                        self.experience_buffer.update_data("rewards", step, rewards)
+                        self.experience_buffer.update_data("dones", step, dones)
+
+                        next_value = self.model._critic(next_obs).flatten()
+                        if self.config.normalize_values:
+                            next_value = self.running_val_norm.normalize(
+                                next_value, un_norm=True
+                            )
+                        next_value = next_value * (1 - terminated.float())
+                        self.experience_buffer.update_data(
+                            "next_values", step, next_value
+                        )
+
+                        self.step_count += self.get_step_count_increment()
+                        collect_pbar.update(collect_task, advance=1)
 
                 # After data collection, compute rewards, advantages, and returns.
                 rewards = self.experience_buffer.rewards
@@ -360,9 +384,8 @@ class PPO:
                 eval_log_dict, evaluated_score = self.calc_eval_metrics()
                 evaluated_score = self.fabric.broadcast(evaluated_score, src=0)
                 if evaluated_score is not None:
-                    if (
-                        self.best_evaluated_score is None
-                        or evaluated_score >= self.best_evaluated_score
+                    if (self.best_evaluated_score is None) or (
+                        evaluated_score >= self.best_evaluated_score
                     ):
                         self.best_evaluated_score = evaluated_score
                         self.save(new_high_score=True)
@@ -414,15 +437,23 @@ class PPO:
     def optimize_model(self) -> Dict:
         dataset = self.process_dataset(self.experience_buffer.make_dict())
         self.train()
-        training_log_dict = {}
+        training_log_dict: Dict[str, list] = {}
 
-        with Progress() as progress:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            transient=True,
+            refresh_per_second=4,
+        ) as progress:
             task = progress.add_task(
-                f"Epoch {self.current_epoch}, training...",
+                f"Epoch {self.current_epoch} — training",
                 total=self.max_num_batches(),
             )
-            for batch_idx in range(self.max_num_batches()):
 
+            for batch_idx in range(self.max_num_batches()):
                 iter_log_dict = {}
                 dataset_idx = batch_idx % len(dataset)
 
@@ -431,11 +462,10 @@ class PPO:
                     dataset.shuffle()
                 batch_dict = dataset[dataset_idx]
 
-                # Check for NaNs in the batch.
+                # NaN checks
                 for key in batch_dict.keys():
                     if torch.isnan(batch_dict[key]).any():
-                        print(f"NaN in {key}: {batch_dict[key]}")
-                        raise ValueError("NaN in training")
+                        raise ValueError(f"NaN in {key}")
 
                 # Update actor
                 actor_loss, actor_loss_dict = self.actor_step(batch_dict)
@@ -465,6 +495,7 @@ class PPO:
                 )
                 iter_log_dict.update(extra_opt_steps_dict)
 
+                # Aggregate iter logs
                 for k, v in iter_log_dict.items():
                     if k in training_log_dict:
                         training_log_dict[k][0] += v
@@ -478,6 +509,7 @@ class PPO:
                     description=f"Epoch {self.current_epoch}, training... (batch {batch_idx+1}/{self.max_num_batches()})",
                 )
 
+        # Average logs
         for k, v in training_log_dict.items():
             training_log_dict[k] = v[0] / v[1]
 
