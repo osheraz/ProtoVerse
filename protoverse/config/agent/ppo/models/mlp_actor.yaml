@@ -32,13 +32,15 @@ agent:
                   num_out: ${robot.number_of_actions}
                   config:
                     layers:
-                      - units: 1024
-                        activation: tanh
-                        use_layer_norm: false
                       - units: 512
-                        activation: tanh
+                        activation: elu
                         use_layer_norm: false
-
+                      - units: 256
+                        activation: elu
+                        use_layer_norm: false
+                      - units: 128
+                        activation: elu
+                        use_layer_norm: false
         actor_optimizer:
           _target_: torch.optim.Adam
           lr: 1e-3

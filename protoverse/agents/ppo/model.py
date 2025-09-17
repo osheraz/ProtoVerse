@@ -16,7 +16,7 @@ class PPOActor(nn.Module):
 
     def forward(self, input_dict):
         mu = self.mu(input_dict)
-        mu = torch.tanh(mu)
+        # mu = torch.tanh(mu)
         std = torch.exp(self.logstd)
         dist = distributions.Normal(mu, std)
         return dist

@@ -26,13 +26,15 @@ agent:
               num_out: 1
               config:
                 layers:
-                  - units: 1024
-                    activation: relu
-                    use_layer_norm: false
                   - units: 512
-                    activation: relu
+                    activation: elu
                     use_layer_norm: false
-
+                  - units: 256
+                    activation: elu
+                    use_layer_norm: false
+                  - units: 128
+                    activation: elu
+                    use_layer_norm: false
         critic_optimizer:
           _target_: torch.optim.Adam
           lr: 1e-4
