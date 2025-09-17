@@ -230,6 +230,13 @@ class PPO:
         self.experience_buffer.register_key("returns")
         self.experience_buffer.register_key("advantages")
         self.experience_buffer.register_key("neglogp")
+        self.experience_buffer.register_key(
+            "action_mean", shape=(self.env.config.robot.number_of_actions,)
+        )
+        self.experience_buffer.register_key(
+            "action_std", shape=(self.env.config.robot.number_of_actions,)
+        )
+
         self.register_extra_experience_buffer_keys()
 
         if self.config.get("extra_inputs", None) is not None:
@@ -271,9 +278,13 @@ class PPO:
                         for key in self.config.extra_inputs:
                             self.experience_buffer.update_data(key, step, obs[key])
 
-                    action, neglogp, value = self.model.get_action_and_value(obs)
+                    action, neglogp, value, act_mean, act_std = (
+                        self.model.get_action_and_value(obs)
+                    )
                     self.experience_buffer.update_data("actions", step, action)
                     self.experience_buffer.update_data("neglogp", step, neglogp)
+                    self.experience_buffer.update_data("action_mean", step, act_mean)
+                    self.experience_buffer.update_data("action_std", step, act_std)
                     if self.config.normalize_values:
                         value = self.running_val_norm.normalize(value, un_norm=True)
                     self.experience_buffer.update_data("values", step, value)
@@ -504,40 +515,41 @@ class PPO:
         # actor_loss = actor_ppo_loss + b_loss + extra_loss
 
         # --- NEW: entropy bonus ---
-        entropy = torch.tensor(0.0, device=self.device)
-        if getattr(self.config, "enable_entropy_bonus", False):
-            entropy_coef = float(getattr(self.config, "entropy_coef", 0.0))
-            if entropy_coef > 0.0:
-                entropy = (
-                    (0.5 * (1.0 + math.log(2 * math.pi)) + logstd).sum(dim=-1).mean()
-                )
-                actor_loss = (
-                    actor_ppo_loss + b_loss + extra_loss - entropy_coef * entropy
-                )
-            else:
-                actor_loss = actor_ppo_loss + b_loss + extra_loss
-        else:
-            actor_loss = actor_ppo_loss + b_loss + extra_loss
+        entropy = dist.entropy().sum(dim=-1).mean()
+        entropy_coef = float(getattr(self.config, "entropy_coef", 0.0))
+        actor_loss = actor_ppo_loss + b_loss + extra_loss - entropy_coef * entropy
 
         # --- NEW: KL diagnostics + optional adaptive LR ---
-        approx_kl = (neglogp - batch_dict["neglogp"]).mean().detach()
+        old_mu_batch = batch_dict["action_mean"]
+        old_sigma_batch = batch_dict["action_std"]
+        mu_batch = dist.mean
+        sigma_batch = std
+
+        kl_per_dim = (
+            torch.log(sigma_batch / (old_sigma_batch + 1e-8))
+            + (old_sigma_batch.pow(2) + (old_mu_batch - mu_batch).pow(2))
+            / (2.0 * sigma_batch.pow(2) + 1e-8)
+            - 0.5
+        )
+        kl = kl_per_dim.sum(dim=-1)
+        kl_mean = kl.mean().detach()
+
         if getattr(self.config, "enable_adaptive_kl", False):
             desired_kl = getattr(self.config, "desired_kl", None)
-            if desired_kl and desired_kl > 0:
-                with torch.no_grad():
-                    if approx_kl > 2.0 * desired_kl:
-                        factor = 1.0 / 1.5
-                    elif 0.0 < approx_kl < 0.5 * desired_kl:
-                        factor = 1.5
-                    else:
-                        factor = 1.0
-                    if factor != 1.0:
-                        lr_min = float(getattr(self.config, "adaptive_lr_min", 1e-5))
-                        lr_max = float(getattr(self.config, "adaptive_lr_max", 1e-2))
-                        for pg in self.actor_optimizer.param_groups:
-                            pg["lr"] = max(lr_min, min(lr_max, pg["lr"] * factor))
-                        for pg in self.critic_optimizer.param_groups:
-                            pg["lr"] = max(lr_min, min(lr_max, pg["lr"] * factor))
+            if desired_kl and desired_kl > 0.0:
+                if kl_mean > 2.0 * desired_kl:
+                    factor = 1.0 / 1.5
+                elif 0.0 < kl_mean < 0.5 * desired_kl:
+                    factor = 1.5
+                else:
+                    factor = 1.0
+                if factor != 1.0:
+                    lr_min = float(getattr(self.config, "adaptive_lr_min", 1e-5))
+                    lr_max = float(getattr(self.config, "adaptive_lr_max", 1e-2))
+                    for pg in self.actor_optimizer.param_groups:
+                        pg["lr"] = max(lr_min, min(lr_max, pg["lr"] * factor))
+                    for pg in self.critic_optimizer.param_groups:
+                        pg["lr"] = max(lr_min, min(lr_max, pg["lr"] * factor))
 
         log_dict = {
             "actor/ppo_loss": actor_ppo_loss.detach(),
@@ -546,7 +558,7 @@ class PPO:
             "actor/clip_frac": clipped.detach(),
             "losses/actor_loss": actor_loss.detach(),
             "actor/entropy": entropy.detach(),
-            "actor/approx_kl": approx_kl,
+            "actor/kl": kl_mean,
             "actor/lr": self.actor_optimizer.param_groups[0]["lr"],
             "critic/lr": self.critic_optimizer.param_groups[0]["lr"],
         }

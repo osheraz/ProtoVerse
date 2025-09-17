@@ -40,11 +40,12 @@ class PPOModel(nn.Module):
         action = dist.sample()
         value = self._critic(input_dict).flatten()
 
+        mu = dist.mean
         logstd = self._actor.logstd
         std = torch.exp(logstd)
 
-        neglogp = self.neglogp(action, dist.mean, std, logstd)
-        return action, neglogp, value.flatten()
+        neglogp = self.neglogp(action, mu, std, logstd)
+        return action, neglogp, value.flatten(), mu.detach(), std.detach()
 
     def act(self, input_dict: dict, mean: bool = True) -> torch.Tensor:
         dist = self._actor(input_dict)

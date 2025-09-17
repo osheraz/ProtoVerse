@@ -16,7 +16,7 @@ agent:
     gamma: 0.99
     e_clip: 0.2
     clip_critic_loss: True
-    gradient_clip_val: 1.0 # TODO: 0.0
+    gradient_clip_val: 1.0 # 0.0
     fail_on_bad_grads: False
     check_grad_mag: True
     bounds_loss_coef: 10
@@ -36,11 +36,10 @@ agent:
     extra_inputs: null
 
     # exploration 
-    enable_entropy_bonus: true    # set true to activate
-    entropy_coef: 0.008
+    entropy_coef: 0.005
 
     # KL-aware LR 
-    enable_adaptive_kl: true
-    desired_kl: 0.01               # target approx KL (per batch)
+    enable_adaptive_kl: True
+    desired_kl: 0.01              
     adaptive_lr_min: 1e-5
     adaptive_lr_max: 1e-2
