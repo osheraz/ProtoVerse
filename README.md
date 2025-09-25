@@ -1,4 +1,9 @@
 # ProtoVerse: ~
+[![IsaacSim](https://img.shields.io/badge/IsaacSim-4.5.0-silver.svg)](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html)
+[![Isaac Lab](https://img.shields.io/badge/IsaacLab-2.1.0-silver)](https://isaac-sim.github.io/IsaacLab)
+[![Python](https://img.shields.io/badge/python-3.10-blue.svg)](https://docs.python.org/3/whatsnew/3.10.html)
+[![Linux platform](https://img.shields.io/badge/platform-linux--64-orange.svg)](https://releases.ubuntu.com/20.04/)
+<img src="https://img.shields.io/github/last-commit/osheraz/ProtoVerse?style&color=5D6D7E" alt="git-last-commit" />
 
 **ProtoVerse**   
 It merges capabilities from two libraries:
@@ -7,6 +12,13 @@ It merges capabilities from two libraries:
 
 ---
 
+</div>
+<br><br>
+<div align="center">
+  <img src="assets/feet.gif"
+  width="80%">
+</div>
+<br>
 
 # Install Instructions 
 

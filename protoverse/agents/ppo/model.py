@@ -10,7 +10,7 @@ class PPOActor(nn.Module):
         self.config = config
         self.logstd = nn.Parameter(
             torch.ones(num_out) * config.actor_logstd,
-            requires_grad=True,  # TODO: Why?
+            requires_grad=True,
         )
         self.mu: MultiHeadedMLP = instantiate(self.config.mu_model, num_out=num_out)
 

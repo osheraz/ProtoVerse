@@ -3,9 +3,9 @@
 defaults:
   - ppo_mlp
   - /env/locomotion   
-  # - /agent/ppo/models/mlp_actor_terrain
-  # - /agent/ppo/models/mlp_critic_terrain
-  # - /terrain/complex
+  - /agent/ppo/models/mlp_actor_terrain
+  - /agent/ppo/models/mlp_critic_terrain
+  - /terrain/complex
 
 agent:
   config:

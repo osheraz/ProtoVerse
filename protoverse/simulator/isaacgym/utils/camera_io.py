@@ -6,47 +6,6 @@ import numpy as np
 from isaacgym import gymapi, gymtorch
 
 
-# =========================
-# Config dataclasses
-# =========================
-
-# io = IsaacGymMultiCameraIO(
-#     gym=gym, sim=sim, envs=envs, env_origins=env_origins,  # (E,3)
-#     props=CameraProps(width=512, height=512, enable_depth=True, enable_seg=True),
-#     create_mode=CreateWorldFixed(
-#         base_xyz=(0.7, 0.0, 0.5),
-#         base_xyzw=(0, 0.3827, 0, 0.9239),   # example quat (x,y,z,w)
-#         add_env_origin_offset=True,
-#     ),
-#     device="cuda:0",
-# )
-
-# io = IsaacGymMultiCameraIO(
-#     gym=gym, sim=sim, envs=envs, env_origins=env_origins,
-#     props=CameraProps(),
-#     create_mode=CreateLookAt(
-#         eye=(0.8, 0.0, 0.6),
-#         target=(0.5, 0.0, 0.25),
-#         add_env_origin_offset=True,
-#     ),
-# )
-
-# io = IsaacGymMultiCameraIO(
-#     gym=gym, sim=sim, envs=envs, env_origins=env_origins,
-#     props=CameraProps(enable_depth=True),
-#     create_mode=CreateAttach(
-#         local_pos=(0.25, 0.0, 0.15),
-#         local_euler_zyx_rad=(0.0, 0.5, 3.14159),  # or set local_xyzw=(x,y,z,w)
-#         follow_mode=gymapi.FOLLOW_TRANSFORM,
-#     ),
-#     attach_actor_handles=kuka_handles,  # len == num_envs
-# )
-
-# cam_io = IsaacGymSingleCameraIO(
-#     gym, sim, envs[0], width=800, height=600, enable_depth=True
-# )
-
-
 @dataclass
 class CameraProps:
     width: int = 320

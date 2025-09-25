@@ -56,6 +56,60 @@ init_joint_pos = {
     "right_wrist_yaw_joint": 0.0,
 }
 
+init_joint_pos__ = {
+    "left_hip_pitch_joint": -0.2,
+    "left_hip_roll_joint": 0.0,
+    "left_hip_yaw_joint": 0.0,
+    "left_knee_joint": 0.42,
+    "left_ankle_pitch_joint": -0.23,
+    "left_ankle_roll_joint": 0.0,
+    "right_hip_pitch_joint": -0.2,
+    "right_hip_roll_joint": 0.0,
+    "right_hip_yaw_joint": 0.0,
+    "right_knee_joint": 0.42,
+    "right_ankle_pitch_joint": -0.23,
+    "right_ankle_roll_joint": 0.0,
+    "waist_yaw_joint": 0.0,
+    "waist_roll_joint": 0.0,
+    "waist_pitch_joint": 0.0,
+    "left_shoulder_pitch_joint": 0.35,
+    "left_shoulder_roll_joint": 0.16,
+    "left_shoulder_yaw_joint": 0.0,
+    "left_elbow_joint": 0.87,
+    "right_shoulder_pitch_joint": 0.35,
+    "right_shoulder_roll_joint": -0.16,
+    "right_shoulder_yaw_joint": 0.0,
+    "right_elbow_joint": 0.87,
+}
+
+
+init_joint_pos = {
+    "left_hip_pitch_joint": -0.1,
+    "left_hip_roll_joint": 0.0,
+    "left_hip_yaw_joint": 0.0,
+    "left_knee_joint": 0.3,
+    "left_ankle_pitch_joint": -0.2,
+    "left_ankle_roll_joint": 0.0,
+    "right_hip_pitch_joint": -0.1,
+    "right_hip_roll_joint": 0.0,
+    "right_hip_yaw_joint": 0.0,
+    "right_knee_joint": 0.3,
+    "right_ankle_pitch_joint": -0.2,
+    "right_ankle_roll_joint": 0.0,
+    "waist_yaw_joint": 0.0,
+    "waist_roll_joint": 0.0,
+    "waist_pitch_joint": 0.0,
+    "left_shoulder_pitch_joint": 0.0,
+    "left_shoulder_roll_joint": 0.0,
+    "left_shoulder_yaw_joint": 0.0,
+    "left_elbow_joint": 0.0,
+    "right_shoulder_pitch_joint": 0.0,
+    "right_shoulder_roll_joint": 0.0,
+    "right_shoulder_yaw_joint": 0.0,
+    "right_elbow_joint": 0.0,
+}
+
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(dir_path, "../data")
 

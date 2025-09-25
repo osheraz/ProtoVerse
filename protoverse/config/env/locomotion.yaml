@@ -44,18 +44,38 @@ env:
       # === Isaac G1 Rough–style reward mix ===
       reward_scales:
         termination: -200.0
-        tracking_lin_vel: 3.0          # exp kernel, yaw-frame vs command XY
-        tracking_ang_vel: 2.0     # exp kernel, world wz vs command wz
-        feet_air_time: 0.25
-        slippage: -0.1           
-        dof_pos_limits: -1.0
-        orientation: -1.0         
-        action_rate: -0.005
-        dof_acc: -1.25e-7         # (hip+knee only via flag)
-        torques: -1.5e-7          # (legs via flag)
-        ang_vel_xy: -0.05         # damp roll/pitch rates
-        # upperbody_joint_angle_freeze_hip:   -0.1
-        # upperbody_joint_angle_freeze_arms:  -0.1
-        # upperbody_joint_angle_freeze_torso: -0.1
+        # tracking_lin_vel: 3.0          # exp kernel, yaw-frame vs command XY
+        # tracking_ang_vel: 2.0     # exp kernel, world wz vs command wz
+        # feet_air_time: 0.25
+        # slippage: -0.1           
+        # dof_pos_limits: -1.0
+        # orientation: -1.0         
+        # action_rate: -0.005
+        # dof_acc: -1.25e-7         # (hip+knee only via flag)
+        # torques: -1.5e-7          # (legs via flag)
+        # ang_vel_xy: -0.05         # damp roll/pitch rates
+        # # upperbody_joint_angle_freeze_hip:   -0.1
+        # # upperbody_joint_angle_freeze_arms:  -0.1
+        # # upperbody_joint_angle_freeze_torso: -0.1
+        # upperbody_joint_angle_freeze: -0.2
+        # # lin_vel_z:       -0.2
+
+        tracking_lin_vel: 1.0
+        tracking_ang_vel: 0.5
+        lin_vel_z: -2.0
+        ang_vel_xy: -1.0
+        orientation: -1.0
+        torques: -0.00001
+        dof_acc: -3.5e-8
+        action_rate: -0.01
+        slippage: -1.0
+        feet_ori: -2.0
+        dof_pos_limits: -10.0
+        feet_air_time: 1.0
+        base_height: -10.0
+        feet_swing_height: -2.5
         upperbody_joint_angle_freeze: -0.2
-        # lin_vel_z:       -0.2
+        feet_heading_alignment: -0.3
+        penalty_close_feet_xy: -10.
+        penalty_ang_vel_xy_torso: -1.0
+        hip_pos: -1.0

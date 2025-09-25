@@ -361,10 +361,10 @@ class BaseEnv:
 
         term_scale = float(getattr(self.rew_manager, "termination_scale", 0.0))
         if term_scale != 0.0:
-            term_bonus = self.rew_manager._reward_termination()  # [B]
+            term_bonus = self.rew_manager._reward_termination()
             self.rew_buf = self.rew_buf + term_scale * term_bonus
             self.log_dict["raw/termination_mean"] = (term_scale * term_bonus).mean()
-            self.log_dict["raw/termination_std"] = (term_scale * term_bonus).std()
+            # self.log_dict["raw/termination_std"] = (term_scale * term_bonus).std()
 
         self.log_dict["terminate_frac"] = self.terminate_buf.float().mean()
 
